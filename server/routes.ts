@@ -7,6 +7,7 @@ import {
   insertTicketSchema, 
   insertKitSchema, 
   insertAdminSchema,
+  insertInstallationSchema,
   loginSchema 
 } from "@shared/schema";
 
@@ -278,6 +279,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "Admin not found" });
     }
     res.json(admin);
+  });
+
+  // Installations
+  app.get("/api/installations", async (req, res) => {
+    const installations = await storage.getAllInstallations();
+    res.json(installations);
+  });
+
+  app.post("/api/installations", async (req, res) => {
+    try {
+      // Handle form data for file uploads
+      const { storeId, supplierId, responsibleName, installationDate } = req.body;
+      
+      const installationData = {
+        storeId,
+        supplierId,
+        responsibleName,
+        installationDate: new Date(installationDate),
+        photos: [], // For now, we'll store empty array - in production would handle actual files
+        status: "completed" as const
+      };
+
+      const installation = await storage.createInstallation(installationData);
+      res.status(201).json(installation);
+    } catch (error) {
+      console.error("Installation creation error:", error);
+      res.status(400).json({ message: "Invalid installation data" });
+    }
   });
 
   // Dashboard metrics

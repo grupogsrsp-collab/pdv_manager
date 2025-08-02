@@ -5,6 +5,7 @@ import {
   type Ticket, type InsertTicket,
   type Kit, type InsertKit,
   type Admin, type InsertAdmin,
+  type Installation, type InsertInstallation,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -61,6 +62,10 @@ export interface IStorage {
   updateAdmin(id: string, admin: Partial<InsertAdmin>): Promise<Admin | undefined>;
   approveAdmin(id: string): Promise<Admin | undefined>;
   
+  // Installations
+  getAllInstallations(): Promise<Installation[]>;
+  createInstallation(installation: InsertInstallation): Promise<Installation>;
+  
   // Analytics
   getDashboardMetrics(): Promise<{
     completedInstallations: number;
@@ -79,6 +84,7 @@ export class MemStorage implements IStorage {
   private tickets: Map<string, Ticket>;
   private kits: Map<string, Kit>;
   private admins: Map<string, Admin>;
+  private installations: Map<string, Installation>;
 
   constructor() {
     this.users = new Map();
@@ -87,6 +93,7 @@ export class MemStorage implements IStorage {
     this.tickets = new Map();
     this.kits = new Map();
     this.admins = new Map();
+    this.installations = new Map();
     
     // Initialize with some sample data
     this.initializeSampleData();
@@ -468,6 +475,22 @@ export class MemStorage implements IStorage {
     const updated = { ...admin, approved: true };
     this.admins.set(id, updated);
     return updated;
+  }
+
+  // Installations
+  async getAllInstallations(): Promise<Installation[]> {
+    return Array.from(this.installations.values());
+  }
+
+  async createInstallation(installation: InsertInstallation): Promise<Installation> {
+    const id = randomUUID();
+    const newInstallation: Installation = {
+      id,
+      ...installation,
+      createdAt: new Date(),
+    };
+    this.installations.set(id, newInstallation);
+    return newInstallation;
   }
 
   // Analytics

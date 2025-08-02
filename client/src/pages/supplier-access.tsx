@@ -7,12 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { type Supplier } from "@shared/schema";
+import { type Supplier, type Store as StoreType } from "@shared/schema";
 
 export default function SupplierAccess() {
   const [, setLocation] = useLocation();
   const [cnpj, setCnpj] = useState("");
   const [searchedCnpj, setSearchedCnpj] = useState("");
+  const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
+  const [filters, setFilters] = useState({
+    cep: "",
+    address: "",
+    state: "",
+    city: "",
+    code: "",
+  });
   const { toast } = useToast();
 
   const { data: supplier, isLoading, error } = useQuery<Supplier>({
@@ -27,18 +35,62 @@ export default function SupplierAccess() {
     enabled: !!searchedCnpj,
   });
 
+  const { data: stores = [], isLoading: storesLoading } = useQuery<StoreType[]>({
+    queryKey: ["/api/stores/search", filters],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value.trim()) {
+          searchParams.set(key, value.trim());
+        }
+      });
+      
+      const url = searchParams.toString() 
+        ? `/api/stores/search?${searchParams.toString()}`
+        : '/api/stores';
+        
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to search stores');
+      }
+      return response.json();
+    },
+    enabled: !!supplier, // Only search stores after supplier is found
+  });
+
   const handleSearch = () => {
     if (cnpj.trim()) {
       setSearchedCnpj(cnpj.trim());
     }
   };
 
-  const handleAccess = () => {
-    if (supplier) {
-      // Store supplier data for access
+  const handleConfirm = () => {
+    if (supplier && selectedStore) {
+      // Store both supplier and store data
       localStorage.setItem("supplier_access", JSON.stringify(supplier));
-      setLocation("/supplier");
+      localStorage.setItem("selected_store", JSON.stringify(selectedStore));
+      setLocation("/installation-checklist");
+    } else {
+      toast({
+        title: "Seleção incompleta",
+        description: "Por favor, selecione uma loja para continuar.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const formatCep = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    return digits.replace(/(\d{5})(\d)/, "$1-$2").slice(0, 9);
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCep(e.target.value);
+    handleFilterChange("cep", formatted);
   };
 
   const formatCnpj = (value: string) => {
@@ -140,13 +192,127 @@ export default function SupplierAccess() {
                     <p className="text-gray-900">{supplier.address}</p>
                   </div>
                 </div>
-                
-                <Button 
-                  onClick={handleAccess}
-                  className="w-full bg-success hover:bg-success/90 text-white py-3 px-6 rounded-lg font-semibold"
-                >
-                  Acessar Sistema
-                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Store Selection - Only show after supplier is found */}
+          {supplier && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Selecionar Loja para Instalação</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                  <div>
+                    <Label htmlFor="cep" className="block text-sm font-medium text-gray-700 mb-2">
+                      CEP
+                    </Label>
+                    <Input
+                      id="cep"
+                      placeholder="00000-000"
+                      value={filters.cep}
+                      onChange={handleCepChange}
+                      maxLength={9}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                      Nome da Rua
+                    </Label>
+                    <Input
+                      id="address"
+                      placeholder="Ex: Rua das Flores"
+                      value={filters.address}
+                      onChange={(e) => handleFilterChange("address", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                      Estado
+                    </Label>
+                    <Input
+                      id="state"
+                      placeholder="Ex: SP"
+                      value={filters.state}
+                      onChange={(e) => handleFilterChange("state", e.target.value.toUpperCase())}
+                      maxLength={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                      Cidade
+                    </Label>
+                    <Input
+                      id="city"
+                      placeholder="Ex: São Paulo"
+                      value={filters.city}
+                      onChange={(e) => handleFilterChange("city", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+                      Código da Loja
+                    </Label>
+                    <Input
+                      id="code"
+                      placeholder="Ex: 001"
+                      value={filters.code}
+                      onChange={(e) => handleFilterChange("code", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Store Results */}
+                {storesLoading ? (
+                  <div className="text-center py-8">Carregando lojas...</div>
+                ) : (
+                  <div className="space-y-4 mb-6">
+                    {stores.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        Nenhuma loja encontrada com os filtros aplicados.
+                      </div>
+                    ) : (
+                      stores.map((store) => (
+                        <div
+                          key={store.id}
+                          className={`border rounded-lg p-4 cursor-pointer transition duration-200 ${
+                            selectedStore?.id === store.id
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 hover:shadow-md"
+                          }`}
+                          onClick={() => setSelectedStore(store)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">{store.name}</h4>
+                              <p className="text-sm text-gray-600">{store.address}</p>
+                              <p className="text-sm text-gray-500">CEP: {store.cep}</p>
+                              <p className="text-sm text-gray-500">
+                                {store.city}, {store.state}
+                              </p>
+                            </div>
+                            {selectedStore?.id === store.id && (
+                              <div className="text-blue-600 font-medium">
+                                ✓ Selecionada
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {selectedStore && (
+                  <Button 
+                    onClick={handleConfirm}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold"
+                  >
+                    Confirmar e Continuar
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}

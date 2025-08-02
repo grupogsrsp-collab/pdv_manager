@@ -69,6 +69,17 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const installations = pgTable("installations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  storeId: varchar("store_id").notNull().references(() => stores.id),
+  supplierId: varchar("supplier_id").notNull().references(() => suppliers.id),
+  responsibleName: text("responsible_name").notNull(),
+  installationDate: timestamp("installation_date").notNull(),
+  photos: json("photos").$type<string[]>().default([]),
+  status: varchar("status", { length: 20 }).default("completed"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   id: true,
@@ -103,6 +114,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const insertInstallationSchema = createInsertSchema(installations).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
@@ -121,6 +137,9 @@ export type InsertAdmin = z.infer<typeof insertAdminSchema>;
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Installation = typeof installations.$inferSelect;
+export type InsertInstallation = z.infer<typeof insertInstallationSchema>;
 
 // Login schema
 export const loginSchema = z.object({

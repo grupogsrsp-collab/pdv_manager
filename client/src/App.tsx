@@ -40,7 +40,7 @@ function Router() {
         <Route path="/supplier-access" component={SupplierAccess} />
         <Route path="/store-access" component={StoreAccess} />
         <Route path="/supplier" component={SupplierDashboard} />
-        <Route path="/supplier/installation/:storeId" component={InstallationChecklist} />
+        <Route path="/installation-checklist" component={InstallationChecklist} />
         <Route path="/store" component={StoreDashboard} />
         <Route path="/admin">
           <ProtectedRoute allowedRoles={["admin"]}>
