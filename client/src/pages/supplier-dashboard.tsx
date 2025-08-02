@@ -30,6 +30,25 @@ export default function SupplierDashboard() {
 
   const { data: stores = [], isLoading: storesLoading } = useQuery<Store[]>({
     queryKey: ["/api/stores/search", filters],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value.trim()) {
+          searchParams.set(key, value.trim());
+        }
+      });
+      
+      // If no filters are applied, get all stores
+      const url = searchParams.toString() 
+        ? `/api/stores/search?${searchParams.toString()}`
+        : '/api/stores';
+        
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to search stores');
+      }
+      return response.json();
+    },
     enabled: true,
   });
 
@@ -40,6 +59,16 @@ export default function SupplierDashboard() {
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const formatCep = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    return digits.replace(/(\d{5})(\d)/, "$1-$2").slice(0, 9);
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCep(e.target.value);
+    handleFilterChange("cep", formatted);
   };
 
   const handleSelectStore = (storeId: string) => {
@@ -92,31 +121,63 @@ export default function SupplierDashboard() {
         <CardContent>
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-              <Input
-                placeholder="CEP"
-                value={filters.cep}
-                onChange={(e) => handleFilterChange("cep", e.target.value)}
-              />
-              <Input
-                placeholder="Nome da Rua"
-                value={filters.address}
-                onChange={(e) => handleFilterChange("address", e.target.value)}
-              />
-              <Input
-                placeholder="Estado"
-                value={filters.state}
-                onChange={(e) => handleFilterChange("state", e.target.value)}
-              />
-              <Input
-                placeholder="Cidade"
-                value={filters.city}
-                onChange={(e) => handleFilterChange("city", e.target.value)}
-              />
-              <Input
-                placeholder="Código da Loja"
-                value={filters.code}
-                onChange={(e) => handleFilterChange("code", e.target.value)}
-              />
+              <div>
+                <Label htmlFor="cep" className="block text-sm font-medium text-gray-700 mb-2">
+                  CEP
+                </Label>
+                <Input
+                  id="cep"
+                  placeholder="00000-000"
+                  value={filters.cep}
+                  onChange={handleCepChange}
+                  maxLength={9}
+                />
+              </div>
+              <div>
+                <Label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome da Rua
+                </Label>
+                <Input
+                  id="address"
+                  placeholder="Ex: Rua das Flores"
+                  value={filters.address}
+                  onChange={(e) => handleFilterChange("address", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado
+                </Label>
+                <Input
+                  id="state"
+                  placeholder="Ex: SP"
+                  value={filters.state}
+                  onChange={(e) => handleFilterChange("state", e.target.value.toUpperCase())}
+                  maxLength={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                  Cidade
+                </Label>
+                <Input
+                  id="city"
+                  placeholder="Ex: São Paulo"
+                  value={filters.city}
+                  onChange={(e) => handleFilterChange("city", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+                  Código da Loja
+                </Label>
+                <Input
+                  id="code"
+                  placeholder="Ex: 001"
+                  value={filters.code}
+                  onChange={(e) => handleFilterChange("code", e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Store Results */}
