@@ -1,0 +1,132 @@
+Desenvolvimento de Plataforma Web para Gerenciamento de Lojas de Franquias com Dashboard e Chamados
+
+Objetivo: Criar uma plataforma web responsiva, utilizando HTML, CSS, MySQL, e compatibilidade com servidores da Hostinger. A plataforma servirá como uma solução de armazenamento de dados para uma rede de mais de 800 lojas de franquias, com funcionalidades para fornecedores, lojistas e administradores. A plataforma deve permitir o cadastro, visualização de métricas e criação de chamados, além de permitir a customização visual (troca de logo e cores).
+
+Tecnologias
+Front-End: HTML, CSS, JavaScript
+
+Back-End: Node.js, Express (ou similar)
+
+Banco de Dados: MySQL
+
+Hospedagem: Hostinger
+
+Responsividade: Compatível com dispositivos móveis
+
+Funcionalidades Gerais
+Autenticação e Login:
+
+Tela inicial com dois botões de login:
+
+Sou Fornecedor
+
+Sou Lojista
+
+Redirecionamento para telas específicas baseadas na escolha do usuário.
+
+Tela de Cadastro e Busca (Fornecedor):
+
+Campo de busca para encontrar fornecedores pelo CNPJ.
+
+Exibição dos dados do fornecedor (Nome, CNPJ, Responsável, Telefone, Endereço).
+
+Campo para Selecionar Loja, com filtros de busca por CEP, Nome da Rua, Estado, Cidade, Código da Loja.
+
+Exibição de resultados filtrados com botão "Selecionar" para avançar.
+
+Tela de Check List de Instalação (Fornecedor):
+
+Exibição de nome, CNPJ e endereço da loja.
+
+Campos para registrar Nome do Responsável da Loja e Data da Instalação.
+
+Seção para Adicionar Fotos da Loja (6 quadros para upload de fotos).
+
+Botões: Instalação Finalizada (grava no banco e exibe mensagem de sucesso) e Abrir Chamado (formulário para descrição da ocorrência).
+
+Botão Enviar Chamado que registra a ocorrência no banco de dados.
+
+Tela de Cadastro de Lojista:
+
+Exibição de Código da Loja, Endereço, Dados do Fornecedor.
+
+Seção para confirmar a utilização de kits instalados, com opções de Sim e Não.
+
+Exibição de fotos dos kits, com opções de marcar se foram utilizados.
+
+Botão de Finalizar e Abrir Chamado (seguindo a mesma lógica para o fornecedor).
+
+Ambiente de Administração:
+
+Tela de Login ADM para criar um login e senha.
+
+Acesso aprovado por um Administrador Principal.
+
+Acesso a dados do banco de dados, incluindo:
+
+Cadastro e Exclusão de Fornecedores (com valor de orçamento).
+
+Cadastro e Exclusão de Lojas (com manipulação de dados e fotos).
+
+Dashboard de Métricas com relatórios e gráficos de:
+
+Total de lojas com instalação finalizada.
+
+Total de lojas com instalação pendente.
+
+Total de chamados gerados (abertos, resolvidos).
+
+Total de orçamentos cadastrados, kits utilizados.
+
+Tela de Chamados:
+
+Exibição dos Chamados abertos, com filtro para fornecedor ou lojista.
+
+Cada chamado tem um botão Resolvido, que, ao ser clicado, marca como resolvido e registra o nome do usuário e a data/hora.
+
+Upload de Planilha:
+
+Funcionalidade para upload de planilha com dados das lojas, para cadastro em massa de lojas no banco de dados.
+
+Estrutura de Banco de Dados
+Fornecedores:
+
+ID, Nome, CNPJ, Responsável, Telefone, Endereço, Orçamento Aprovado
+
+Lojas:
+
+ID, Nome, Código da Loja, Endereço, Responsável, Fotos, Kits Utilizados
+
+Chamados:
+
+ID, Loja/Fornecedor, Descrição, Status (Aberto/Resolvido), Data e Hora
+
+Kits:
+
+ID, Nome do Kit, Status (Sim/Não)
+
+Admin:
+
+ID, Nome, Email, Senha
+
+Requisitos Especiais:
+Responsividade: A plataforma deve ser totalmente funcional em dispositivos móveis.
+
+Customização Visual: No ambiente de administração, o usuário poderá trocar o logo e a paleta de cores da plataforma.
+
+Segurança: Implementar segurança básica como hash de senhas, autenticação JWT para logins e acesso seguro.
+
+Backup e Recuperação: Sistema de backup de dados do banco de dados.
+
+Replit AI Instruções
+Use as tecnologias mencionadas (HTML, CSS, MySQL, Node.js) para criar a estrutura da plataforma.
+
+Organize as funcionalidades e páginas conforme a descrição acima, garantindo que o fluxo entre telas e dados seja claro.
+
+Utilize o banco de dados MySQL para armazenar informações de fornecedores, lojas, kits, chamados e administradores.
+
+Desenvolva o painel de administração com a capacidade de visualizar relatórios e métricas com gráficos.
+
+Garanta que a plataforma seja completamente responsiva e compatível com a versão mais recente dos navegadores.
+
+Implemente funcionalidades de upload de fotos e planilhas conforme a descrição, utilizando um sistema eficiente para manipulação de arquivos.
