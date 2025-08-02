@@ -1,0 +1,301 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { 
+  insertSupplierSchema, 
+  insertStoreSchema, 
+  insertTicketSchema, 
+  insertKitSchema, 
+  insertAdminSchema,
+  loginSchema 
+} from "@shared/schema";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password, role } = loginSchema.parse(req.body);
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password || user.role !== role) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Get entity data based on role
+      let entityData = null;
+      if (role === "supplier" && user.entityId) {
+        entityData = await storage.getSupplier(user.entityId);
+      } else if (role === "store" && user.entityId) {
+        entityData = await storage.getStore(user.entityId);
+      } else if (role === "admin" && user.entityId) {
+        entityData = await storage.getAdmin(user.entityId);
+        if (!entityData?.approved) {
+          return res.status(403).json({ message: "Admin account not approved" });
+        }
+      }
+
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          entityId: user.entityId,
+        },
+        entity: entityData,
+      });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
+  // Suppliers
+  app.get("/api/suppliers", async (req, res) => {
+    const suppliers = await storage.getAllSuppliers();
+    res.json(suppliers);
+  });
+
+  app.get("/api/suppliers/cnpj/:cnpj", async (req, res) => {
+    const supplier = await storage.getSupplierByCnpj(req.params.cnpj);
+    if (!supplier) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+    res.json(supplier);
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    try {
+      const supplierData = insertSupplierSchema.parse(req.body);
+      const supplier = await storage.createSupplier(supplierData);
+      res.status(201).json(supplier);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid supplier data" });
+    }
+  });
+
+  app.put("/api/suppliers/:id", async (req, res) => {
+    try {
+      const supplierData = insertSupplierSchema.partial().parse(req.body);
+      const supplier = await storage.updateSupplier(req.params.id, supplierData);
+      if (!supplier) {
+        return res.status(404).json({ message: "Supplier not found" });
+      }
+      res.json(supplier);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid supplier data" });
+    }
+  });
+
+  app.delete("/api/suppliers/:id", async (req, res) => {
+    const deleted = await storage.deleteSupplier(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+    res.status(204).send();
+  });
+
+  // Stores
+  app.get("/api/stores", async (req, res) => {
+    const stores = await storage.getAllStores();
+    res.json(stores);
+  });
+
+  app.get("/api/stores/search", async (req, res) => {
+    const filters = {
+      cep: req.query.cep as string,
+      address: req.query.address as string,
+      state: req.query.state as string,
+      city: req.query.city as string,
+      code: req.query.code as string,
+    };
+    
+    // Remove undefined values
+    Object.keys(filters).forEach(key => {
+      if (!filters[key as keyof typeof filters]) {
+        delete filters[key as keyof typeof filters];
+      }
+    });
+    
+    const stores = await storage.searchStores(filters);
+    res.json(stores);
+  });
+
+  app.get("/api/stores/:id", async (req, res) => {
+    const store = await storage.getStore(req.params.id);
+    if (!store) {
+      return res.status(404).json({ message: "Store not found" });
+    }
+    res.json(store);
+  });
+
+  app.post("/api/stores", async (req, res) => {
+    try {
+      const storeData = insertStoreSchema.parse(req.body);
+      const store = await storage.createStore(storeData);
+      res.status(201).json(store);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid store data" });
+    }
+  });
+
+  app.put("/api/stores/:id", async (req, res) => {
+    try {
+      const storeData = insertStoreSchema.partial().parse(req.body);
+      const store = await storage.updateStore(req.params.id, storeData);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      res.json(store);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid store data" });
+    }
+  });
+
+  app.delete("/api/stores/:id", async (req, res) => {
+    const deleted = await storage.deleteStore(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Store not found" });
+    }
+    res.status(204).send();
+  });
+
+  // Complete installation
+  app.post("/api/stores/:id/complete-installation", async (req, res) => {
+    try {
+      const { installerName, installationDate, photos } = req.body;
+      const store = await storage.updateStore(req.params.id, {
+        installationCompleted: true,
+        installerName,
+        installationDate: new Date(installationDate),
+        photos: photos || [],
+      });
+      
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      res.json(store);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid installation data" });
+    }
+  });
+
+  // Tickets
+  app.get("/api/tickets", async (req, res) => {
+    const { type, status } = req.query;
+    
+    let tickets;
+    if (type && status) {
+      const typeTickets = await storage.getTicketsByType(type as string);
+      tickets = typeTickets.filter(ticket => ticket.status === status);
+    } else if (type) {
+      tickets = await storage.getTicketsByType(type as string);
+    } else if (status) {
+      tickets = await storage.getTicketsByStatus(status as string);
+    } else {
+      tickets = await storage.getAllTickets();
+    }
+    
+    res.json(tickets);
+  });
+
+  app.post("/api/tickets", async (req, res) => {
+    try {
+      const ticketData = insertTicketSchema.parse(req.body);
+      const ticket = await storage.createTicket(ticketData);
+      res.status(201).json(ticket);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid ticket data" });
+    }
+  });
+
+  app.put("/api/tickets/:id/resolve", async (req, res) => {
+    const { resolvedBy } = req.body;
+    if (!resolvedBy) {
+      return res.status(400).json({ message: "resolvedBy is required" });
+    }
+    
+    const ticket = await storage.resolveTicket(req.params.id, resolvedBy);
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+    
+    res.json(ticket);
+  });
+
+  // Kits
+  app.get("/api/kits", async (req, res) => {
+    const kits = await storage.getAllKits();
+    res.json(kits);
+  });
+
+  app.get("/api/stores/:storeId/kits", async (req, res) => {
+    const kits = await storage.getKitsByStore(req.params.storeId);
+    res.json(kits);
+  });
+
+  app.post("/api/kits", async (req, res) => {
+    try {
+      const kitData = insertKitSchema.parse(req.body);
+      const kit = await storage.createKit(kitData);
+      res.status(201).json(kit);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid kit data" });
+    }
+  });
+
+  app.put("/api/kits/:id", async (req, res) => {
+    try {
+      const kitData = insertKitSchema.partial().parse(req.body);
+      const kit = await storage.updateKit(req.params.id, kitData);
+      if (!kit) {
+        return res.status(404).json({ message: "Kit not found" });
+      }
+      res.json(kit);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid kit data" });
+    }
+  });
+
+  // Admins
+  app.get("/api/admins", async (req, res) => {
+    const admins = await storage.getAllAdmins();
+    res.json(admins);
+  });
+
+  app.post("/api/admins", async (req, res) => {
+    try {
+      const adminData = insertAdminSchema.parse(req.body);
+      const admin = await storage.createAdmin(adminData);
+      res.status(201).json(admin);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid admin data" });
+    }
+  });
+
+  app.put("/api/admins/:id/approve", async (req, res) => {
+    const admin = await storage.approveAdmin(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+    res.json(admin);
+  });
+
+  // Dashboard metrics
+  app.get("/api/dashboard/metrics", async (req, res) => {
+    const metrics = await storage.getDashboardMetrics();
+    res.json(metrics);
+  });
+
+  // File upload placeholder (in production, would use proper file handling)
+  app.post("/api/upload", async (req, res) => {
+    // This is a placeholder for file upload functionality
+    // In production, you would use multer or similar library
+    res.json({ 
+      message: "File upload not implemented in this demo",
+      files: req.body.files || []
+    });
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
