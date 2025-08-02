@@ -20,6 +20,19 @@ export default function StoreAccess() {
 
   const { data: stores = [], isLoading } = useQuery<StoreType[]>({
     queryKey: ["/api/stores/search", filters],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value.trim()) {
+          searchParams.set(key, value.trim());
+        }
+      });
+      const response = await fetch(`/api/stores/search?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to search stores');
+      }
+      return response.json();
+    },
     enabled: Object.values(filters).some(filter => filter.trim() !== ""),
   });
 

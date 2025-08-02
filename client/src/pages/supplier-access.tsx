@@ -17,6 +17,13 @@ export default function SupplierAccess() {
 
   const { data: supplier, isLoading, error } = useQuery<Supplier>({
     queryKey: ["/api/suppliers/cnpj", searchedCnpj],
+    queryFn: async () => {
+      const response = await fetch(`/api/suppliers/cnpj/${encodeURIComponent(searchedCnpj)}`);
+      if (!response.ok) {
+        throw new Error('Supplier not found');
+      }
+      return response.json();
+    },
     enabled: !!searchedCnpj,
   });
 
