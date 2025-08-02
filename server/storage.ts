@@ -116,52 +116,79 @@ export class MemStorage implements IStorage {
     };
     this.users.set(adminUser.id, adminUser);
 
-    // Create sample supplier
-    const supplierId = randomUUID();
-    const supplier: Supplier = {
-      id: supplierId,
-      name: "Tech Solutions LTDA",
-      cnpj: "12.345.678/0001-90",
-      responsible: "Carlos Mendes",
-      phone: "(11) 99999-9999",
-      address: "Rua das Tecnologias, 100",
-      approvedBudget: "250000.00",
-      createdAt: new Date(),
-    };
-    this.suppliers.set(supplierId, supplier);
+    // Create sample suppliers
+    const suppliers = [
+      {
+        name: "SuperTech Supplies",
+        cnpj: "12.345.678/0001-90",
+        responsible: "João Silva",
+        phone: "(11) 99999-9999",
+        address: "Rua das Indústrias, 100, São Paulo, SP",
+        approvedBudget: "250000.00",
+      },
+      {
+        name: "ABC Ferramentas",
+        cnpj: "98.765.432/0001-10",
+        responsible: "Maria Oliveira",
+        phone: "(11) 98888-8888",
+        address: "Av. Central, 200, Rio de Janeiro, RJ",
+        approvedBudget: "180000.00",
+      }
+    ];
 
-    // Create supplier user
-    const supplierUser: User = {
-      id: randomUUID(),
-      username: "supplier",
-      password: "supplier123",
-      role: "supplier",
-      entityId: supplierId,
-      createdAt: new Date(),
-    };
-    this.users.set(supplierUser.id, supplierUser);
+    suppliers.forEach(supplierData => {
+      const supplierId = randomUUID();
+      const supplier: Supplier = {
+        id: supplierId,
+        ...supplierData,
+        createdAt: new Date(),
+      };
+      this.suppliers.set(supplierId, supplier);
+    });
+
+    // Note: Suppliers will now access directly via CNPJ search, no login required
 
     // Create sample stores
     const stores = [
       {
-        name: "Loja Centro - SP001",
-        code: "SP001",
-        cnpj: "98.765.432/0001-10",
-        address: "Rua das Flores, 123 - Centro",
-        cep: "01234-567",
+        name: "Loja A",
+        code: "001",
+        cnpj: "11.111.111/0001-11",
+        address: "Rua das Flores, 123",
+        cep: "01001-000",
         city: "São Paulo",
         state: "SP",
-        responsible: "Maria Silva",
+        responsible: "Lucas Pereira",
       },
       {
-        name: "Loja Shopping - RJ002",
-        code: "RJ002",
-        cnpj: "11.222.333/0001-44",
-        address: "Av. Principal, 456 - Copacabana",
-        cep: "22000-000",
+        name: "Loja B",
+        code: "002",
+        cnpj: "22.222.222/0001-22",
+        address: "Rua da Paz, 456",
+        cep: "20001-000",
         city: "Rio de Janeiro",
         state: "RJ",
-        responsible: "João Santos",
+        responsible: "Fernanda Costa",
+      },
+      {
+        name: "Loja C",
+        code: "003",
+        cnpj: "33.333.333/0001-33",
+        address: "Rua dos Exemplos, 789",
+        cep: "30001-000",
+        city: "Belo Horizonte",
+        state: "MG",
+        responsible: "João Souza",
+      },
+      {
+        name: "Loja D",
+        code: "004",
+        cnpj: "44.444.444/0001-44",
+        address: "Av. Brasil, 1000",
+        cep: "40001-000",
+        city: "Salvador",
+        state: "BA",
+        responsible: "Ana Lima",
       },
     ];
 
@@ -178,16 +205,23 @@ export class MemStorage implements IStorage {
       };
       this.stores.set(storeId, store);
 
-      // Create store user
-      const storeUser: User = {
-        id: randomUUID(),
-        username: `store${index + 1}`,
-        password: "store123",
-        role: "store",
-        entityId: storeId,
-        createdAt: new Date(),
-      };
-      this.users.set(storeUser.id, storeUser);
+      // Note: Stores will now access directly via store selection, no login required
+      
+      // Create sample kits for stores
+      if (index < 2) { // Only for first two stores
+        const kitNames = ["Kit de Instalação Básico", "Kit de Instalação Completo"];
+        kitNames.forEach((kitName, kitIndex) => {
+          const kitId = randomUUID();
+          const kit: Kit = {
+            id: kitId,
+            name: kitName,
+            used: kitIndex === 1 && index === 0, // Second kit of first store is used
+            storeId: storeId,
+            createdAt: new Date(),
+          };
+          this.kits.set(kitId, kit);
+        });
+      }
     });
   }
 
@@ -202,7 +236,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id, createdAt: new Date() };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: new Date(),
+      entityId: insertUser.entityId || null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -222,7 +261,12 @@ export class MemStorage implements IStorage {
 
   async createSupplier(insertSupplier: InsertSupplier): Promise<Supplier> {
     const id = randomUUID();
-    const supplier: Supplier = { ...insertSupplier, id, createdAt: new Date() };
+    const supplier: Supplier = { 
+      ...insertSupplier, 
+      id, 
+      createdAt: new Date(),
+      approvedBudget: insertSupplier.approvedBudget || null
+    };
     this.suppliers.set(id, supplier);
     return supplier;
   }
@@ -272,7 +316,17 @@ export class MemStorage implements IStorage {
 
   async createStore(insertStore: InsertStore): Promise<Store> {
     const id = randomUUID();
-    const store: Store = { ...insertStore, id, createdAt: new Date() };
+    const store: Store = { 
+      ...insertStore, 
+      id, 
+      createdAt: new Date(),
+      cnpj: insertStore.cnpj || null,
+      responsible: insertStore.responsible || null,
+      photos: insertStore.photos || [],
+      installationCompleted: insertStore.installationCompleted || false,
+      installationDate: insertStore.installationDate || null,
+      installerName: insertStore.installerName || null
+    };
     this.stores.set(id, store);
     return store;
   }
@@ -309,7 +363,13 @@ export class MemStorage implements IStorage {
 
   async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
     const id = randomUUID();
-    const ticket: Ticket = { ...insertTicket, id, createdAt: new Date() };
+    const ticket: Ticket = { 
+      ...insertTicket, 
+      id, 
+      createdAt: new Date(),
+      resolvedBy: null,
+      resolvedAt: null
+    };
     this.tickets.set(id, ticket);
     return ticket;
   }
@@ -352,7 +412,13 @@ export class MemStorage implements IStorage {
 
   async createKit(insertKit: InsertKit): Promise<Kit> {
     const id = randomUUID();
-    const kit: Kit = { ...insertKit, id, createdAt: new Date() };
+    const kit: Kit = { 
+      ...insertKit, 
+      id, 
+      createdAt: new Date(),
+      storeId: insertKit.storeId || null,
+      used: insertKit.used || false
+    };
     this.kits.set(id, kit);
     return kit;
   }

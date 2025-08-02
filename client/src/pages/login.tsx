@@ -28,9 +28,15 @@ export default function Login() {
   });
 
   const handleRoleSelection = (role: string) => {
-    setSelectedRole(role);
-    setShowForm(true);
-    form.setValue("role", role as any);
+    if (role === "supplier") {
+      setLocation("/supplier-access");
+    } else if (role === "store") {
+      setLocation("/store-access");
+    } else {
+      setSelectedRole(role);
+      setShowForm(true);
+      form.setValue("role", role as any);
+    }
   };
 
   const onSubmit = async (data: LoginRequest) => {

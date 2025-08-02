@@ -10,20 +10,24 @@ import SuccessModal from "@/components/modals/success-modal";
 import { type Store, type Kit } from "@shared/schema";
 
 export default function StoreDashboard() {
-  const user = auth.getCurrentUser();
-  const storeId = user?.user.entityId;
+  const [, setLocation] = useLocation();
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [kitUsage, setKitUsage] = useState<Record<string, boolean>>({});
 
-  const { data: store } = useQuery<Store>({
-    queryKey: ["/api/stores", storeId],
-    enabled: !!storeId,
-  });
+  // Get store data from localStorage (set during access)
+  const storeData = localStorage.getItem("store_access");
+  const store: Store | null = storeData ? JSON.parse(storeData) : null;
+
+  // Redirect if no store access
+  if (!store) {
+    setLocation("/store-access");
+    return null;
+  }
 
   const { data: kits = [] } = useQuery<Kit[]>({
-    queryKey: ["/api/stores", storeId, "kits"],
-    enabled: !!storeId,
+    queryKey: ["/api/stores", store.id, "kits"],
+    enabled: !!store.id,
   });
 
   const handleKitToggle = (kitId: string, used: boolean) => {
@@ -34,20 +38,24 @@ export default function StoreDashboard() {
     setShowSuccessModal(true);
   };
 
-  if (!store) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">Carregando dados da loja...</div>
-      </div>
-    );
-  }
+  const handleLogout = () => {
+    localStorage.removeItem("store_access");
+    setLocation("/store-access");
+  };
+
+
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Store Info */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Dados da Loja</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Dados da Loja</CardTitle>
+            <Button variant="outline" onClick={handleLogout}>
+              Trocar Loja
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -105,7 +113,7 @@ export default function StoreDashboard() {
                 <div key={kit.id} className="flex items-center space-x-3 p-3 border rounded-lg">
                   <Checkbox
                     id={kit.id}
-                    checked={kitUsage[kit.id] || kit.used}
+                    checked={kitUsage[kit.id] || kit.used || false}
                     onCheckedChange={(checked) => handleKitToggle(kit.id, checked as boolean)}
                   />
                   <Label htmlFor={kit.id} className="flex-1">
@@ -168,7 +176,7 @@ export default function StoreDashboard() {
         <TicketForm
           open={showTicketForm}
           onClose={() => setShowTicketForm(false)}
-          entityId={storeId!}
+          entityId={store.id}
           entityName={store.name}
           type="store"
         />

@@ -10,8 +10,6 @@ import { type Supplier, type Store } from "@shared/schema";
 
 export default function SupplierDashboard() {
   const [, setLocation] = useLocation();
-  const [cnpj, setCnpj] = useState("");
-  const [searchedCnpj, setSearchedCnpj] = useState("");
   const [filters, setFilters] = useState({
     cep: "",
     address: "",
@@ -20,20 +18,24 @@ export default function SupplierDashboard() {
     code: "",
   });
 
-  const { data: supplier, isLoading: supplierLoading } = useQuery<Supplier>({
-    queryKey: ["/api/suppliers/cnpj", searchedCnpj],
-    enabled: !!searchedCnpj,
-  });
+  // Get supplier data from localStorage (set during access)
+  const supplierData = localStorage.getItem("supplier_access");
+  const supplier: Supplier | null = supplierData ? JSON.parse(supplierData) : null;
+
+  // Redirect if no supplier access
+  if (!supplier) {
+    setLocation("/supplier-access");
+    return null;
+  }
 
   const { data: stores = [], isLoading: storesLoading } = useQuery<Store[]>({
     queryKey: ["/api/stores/search", filters],
-    enabled: !!supplier,
+    enabled: true,
   });
 
-  const handleSearch = () => {
-    if (cnpj.trim()) {
-      setSearchedCnpj(cnpj.trim());
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("supplier_access");
+    setLocation("/supplier-access");
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -46,71 +48,48 @@ export default function SupplierDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Search Section */}
+      {/* Supplier Info Card */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Buscar Fornecedor</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Dados do Fornecedor</CardTitle>
+            <Button variant="outline" onClick={handleLogout}>
+              Trocar Fornecedor
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex space-x-4">
-            <div className="flex-1">
-              <Label htmlFor="cnpj" className="block text-sm font-medium text-gray-700 mb-2">
-                CNPJ
-              </Label>
-              <Input
-                id="cnpj"
-                type="text"
-                placeholder="00.000.000/0000-00"
-                value={cnpj}
-                onChange={(e) => setCnpj(e.target.value)}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="block text-sm font-medium text-gray-700">Nome</Label>
+              <p className="text-gray-900">{supplier.name}</p>
             </div>
-            <div className="flex items-end">
-              <Button onClick={handleSearch} disabled={supplierLoading}>
-                <Search className="h-4 w-4 mr-2" />
-                Buscar
-              </Button>
+            <div>
+              <Label className="block text-sm font-medium text-gray-700">CNPJ</Label>
+              <p className="text-gray-900">{supplier.cnpj}</p>
+            </div>
+            <div>
+              <Label className="block text-sm font-medium text-gray-700">Responsável</Label>
+              <p className="text-gray-900">{supplier.responsible}</p>
+            </div>
+            <div>
+              <Label className="block text-sm font-medium text-gray-700">Telefone</Label>
+              <p className="text-gray-900">{supplier.phone}</p>
+            </div>
+            <div className="md:col-span-2">
+              <Label className="block text-sm font-medium text-gray-700">Endereço</Label>
+              <p className="text-gray-900">{supplier.address}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Supplier Info Card */}
-      {supplier && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Dados do Fornecedor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="block text-sm font-medium text-gray-700">Nome</Label>
-                <p className="text-gray-900">{supplier.name}</p>
-              </div>
-              <div>
-                <Label className="block text-sm font-medium text-gray-700">CNPJ</Label>
-                <p className="text-gray-900">{supplier.cnpj}</p>
-              </div>
-              <div>
-                <Label className="block text-sm font-medium text-gray-700">Responsável</Label>
-                <p className="text-gray-900">{supplier.responsible}</p>
-              </div>
-              <div>
-                <Label className="block text-sm font-medium text-gray-700">Telefone</Label>
-                <p className="text-gray-900">{supplier.phone}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Store Selection */}
-      {supplier && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Selecionar Loja</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Selecionar Loja para Instalação</CardTitle>
+        </CardHeader>
+        <CardContent>
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
               <Input
@@ -178,7 +157,6 @@ export default function SupplierDashboard() {
             )}
           </CardContent>
         </Card>
-      )}
     </div>
   );
 }

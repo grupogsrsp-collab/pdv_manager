@@ -1,0 +1,100 @@
+Esse erro está relacionado à falta de um valor para o Select.Item. O problema precisa ser corrigido para que o Select.Item tenha um valor válido e não vazio. Por favor, revise o código do componente de seleção para garantir que o valor esteja sendo passado corretamente.
+
+Dados Fictícios para Teste de Funcionalidades
+
+Aqui estão os dados fictícios que você pode usar para testar todos os campos e garantir que as telas funcionem corretamente:
+
+Dados de Fornecedores:
+Fornecedor 1:
+
+CNPJ: 12.345.678/0001-90
+
+Nome do Fornecedor: SuperTech Supplies
+
+Responsável: João Silva
+
+Telefone: (11) 99999-9999
+
+Endereço: Rua das Indústrias, 100, São Paulo, SP, CEP: 01000-000
+
+Fornecedor 2:
+
+CNPJ: 98.765.432/0001-10
+
+Nome do Fornecedor: ABC Ferramentas
+
+Responsável: Maria Oliveira
+
+Telefone: (11) 98888-8888
+
+Endereço: Av. Central, 200, Rio de Janeiro, RJ, CEP: 20000-000
+
+Dados de Lojas:
+Loja 1:
+
+Código da Loja: 001
+
+Nome da Loja: Loja A
+
+Responsável: Lucas Pereira
+
+Endereço: Rua das Flores, 123, São Paulo, SP, CEP: 01001-000
+
+Fotos da Loja: [Imagem 1], [Imagem 2], [Imagem 3]
+
+Loja 2:
+
+Código da Loja: 002
+
+Nome da Loja: Loja B
+
+Responsável: Fernanda Costa
+
+Endereço: Rua da Paz, 456, Rio de Janeiro, RJ, CEP: 20001-000
+
+Fotos da Loja: [Imagem 4], [Imagem 5], [Imagem 6]
+
+Dados de Kits:
+Kit 1:
+
+Nome do Kit: Kit de Instalação Básico
+
+Status: Não Utilizado
+
+Kit 2:
+
+Nome do Kit: Kit de Instalação Completo
+
+Status: Utilizado
+
+Chamados:
+Chamado 1:
+
+Fornecedor: SuperTech Supplies
+
+Loja: Loja A
+
+Descrição: Falha no fornecimento de material.
+
+Status: Aberto
+
+Chamado 2:
+
+Fornecedor: ABC Ferramentas
+
+Loja: Loja B
+
+Descrição: Problema na instalação do kit.
+
+Status: Aberto
+
+Planilha de Lojas para Upload:
+Colunas: Código da Loja, Nome da Loja, Endereço, Responsável, Telefone
+
+Exemplo de dados:
+
+003, Loja C, Rua dos Exemplos, 789, João Souza, (21) 98877-7777
+
+004, Loja D, Av. Brasil, 1000, Ana Lima, (21) 97766-6666
+
+Esses dados devem ser usados para testar as funcionalidades da plataforma, incluindo a busca de fornecedores e lojas, o preenchimento dos formulários, o funcionamento do dashboard, e a resolução dos chamados.

@@ -151,28 +151,28 @@ export default function AdminDashboard() {
         <h1 className="text-2xl font-bold text-gray-900">Gerenciar Chamados</h1>
         <div className="flex space-x-4">
           <Select
-            value={ticketFilters.type}
-            onValueChange={(value) => setTicketFilters(prev => ({ ...prev, type: value }))}
+            value={ticketFilters.type || "all"}
+            onValueChange={(value) => setTicketFilters(prev => ({ ...prev, type: value === "all" ? "" : value }))}
           >
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="supplier">Fornecedor</SelectItem>
               <SelectItem value="store">Lojista</SelectItem>
             </SelectContent>
           </Select>
           
           <Select
-            value={ticketFilters.status}
-            onValueChange={(value) => setTicketFilters(prev => ({ ...prev, status: value }))}
+            value={ticketFilters.status || "all"}
+            onValueChange={(value) => setTicketFilters(prev => ({ ...prev, status: value === "all" ? "" : value }))}
           >
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Todos Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos Status</SelectItem>
+              <SelectItem value="all">Todos Status</SelectItem>
               <SelectItem value="open">Aberto</SelectItem>
               <SelectItem value="resolved">Resolvido</SelectItem>
             </SelectContent>

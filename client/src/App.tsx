@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { auth } from "@/lib/auth";
 import Login from "@/pages/login";
+import SupplierAccess from "@/pages/supplier-access";
+import StoreAccess from "@/pages/store-access";
 import SupplierDashboard from "@/pages/supplier-dashboard";
 import InstallationChecklist from "@/pages/installation-checklist";
 import StoreDashboard from "@/pages/store-dashboard";
@@ -35,21 +37,11 @@ function Router() {
       {user && <Header />}
       <Switch>
         <Route path="/" component={Login} />
-        <Route path="/supplier">
-          <ProtectedRoute allowedRoles={["supplier"]}>
-            <SupplierDashboard />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/supplier/installation/:storeId">
-          <ProtectedRoute allowedRoles={["supplier"]}>
-            <InstallationChecklist />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/store">
-          <ProtectedRoute allowedRoles={["store"]}>
-            <StoreDashboard />
-          </ProtectedRoute>
-        </Route>
+        <Route path="/supplier-access" component={SupplierAccess} />
+        <Route path="/store-access" component={StoreAccess} />
+        <Route path="/supplier" component={SupplierDashboard} />
+        <Route path="/supplier/installation/:storeId" component={InstallationChecklist} />
+        <Route path="/store" component={StoreDashboard} />
         <Route path="/admin">
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminDashboard />
