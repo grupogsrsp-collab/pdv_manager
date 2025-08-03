@@ -4,9 +4,9 @@ async function testConnection() {
   console.log('🔄 Testando conexão com MySQL da Hostinger...');
   
   const config = {
-    host: 'rodrigoxavierdossant1751244133466.0651190.meusitehostgator.com.br',
+    host: '162.241.203.65',
     port: 3306,
-    user: 'pdv_manager',
+    user: 'rodr1657_pdv_manager',
     password: 'Pdv429610!',
     database: 'rodr1657_pdv_manager',
     connectTimeout: 30000,

@@ -22,6 +22,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("❌ Falha na conexão com MySQL:", error);
   }
 
+  // Test connection endpoint
+  app.get("/api/test-connection", async (req, res) => {
+    try {
+      const isConnected = await testConnection();
+      if (isConnected) {
+        res.json({ status: "success", message: "Conexão com MySQL ativa", timestamp: new Date().toISOString() });
+      } else {
+        res.status(500).json({ status: "error", message: "Falha na conexão com MySQL" });
+      }
+    } catch (error) {
+      res.status(500).json({ status: "error", message: "Erro interno do servidor" });
+    }
+  });
+
   // Supplier authentication by CNPJ
   app.post("/api/suppliers/auth", async (req, res) => {
     try {

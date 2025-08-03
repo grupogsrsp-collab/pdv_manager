@@ -2,19 +2,14 @@ import mysql from 'mysql2/promise';
 
 // Configuração de conexão com MySQL da Hostinger
 const dbConfig = {
-  host: 'rodrigoxavierdossant1751244133466.0651190.meusitehostgator.com.br',
+  host: '162.241.203.65',
   port: 3306,
-  user: 'pdv_manager',
+  user: 'rodr1657_pdv_manager',
   password: 'Pdv429610!',
   database: 'rodr1657_pdv_manager',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  acquireTimeout: 60000,
-  timeout: 60000,
-  ssl: false,
-  connectTimeout: 30000,
-  socketPath: undefined
+  queueLimit: 0
 };
 
 // Pool de conexões para melhor performance
