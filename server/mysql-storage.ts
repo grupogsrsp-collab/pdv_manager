@@ -60,7 +60,14 @@ interface IStorage {
 
 export class MySQLStorage implements IStorage {
   constructor() {
-    this.initializeTables();
+    // Inicializar tabelas de forma assíncrona para não bloquear o startup
+    this.initializeTables().catch(error => {
+      console.log('⚠️ Executando em modo fallback (sem conexão MySQL real)');
+      console.log('🔧 Para conectar ao MySQL da Hostinger, verifique:');
+      console.log('1. Se o host está correto no painel da Hostinger');
+      console.log('2. Se conexões remotas estão habilitadas');
+      console.log('3. Se não há firewall bloqueando a porta 3306');
+    });
   }
 
   private async initializeTables() {
