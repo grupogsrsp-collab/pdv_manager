@@ -25,10 +25,10 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: REST endpoints organized by resource type with consistent error handling and logging
 
 ### Data Storage Architecture
-- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
-- **Schema**: Shared TypeScript schema definitions between client and server using Drizzle and Zod
-- **Migration Strategy**: Drizzle Kit for database schema migrations and version control
-- **Data Modeling**: Relational design with entities for suppliers, stores, tickets, kits, admins, and users
+- **Database**: MySQL (Hostinger) with custom storage implementation for franchise management
+- **Connection**: mysql2 package for database connectivity with connection pooling
+- **Schema**: Custom TypeScript interfaces aligned with MySQL table structure
+- **Data Modeling**: Relational design with dedicated tables for fornecedores, lojas, kits, chamados, admins, fotos, and instalacoes
 
 ### Authentication & Authorization
 - **Strategy**: Session-based authentication with role-based access control
