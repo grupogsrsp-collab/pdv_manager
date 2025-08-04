@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./mysql-storage";
+import * as fs from "fs";
+import * as path from "path";
 import { testConnection } from "./mysql-db";
 import { 
   insertSupplierSchema, 
@@ -584,18 +586,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download page
-  app.get("/download", async (req, res) => {
-    const fs = await import("fs");
-    const path = await import("path");
-    const downloadPage = fs.readFileSync(path.join(process.cwd(), 'download.html'), 'utf8');
-    res.send(downloadPage);
+  app.get("/download", (req, res) => {
+    try {
+      const downloadPage = fs.readFileSync(path.join(process.cwd(), 'download.html'), 'utf8');
+      res.send(downloadPage);
+    } catch (error) {
+      console.error("Error serving download page:", error);
+      res.status(500).send("Erro ao carregar página de download");
+    }
   });
 
   // Download file endpoint
-  app.get("/download-file", async (req, res) => {
-    const path = await import("path");
-    const filePath = path.join(process.cwd(), 'sistema-gestao-franquias-hostinger.tar.gz');
-    res.download(filePath, 'sistema-gestao-franquias-hostinger.tar.gz');
+  app.get("/download-file", (req, res) => {
+    try {
+      const filePath = path.join(process.cwd(), 'sistema-gestao-franquias-hostinger.tar.gz');
+      
+      // Verificar se arquivo existe
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send("Arquivo não encontrado");
+      }
+      
+      res.download(filePath, 'sistema-gestao-franquias-hostinger.tar.gz', (err) => {
+        if (err) {
+          console.error("Error downloading file:", err);
+          res.status(500).send("Erro ao baixar arquivo");
+        }
+      });
+    } catch (error) {
+      console.error("Error serving download file:", error);
+      res.status(500).send("Arquivo não encontrado");
+    }
   });
 
   return createServer(app);
