@@ -166,7 +166,7 @@ export const insertTicketSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   status: z.string().default("aberto"),
   loja_id: z.number().positive("ID da loja é obrigatório"),
-  fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
+  fornecedor_id: z.number().optional(), // Tornando opcional para chamados de lojas
   data_abertura: z.date().optional(),
 });
 

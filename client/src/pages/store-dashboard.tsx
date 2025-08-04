@@ -173,10 +173,10 @@ export default function StoreDashboard() {
                       <CardTitle className="text-lg">{kit.nome_peca}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {kit.image ? (
+                      {kit.image_url ? (
                         <div className="aspect-square bg-gray-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
                           <img 
-                            src={kit.image} 
+                            src={kit.image_url} 
                             alt={kit.nome_peca}
                             className="w-full h-full object-cover"
                           />

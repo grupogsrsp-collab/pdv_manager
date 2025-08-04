@@ -35,16 +35,23 @@ export default function TicketForm({ open, onClose, entityId, entityName, type }
 
   const createTicketMutation = useMutation({
     mutationFn: async (data: TicketFormData) => {
-      // Get supplier data from localStorage to get fornecedor_id
-      const supplierData = localStorage.getItem("supplier_access");
-      const supplier = supplierData ? JSON.parse(supplierData) : null;
-      
-      return apiRequest("POST", "/api/tickets", {
+      const payload: any = {
         descricao: data.description,
         status: "aberto",
-        loja_id: parseInt(entityId), // Convert store ID to number
-        fornecedor_id: supplier?.id || 0,
-      });
+        loja_id: parseInt(entityId),
+      };
+
+      // Only add fornecedor_id if this is a supplier ticket
+      if (type === "supplier") {
+        const supplierData = localStorage.getItem("supplier_access");
+        const supplier = supplierData ? JSON.parse(supplierData) : null;
+        payload.fornecedor_id = supplier?.id || 1; // Default to 1 if no supplier
+      } else {
+        // For store tickets, we can set a default fornecedor_id or leave it null
+        payload.fornecedor_id = 1; // Default supplier ID
+      }
+      
+      return apiRequest("POST", "/api/tickets", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });

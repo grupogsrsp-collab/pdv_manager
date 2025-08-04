@@ -216,6 +216,34 @@ export class MySQLStorage implements IStorage {
           );
         }
       }
+
+      // Inserir kits de exemplo
+      const [kitRows] = await pool.execute(
+        'SELECT COUNT(*) as count FROM kits'
+      ) as [RowDataPacket[], any];
+      
+      if (kitRows[0].count <= 1) {
+        // Limpar dados antigos se houver apenas 1 ou menos
+        await pool.execute('DELETE FROM kits');
+        
+        const kits = [
+          ['Kit Básico de Instalação', 'Kit com ferramentas básicas para instalação', 'https://via.placeholder.com/300x300/4F46E5/FFFFFF?text=Kit+Básico'],
+          ['Cabo HDMI Premium', 'Cabo HDMI 4K de alta qualidade 2 metros', 'https://via.placeholder.com/300x300/059669/FFFFFF?text=Cabo+HDMI'],
+          ['Suporte de Parede Universal', 'Suporte ajustável para TVs de 32" a 65"', 'https://via.placeholder.com/300x300/DC2626/FFFFFF?text=Suporte'],
+          ['Kit de Parafusos', 'Conjunto completo de parafusos e buchas', 'https://via.placeholder.com/300x300/7C2D12/FFFFFF?text=Parafusos'],
+          ['Organizador de Cabos', 'Sistema de organização para cabos', 'https://via.placeholder.com/300x300/1F2937/FFFFFF?text=Organizador'],
+          ['Testador de Sinal', 'Equipamento para teste de sinal digital', 'https://via.placeholder.com/300x300/7C3AED/FFFFFF?text=Testador']
+        ];
+
+        for (const kit of kits) {
+          await pool.execute(
+            `INSERT INTO kits (nome_peca, descricao, image_url, sim, nao) 
+             VALUES (?, ?, ?, 0, 0)`,
+            kit
+          );
+        }
+        console.log('✅ 6 kits de exemplo inseridos com sucesso!');
+      }
       
       console.log('✅ Dados de exemplo inseridos com sucesso!');
     } catch (error) {
