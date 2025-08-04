@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,7 @@ export default function StoreDashboard() {
   const [, setLocation] = useLocation();
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [currentKitIndex, setCurrentKitIndex] = useState(0);
+  const [kitSelections, setKitSelections] = useState<Record<number, 'sim' | 'nao' | null>>({});
   const { toast } = useToast();
 
   // Get store data from localStorage (set during access)
@@ -97,8 +98,25 @@ export default function StoreDashboard() {
   });
 
   const handleKitUsage = (kitId: number, action: 'sim' | 'nao') => {
+    // Update local selection state for visual feedback
+    setKitSelections(prev => ({
+      ...prev,
+      [kitId]: action
+    }));
+    
     updateKitUsageMutation.mutate({ kitId, action });
   };
+
+  // Initialize kit selections when kits are loaded
+  useEffect(() => {
+    if (kits.data) {
+      const initialSelections: Record<number, 'sim' | 'nao' | null> = {};
+      kits.data.forEach((kit: Kit) => {
+        initialSelections[kit.id] = null;
+      });
+      setKitSelections(initialSelections);
+    }
+  }, [kits.data]);
 
   if (!storeInfo) {
     return (
@@ -213,35 +231,78 @@ export default function StoreDashboard() {
                           <span className="text-gray-400">Sem imagem</span>
                         </div>
                       )}
-                      <p className="text-sm text-gray-600 mb-4">{kit.descricao}</p>
                       
                       {/* Usage buttons */}
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="text-center">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Esta peça foi utilizada?</p>
+                          <p className="text-sm font-medium text-gray-700 mb-3">Esta peça foi utilizada?</p>
                         </div>
-                        <div className="flex gap-2 justify-center">
+                        <div className="flex gap-3 justify-center">
                           <Button
                             onClick={() => handleKitUsage(kit.id, 'sim')}
-                            className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 px-4 py-2"
+                            className={`
+                              flex items-center gap-2 px-6 py-3 transition-all duration-200 font-medium
+                              ${kitSelections[kit.id] === 'sim' 
+                                ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg scale-105' 
+                                : kitSelections[kit.id] === 'nao'
+                                ? 'bg-green-200 text-green-700 hover:bg-green-300 opacity-60' 
+                                : 'bg-green-500 hover:bg-green-600 text-white'
+                              }
+                            `}
                             size="sm"
                             disabled={updateKitUsageMutation.isPending}
+                            data-testid={`button-sim-${kit.id}`}
                           >
                             <ThumbsUp className="h-4 w-4" />
                             Sim
                           </Button>
                           <Button
                             onClick={() => handleKitUsage(kit.id, 'nao')}
-                            className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 px-4 py-2"
+                            className={`
+                              flex items-center gap-2 px-6 py-3 transition-all duration-200 font-medium
+                              ${kitSelections[kit.id] === 'nao' 
+                                ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg scale-105' 
+                                : kitSelections[kit.id] === 'sim'
+                                ? 'bg-red-200 text-red-700 hover:bg-red-300 opacity-60' 
+                                : 'bg-red-500 hover:bg-red-600 text-white'
+                              }
+                            `}
                             size="sm"
                             disabled={updateKitUsageMutation.isPending}
+                            data-testid={`button-nao-${kit.id}`}
                           >
                             <ThumbsDown className="h-4 w-4" />
                             Não
                           </Button>
                         </div>
+                        
+                        {/* Visual feedback for selection */}
+                        {kitSelections[kit.id] && (
+                          <div className="text-center">
+                            <div className={`
+                              inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium
+                              ${kitSelections[kit.id] === 'sim' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                              }
+                            `}>
+                              {kitSelections[kit.id] === 'sim' ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3" />
+                                  Peça utilizada
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-3 w-3" />
+                                  Peça não utilizada
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="text-center text-xs text-gray-500">
-                          Sim: {kit.sim} | Não: {kit.nao}
+                          Total - Sim: {kit.sim} | Não: {kit.nao}
                         </div>
                       </div>
                     </CardContent>
