@@ -35,12 +35,15 @@ export default function TicketForm({ open, onClose, entityId, entityName, type }
 
   const createTicketMutation = useMutation({
     mutationFn: async (data: TicketFormData) => {
+      // Get supplier data from localStorage to get fornecedor_id
+      const supplierData = localStorage.getItem("supplier_access");
+      const supplier = supplierData ? JSON.parse(supplierData) : null;
+      
       return apiRequest("POST", "/api/tickets", {
-        type,
-        entityId,
-        entityName,
-        description: data.description,
-        status: "open",
+        descricao: data.description,
+        status: "aberto",
+        loja_id: entityId,
+        fornecedor_id: supplier?.id || 0,
       });
     },
     onSuccess: () => {

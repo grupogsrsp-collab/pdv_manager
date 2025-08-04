@@ -37,23 +37,38 @@ export default function InstallationChecklist() {
 
   const finalizeMutation = useMutation({
     mutationFn: async () => {
-      const formData = new FormData();
-      formData.append("storeId", store.codigo_loja);
-      formData.append("supplierId", supplier.id.toString());
-      formData.append("responsibleName", responsibleName);
-      formData.append("installationDate", installationDate);
-      
-      photos.forEach((photo, index) => {
-        formData.append(`photo_${index}`, photo);
-      });
+      // Convert photos to base64 strings for storage
+      const photoUrls: string[] = [];
+      for (const photo of photos) {
+        if (photo) {
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(photo);
+          });
+          photoUrls.push(base64);
+        }
+      }
+
+      const installationData = {
+        loja_id: store.codigo_loja,
+        fornecedor_id: supplier.id,
+        responsible: responsibleName,
+        installationDate: installationDate,
+        photos: photoUrls,
+      };
 
       const response = await fetch("/api/installations", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(installationData),
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao finalizar instalação");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao finalizar instalação");
       }
 
       return response.json();
@@ -87,7 +102,7 @@ export default function InstallationChecklist() {
     if (!responsibleName.trim()) {
       toast({
         title: "Campo obrigatório",
-        description: "Por favor, informe o nome do responsável da loja.",
+        description: "Por favor, informe o nome do instalador.",
         variant: "destructive",
       });
       return;
@@ -163,7 +178,7 @@ export default function InstallationChecklist() {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="responsible" className="block text-sm font-medium text-gray-700 mb-2">
-                Nome do Responsável da Loja *
+                Nome do Instalador *
               </Label>
               <Input
                 id="responsible"
