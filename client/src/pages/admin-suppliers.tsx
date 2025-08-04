@@ -188,11 +188,13 @@ export default function AdminSuppliers() {
                 />
               </div>
               <div>
-                <Label htmlFor="valor_orcamento">Valor do Orçamento</Label>
+                <Label htmlFor="valor_orcamento">Valor do Orçamento (R$)</Label>
                 <Input
                   id="valor_orcamento"
                   type="number"
                   step="0.01"
+                  min="0"
+                  placeholder="0,00"
                   data-testid="input-supplier-budget"
                   value={formData.valor_orcamento || ""}
                   onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
@@ -252,7 +254,12 @@ export default function AdminSuppliers() {
                   <TableCell data-testid={`text-supplier-responsible-${supplier.id}`}>{supplier.nome_responsavel}</TableCell>
                   <TableCell data-testid={`text-supplier-phone-${supplier.id}`}>{supplier.telefone}</TableCell>
                   <TableCell data-testid={`text-supplier-address-${supplier.id}`}>{supplier.endereco}</TableCell>
-                  <TableCell data-testid={`text-supplier-budget-${supplier.id}`}>R$ {supplier.valor_orcamento}</TableCell>
+                  <TableCell data-testid={`text-supplier-budget-${supplier.id}`}>
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    }).format(parseFloat(supplier.valor_orcamento.toString()))}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
@@ -334,11 +341,13 @@ export default function AdminSuppliers() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-valor_orcamento">Valor do Orçamento</Label>
+              <Label htmlFor="edit-valor_orcamento">Valor do Orçamento (R$)</Label>
               <Input
                 id="edit-valor_orcamento"
                 type="number"
                 step="0.01"
+                min="0"
+                placeholder="0,00"
                 value={formData.valor_orcamento || ""}
                 onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
                 required
