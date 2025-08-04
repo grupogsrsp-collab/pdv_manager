@@ -115,7 +115,7 @@ export interface InsertPhoto {
 // Instalações (não estava nos campos originais, mas mantendo para compatibilidade)
 export interface Installation {
   id: string;
-  loja_id: number;
+  loja_id: string;
   fornecedor_id: number;
   responsible: string;
   installationDate: string;
@@ -124,7 +124,7 @@ export interface Installation {
 }
 
 export interface InsertInstallation {
-  loja_id: number;
+  loja_id: string;
   fornecedor_id: number;
   responsible: string;
   installationDate: string;
@@ -182,7 +182,7 @@ export const insertPhotoSchema = z.object({
 });
 
 export const insertInstallationSchema = z.object({
-  loja_id: z.number().positive("ID da loja é obrigatório"),
+  loja_id: z.string().min(1, "Código da loja é obrigatório"),
   fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
   responsible: z.string().min(1, "Responsável é obrigatório"),
   installationDate: z.string().min(1, "Data de instalação é obrigatória"),

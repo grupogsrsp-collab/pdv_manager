@@ -37,21 +37,50 @@ export default function InstallationChecklist() {
 
   const finalizeMutation = useMutation({
     mutationFn: async () => {
-      // Convert photos to base64 strings for storage
+      // Convert photos to compressed base64 strings for storage
       const photoUrls: string[] = [];
       for (const photo of photos) {
         if (photo) {
-          const base64 = await new Promise<string>((resolve) => {
+          const compressedBase64 = await new Promise<string>((resolve) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+              // Resize image to max 800px width/height to reduce size
+              const maxSize = 800;
+              let { width, height } = img;
+              
+              if (width > height && width > maxSize) {
+                height = (height * maxSize) / width;
+                width = maxSize;
+              } else if (height > maxSize) {
+                width = (width * maxSize) / height;
+                height = maxSize;
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              
+              ctx?.drawImage(img, 0, 0, width, height);
+              
+              // Compress to 70% quality JPEG
+              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+              resolve(compressedDataUrl);
+            };
+            
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
+            reader.onload = () => {
+              img.src = reader.result as string;
+            };
             reader.readAsDataURL(photo);
           });
-          photoUrls.push(base64);
+          photoUrls.push(compressedBase64);
         }
       }
 
       const installationData = {
-        loja_id: store.id, // Use the numeric ID instead of codigo_loja
+        loja_id: store.codigo_loja, // Use codigo_loja for installations
         fornecedor_id: supplier.id,
         responsible: responsibleName,
         installationDate: installationDate,

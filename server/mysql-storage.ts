@@ -152,13 +152,13 @@ export class MySQLStorage implements IStorage {
         
         `CREATE TABLE IF NOT EXISTS instalacoes (
           id VARCHAR(36) PRIMARY KEY,
-          loja_id INT NOT NULL,
+          loja_id VARCHAR(20) NOT NULL,
           fornecedor_id INT NOT NULL,
           responsible VARCHAR(255) NOT NULL,
           installationDate VARCHAR(20) NOT NULL,
           photos JSON,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (loja_id) REFERENCES lojas(id),
+          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
           FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id)
         )`
       ];
