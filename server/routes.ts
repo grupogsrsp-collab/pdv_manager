@@ -101,6 +101,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get supplier by CNPJ (GET route)
+  app.get("/api/suppliers/cnpj/:cnpj", async (req, res) => {
+    try {
+      const cnpj = req.params.cnpj;
+      console.log('Recebida requisição GET para CNPJ:', cnpj);
+      
+      const supplier = await storage.getSupplierByCnpj(cnpj);
+      if (!supplier) {
+        return res.status(404).json({ error: "Fornecedor não encontrado" });
+      }
+
+      res.json(supplier);
+    } catch (error) {
+      console.error("Erro na busca do fornecedor por CNPJ:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   app.post("/api/suppliers", async (req, res) => {
     try {
       const supplierData = insertSupplierSchema.parse(req.body);
