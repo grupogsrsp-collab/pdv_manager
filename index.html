@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestão de Franquias</title>
+  <meta name="description" content="Plataforma completa para gerenciamento de lojas de franquias com dashboard administrativo, sistema de chamados e controle de instalações.">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://seu-usuario.github.io/seu-repositorio/">
+  <meta property="og:title" content="Sistema de Gestão de Franquias">
+  <meta property="og:description" content="Plataforma completa para gerenciamento de lojas de franquias com dashboard administrativo.">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://seu-usuario.github.io/seu-repositorio/">
+  <meta property="twitter:title" content="Sistema de Gestão de Franquias">
+  <meta property="twitter:description" content="Plataforma completa para gerenciamento de lojas de franquias.">
+  
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 500px;
+      margin: 1rem;
+    }
+    
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
+    }
+    
+    p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .features {
+      margin-top: 2rem;
+      text-align: left;
+    }
+    
+    .feature {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    
+    .feature-icon {
+      width: 20px;
+      height: 20px;
+      background: #4CAF50;
+      border-radius: 50%;
+      margin-right: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.7rem;
+    }
+    
+    .note {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        margin: 0.5rem;
+        padding: 1.5rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .features {
+        text-align: center;
+      }
+      
+      .feature {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      SF
+    </div>
+    
+    <h1>Sistema de Gestão de Franquias</h1>
+    
+    <p>
+      Plataforma completa para gerenciamento de lojas de franquias com dashboard administrativo, 
+      sistema de chamados, controle de instalações e muito mais.
+    </p>
+    
+    <a href="#demo" class="btn" onclick="showDemo()">
+      Ver Demonstração
+    </a>
+    
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Dashboard administrativo completo
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Sistema de gerenciamento de kits
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Controle de chamados e tickets
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Gestão de fornecedores e lojas
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Upload de imagens e documentos
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Interface responsiva e moderna
+      </div>
+    </div>
+    
+    <div class="note">
+      <strong>Nota:</strong> Esta é uma página de demonstração estática. 
+      Para acessar o sistema completo com funcionalidades backend, 
+      o projeto deve ser executado em um ambiente Node.js com MySQL.
+    </div>
+  </div>
+
+  <script>
+    function showDemo() {
+      alert('Esta é uma demonstração do front-end estático do Sistema de Gestão de Franquias.\n\nPara funcionalidade completa, o sistema requer:\n• Servidor Node.js\n• Banco de dados MySQL\n• Variáveis de ambiente configuradas\n\nVisite o repositório GitHub para instruções de instalação completas.');
+    }
+    
+    // Simular carregamento de página
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Sistema de Gestão de Franquias - GitHub Pages');
+      console.log('Desenvolvido com React + TypeScript + MySQL');
+      console.log('Para funcionalidade completa, execute: npm run dev');
+    });
+  </script>
+</body>
+</html>

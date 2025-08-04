@@ -8,6 +8,18 @@ This is a comprehensive franchise management platform built to handle the relati
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### GitHub Pages Deployment Configuration (2025-08-04)
+- **index.html** created in root directory for GitHub Pages hosting
+- **GitHub Actions workflow** configured for automatic deployment 
+- **Static build configuration** with vite.config.github.ts
+- **Landing page** component created for GitHub Pages demo
+- **Build script** (build-github-pages.sh) for manual deployment
+- **README.md** updated with complete deployment instructions
+
+The project now supports both full-stack development (with MySQL backend) and static deployment to GitHub Pages for demonstration purposes.
+
 ## System Architecture
 
 ### Frontend Architecture
