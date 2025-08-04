@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download - Sistema de Gestão de Franquias</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 20px 0;
+            transition: transform 0.2s;
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+        }
+        .file-info {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .step {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 30px; }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 Download - Sistema de Gestão de Franquias</h1>
+        
+        <div class="file-info">
+            <h3>Arquivo Pronto:</h3>
+            <p><strong>Nome:</strong> sistema-gestao-franquias-hostinger.tar.gz</p>
+            <p><strong>Tamanho:</strong> 172 KB</p>
+            <p><strong>Conteúdo:</strong> Sistema completo (Frontend + Backend + MySQL)</p>
+        </div>
+
+        <a href="/download-file" 
+           class="download-btn" 
+           download="sistema-gestao-franquias-hostinger.tar.gz">
+            ⬇️ BAIXAR SISTEMA COMPLETO
+        </a>
+
+        <div class="warning">
+            <strong>⚠️ Importante:</strong> Este é o sistema COMPLETO funcionando, não apenas uma página estática. 
+            Requer hospedagem com Node.js (VPS/Cloud na Hostinger).
+        </div>
+
+        <h2>🚀 Após o Download:</h2>
+        
+        <div class="step">
+            <strong>1. Upload na Hostinger</strong><br>
+            Faça upload do arquivo .tar.gz para sua hospedagem via FTP/SSH
+        </div>
+        
+        <div class="step">
+            <strong>2. Extrair Arquivos</strong><br>
+            <code>tar -xzf sistema-gestao-franquias-hostinger.tar.gz</code>
+        </div>
+        
+        <div class="step">
+            <strong>3. Instalação Automática</strong><br>
+            <code>chmod +x start-production.sh</code><br>
+            <code>./start-production.sh</code>
+        </div>
+        
+        <div class="step">
+            <strong>4. Configurar Banco (arquivo .env)</strong><br>
+            DATABASE_URL=mysql://rodr1657_pdv_manager:Pdv429610!@162.241.203.65:3306/rodr1657_pdv_manager
+        </div>
+
+        <h2>📋 O que você terá:</h2>
+        <ul>
+            <li>✅ Dashboard administrativo completo</li>
+            <li>✅ Sistema de login funcionando</li>
+            <li>✅ Gestão de kits com upload de imagens</li>
+            <li>✅ Sistema de chamados</li>
+            <li>✅ CRUD de fornecedores, lojas, admins</li>
+            <li>✅ Banco MySQL já integrado</li>
+            <li>✅ Interface responsiva</li>
+        </ul>
+
+        <h2>📞 Login do Sistema:</h2>
+        <div class="file-info">
+            <strong>Email:</strong> rodrigo.aeromodelo@gmail.com<br>
+            <strong>Senha:</strong> 123456
+        </div>
+
+        <p><strong>Documentação completa incluída:</strong> HOSTINGER_SETUP.md</p>
+    </div>
+</body>
+</html>

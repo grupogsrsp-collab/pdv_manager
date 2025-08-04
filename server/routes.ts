@@ -583,5 +583,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download page
+  app.get("/download", async (req, res) => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const downloadPage = fs.readFileSync(path.join(process.cwd(), 'download.html'), 'utf8');
+    res.send(downloadPage);
+  });
+
+  // Download file endpoint
+  app.get("/download-file", async (req, res) => {
+    const path = await import("path");
+    const filePath = path.join(process.cwd(), 'sistema-gestao-franquias-hostinger.tar.gz');
+    res.download(filePath, 'sistema-gestao-franquias-hostinger.tar.gz');
+  });
+
   return createServer(app);
 }
