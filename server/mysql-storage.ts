@@ -337,13 +337,42 @@ export class MySQLStorage implements IStorage {
   }
 
   async createStore(store: InsertStore): Promise<Store> {
+    // Garantir que valores undefined sejam convertidos para null
+    const cleanData = {
+      codigo_loja: store.codigo_loja || null,
+      nome_loja: store.nome_loja || null,
+      nome_operador: store.nome_operador || null,
+      logradouro: store.logradouro || null,
+      numero: store.numero || null,
+      complemento: store.complemento || null,
+      bairro: store.bairro || null,
+      cidade: store.cidade || null,
+      uf: store.uf || null,
+      cep: store.cep || null,
+      regiao: store.regiao || null,
+      telefone_loja: store.telefone_loja || null
+    };
+
     await pool.execute(
       `INSERT INTO lojas (codigo_loja, nome_loja, nome_operador, logradouro, numero, complemento, bairro, cidade, uf, cep, regiao, telefone_loja)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [store.codigo_loja, store.nome_loja, store.nome_operador, store.logradouro, store.numero, store.complemento, store.bairro, store.cidade, store.uf, store.cep, store.regiao, store.telefone_loja]
+      [
+        cleanData.codigo_loja,
+        cleanData.nome_loja,
+        cleanData.nome_operador,
+        cleanData.logradouro,
+        cleanData.numero,
+        cleanData.complemento,
+        cleanData.bairro,
+        cleanData.cidade,
+        cleanData.uf,
+        cleanData.cep,
+        cleanData.regiao,
+        cleanData.telefone_loja
+      ]
     );
     
-    return store as Store;
+    return cleanData as Store;
   }
 
   async getAllStores(): Promise<Store[]> {
@@ -364,49 +393,49 @@ export class MySQLStorage implements IStorage {
     const fields = [];
     const values = [];
     
-    if (store.nome_loja) {
+    if (store.nome_loja !== undefined) {
       fields.push('nome_loja = ?');
-      values.push(store.nome_loja);
+      values.push(store.nome_loja || null);
     }
-    if (store.nome_operador) {
+    if (store.nome_operador !== undefined) {
       fields.push('nome_operador = ?');
-      values.push(store.nome_operador);
+      values.push(store.nome_operador || null);
     }
-    if (store.logradouro) {
+    if (store.logradouro !== undefined) {
       fields.push('logradouro = ?');
-      values.push(store.logradouro);
+      values.push(store.logradouro || null);
     }
-    if (store.numero) {
+    if (store.numero !== undefined) {
       fields.push('numero = ?');
-      values.push(store.numero);
+      values.push(store.numero || null);
     }
     if (store.complemento !== undefined) {
       fields.push('complemento = ?');
-      values.push(store.complemento);
+      values.push(store.complemento || null);
     }
-    if (store.bairro) {
+    if (store.bairro !== undefined) {
       fields.push('bairro = ?');
-      values.push(store.bairro);
+      values.push(store.bairro || null);
     }
-    if (store.cidade) {
+    if (store.cidade !== undefined) {
       fields.push('cidade = ?');
-      values.push(store.cidade);
+      values.push(store.cidade || null);
     }
-    if (store.uf) {
+    if (store.uf !== undefined) {
       fields.push('uf = ?');
-      values.push(store.uf);
+      values.push(store.uf || null);
     }
-    if (store.cep) {
+    if (store.cep !== undefined) {
       fields.push('cep = ?');
-      values.push(store.cep);
+      values.push(store.cep || null);
     }
-    if (store.regiao) {
+    if (store.regiao !== undefined) {
       fields.push('regiao = ?');
-      values.push(store.regiao);
+      values.push(store.regiao || null);
     }
-    if (store.telefone_loja) {
+    if (store.telefone_loja !== undefined) {
       fields.push('telefone_loja = ?');
-      values.push(store.telefone_loja);
+      values.push(store.telefone_loja || null);
     }
     
     values.push(codigo_loja);
