@@ -218,11 +218,17 @@ export class MySQLStorage implements IStorage {
   // Implementação dos métodos da interface
 
   async getSupplierByCnpj(cnpj: string): Promise<Supplier | undefined> {
+    // Limpar CNPJ removendo pontos, barras e hífens para busca flexível
+    const cleanCnpj = cnpj.replace(/[.\-\/]/g, '');
+    
+    console.log('Buscando fornecedor com CNPJ:', cnpj, 'CNPJ limpo:', cleanCnpj);
+    
     const [rows] = await pool.execute(
-      'SELECT * FROM fornecedores WHERE cnpj = ?',
-      [cnpj]
+      'SELECT * FROM fornecedores WHERE REPLACE(REPLACE(REPLACE(cnpj, ".", ""), "/", ""), "-", "") = ?',
+      [cleanCnpj]
     ) as [RowDataPacket[], any];
     
+    console.log('Resultados encontrados:', rows.length);
     return rows[0] as Supplier | undefined;
   }
 

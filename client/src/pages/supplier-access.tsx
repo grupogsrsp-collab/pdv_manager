@@ -60,7 +60,9 @@ export default function SupplierAccess() {
 
   const handleSearch = () => {
     if (cnpj.trim()) {
-      setSearchedCnpj(cnpj.trim());
+      // Limpar formatação do CNPJ antes de buscar
+      const cleanCnpj = cnpj.trim().replace(/[.\-\/\s]/g, '');
+      setSearchedCnpj(cleanCnpj);
     }
   };
 
