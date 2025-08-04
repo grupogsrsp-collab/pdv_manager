@@ -515,5 +515,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Object storage upload endpoint
+  app.post("/api/objects/upload", async (req, res) => {
+    try {
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Object storage image update endpoint for kits
+  app.put("/api/kits/:id/image", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { imageURL } = req.body;
+
+      if (!imageURL) {
+        return res.status(400).json({ error: "imageURL is required" });
+      }
+
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      
+      // Set ACL policy for public kit images
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        imageURL,
+        {
+          owner: "admin", // Kit images are managed by admin
+          visibility: "public", // Kit images should be publicly accessible
+        }
+      );
+
+      // Update kit with the normalized object path
+      const updatedKit = await storage.updateKit(parseInt(id), { image_url: objectPath });
+      
+      if (!updatedKit) {
+        return res.status(404).json({ error: "Kit not found" });
+      }
+
+      res.json({
+        kit: updatedKit,
+        objectPath: objectPath,
+      });
+    } catch (error) {
+      console.error("Error updating kit image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Serve objects endpoint
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof Error && error.constructor.name === "ObjectNotFoundError") {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
   return createServer(app);
 }

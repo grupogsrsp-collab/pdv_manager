@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Package, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Image as ImageIcon, Upload } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import { type Kit, type InsertKit } from "@shared/mysql-schema";
+import type { UploadResult } from "@uppy/core";
 
 interface KitFormData {
   nome_peca: string;
@@ -186,15 +188,61 @@ export default function AdminKits() {
               </div>
               
               <div>
-                <Label htmlFor="image_url">URL da Imagem</Label>
-                <Input
-                  id="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://exemplo.com/imagem.jpg"
-                  data-testid="input-image-url"
-                />
+                <Label>Imagem do Kit</Label>
+                <div className="space-y-3">
+                  {formData.image_url && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <img 
+                        src={formData.image_url} 
+                        alt="Preview"
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">Imagem selecionada</p>
+                        <p className="text-xs text-gray-500">Clique em "Adicionar Imagem" para alterar</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormData({ ...formData, image_url: "" })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={5 * 1024 * 1024} // 5MB
+                    onGetUploadParameters={async () => {
+                      const response = await apiRequest("POST", "/api/objects/upload");
+                      return {
+                        method: "PUT" as const,
+                        url: (response as any).uploadURL,
+                      };
+                    }}
+                    onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                      if (result.successful && result.successful.length > 0) {
+                        const uploadedFile = result.successful[0];
+                        const imageURL = (uploadedFile as any).uploadURL || "";
+                        if (imageURL) {
+                          setFormData({ ...formData, image_url: imageURL });
+                          toast({
+                            title: "Sucesso",
+                            description: "Imagem enviada com sucesso!",
+                          });
+                        }
+                      }
+                    }}
+                    buttonClassName="w-full"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      <span>{formData.image_url ? "Alterar Imagem" : "Adicionar Imagem"}</span>
+                    </div>
+                  </ObjectUploader>
+                </div>
               </div>
               
               <div className="flex justify-end gap-2 pt-4">
