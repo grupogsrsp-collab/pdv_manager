@@ -1,105 +1,119 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import AdminSidebar from "@/components/layout/admin-sidebar";
-import DashboardCharts from "@/components/charts/dashboard-charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Check, Clock, AlertTriangle, DollarSign } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { type Ticket } from "@shared/schema";
+import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle } from "lucide-react";
+import DashboardCharts from "@/components/charts/dashboard-charts";
+import { Link } from "wouter";
 
 interface DashboardMetrics {
   totalSuppliers: number;
   totalStores: number;
   totalTickets: number;
-  pendingInstallations: number;
+  openTickets: number;
+  resolvedTickets: number;
+  completedInstallations: number;
+  unusedKits: number;
   monthlyInstallations: number[];
   ticketsByStatus: { open: number; resolved: number };
+  unusedKitsList: any[];
 }
 
 export default function AdminDashboard() {
-  const [activeSection, setActiveSection] = useState("dashboard");
-  const [ticketFilters, setTicketFilters] = useState({ type: "", status: "" });
-  const { toast } = useToast();
-
-  const { data: metrics } = useQuery<DashboardMetrics>({
+  const { data: metrics, isLoading } = useQuery<DashboardMetrics>({
     queryKey: ["/api/dashboard/metrics"],
   });
 
-  const { data: tickets = [] } = useQuery<Ticket[]>({
-    queryKey: ["/api/tickets", ticketFilters],
-  });
+  if (isLoading) {
+    return <div className="p-6">Carregando dashboard...</div>;
+  }
 
-  const resolveTicketMutation = useMutation({
-    mutationFn: async (ticketId: string) => {
-      return apiRequest("PUT", `/api/tickets/${ticketId}/resolve`, {
-        resolvedBy: "Administrador",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
-      toast({
-        title: "Sucesso",
-        description: "Chamado resolvido com sucesso!",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Erro ao resolver chamado",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleResolveTicket = (ticketId: string) => {
-    resolveTicketMutation.mutate(ticketId);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const renderDashboardSection = () => (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Dashboard de Métricas</h1>
+  return (
+    <div className="p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Administrativo</h1>
+        <p className="text-gray-600">Visão geral completa da plataforma de franquias</p>
+      </div>
       
-      {/* Metrics Cards */}
+      {/* Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-success rounded-lg">
-                <Check className="h-5 w-5 text-white" />
+        <Link href="/admin/suppliers">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-blue-500 rounded-lg">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600">Gerenciar</p>
+                  <p className="text-lg font-semibold text-gray-900">Fornecedores</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total de Fornecedores</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.totalSuppliers || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
         
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-warning rounded-lg">
-                <Clock className="h-5 w-5 text-white" />
+        <Link href="/admin/stores">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-green-500 rounded-lg">
+                  <Building2 className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600">Gerenciar</p>
+                  <p className="text-lg font-semibold text-gray-900">Lojas</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total de Lojas</p>
-                <p className="text-2xl font-bold text-gray-900">
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link href="/admin/tickets">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-orange-500 rounded-lg">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600">Gerenciar</p>
+                  <p className="text-lg font-semibold text-gray-900">Chamados</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link href="/admin/settings">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-500 rounded-lg">
+                  <Settings className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600">Configurações</p>
+                  <p className="text-lg font-semibold text-gray-900">Sistema</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Building2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-xs text-gray-600">Total de Lojas</p>
+                <p className="text-xl font-bold text-gray-900">
                   {metrics?.totalStores || 0}
                 </p>
               </div>
@@ -108,15 +122,15 @@ export default function AdminDashboard() {
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center">
-              <div className="p-2 bg-error rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-white" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Users className="h-5 w-5 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total de Chamados</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.totalTickets || 0}
+              <div className="ml-3">
+                <p className="text-xs text-gray-600">Total de Fornecedores</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {metrics?.totalSuppliers || 0}
                 </p>
               </div>
             </div>
@@ -124,15 +138,63 @@ export default function AdminDashboard() {
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center">
-              <div className="p-2 bg-primary rounded-lg">
-                <DollarSign className="h-5 w-5 text-white" />
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Instalações Pendentes</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.pendingInstallations || 0}
+              <div className="ml-3">
+                <p className="text-xs text-gray-600">Chamados Abertos</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {metrics?.openTickets || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-xs text-gray-600">Chamados Resolvidos</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {metrics?.resolvedTickets || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Check className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-xs text-gray-600">Instalações Concluídas</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {metrics?.completedInstallations || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Package className="h-5 w-5 text-orange-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-xs text-gray-600">Kits não Usados</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {metrics?.unusedKits || 0}
                 </p>
               </div>
             </div>
@@ -140,224 +202,45 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Charts */}
+      {/* Charts Section */}
       {metrics && <DashboardCharts metrics={metrics} />}
-    </div>
-  );
 
-  const renderTicketsSection = () => (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Gerenciar Chamados</h1>
-        <div className="flex space-x-4">
-          <Select
-            value={ticketFilters.type || "all"}
-            onValueChange={(value) => setTicketFilters(prev => ({ ...prev, type: value === "all" ? "" : value }))}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="supplier">Fornecedor</SelectItem>
-              <SelectItem value="store">Lojista</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select
-            value={ticketFilters.status || "all"}
-            onValueChange={(value) => setTicketFilters(prev => ({ ...prev, status: value === "all" ? "" : value }))}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Todos Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Status</SelectItem>
-              <SelectItem value="open">Aberto</SelectItem>
-              <SelectItem value="resolved">Resolvido</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Tickets Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Entidade</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tickets.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    Nenhum chamado encontrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                tickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">#{ticket.id.slice(-6)}</TableCell>
-                    <TableCell className="capitalize">{ticket.type}</TableCell>
-                    <TableCell>{ticket.entityName}</TableCell>
-                    <TableCell className="max-w-xs truncate">{ticket.description}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={ticket.status === "open" ? "destructive" : "default"}
-                        className={ticket.status === "open" ? "bg-warning" : "bg-success"}
-                      >
-                        {ticket.status === "open" ? "Aberto" : "Resolvido"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(ticket.createdAt!).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell>
-                      {ticket.status === "open" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-success hover:text-success/80"
-                          onClick={() => handleResolveTicket(ticket.id)}
-                          disabled={resolveTicketMutation.isPending}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Resolver
-                        </Button>
+      {/* Unused Kits Details */}
+      {metrics?.unusedKitsList && metrics.unusedKitsList.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Package className="h-5 w-5 mr-2" />
+              Detalhes dos Kits não Usados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {metrics.unusedKitsList.slice(0, 6).map((kit: any, index: number) => (
+                <div key={index} className="p-3 border rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{kit.nome || `Kit ${kit.id}`}</p>
+                      <p className="text-sm text-gray-600">ID: {kit.id}</p>
+                      {kit.descricao && (
+                        <p className="text-sm text-gray-500 mt-1">{kit.descricao}</p>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderUploadSection = () => (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Upload de Planilha</h1>
-      
-      <Card>
-        <CardContent className="p-6">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-primary transition duration-200">
-            <div className="text-4xl text-gray-400 mb-4">📊</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Upload de Dados das Lojas</h3>
-            <p className="text-gray-600 mb-4">Arraste e solte ou clique para selecionar uma planilha Excel</p>
-            <Button className="bg-primary hover:bg-blue-700">
-              Selecionar Arquivo
-            </Button>
-          </div>
-          
-          <div className="mt-6">
-            <h4 className="font-medium text-gray-900 mb-2">Formato da Planilha:</h4>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Coluna A: Nome da Loja</li>
-              <li>• Coluna B: Código da Loja</li>
-              <li>• Coluna C: Endereço</li>
-              <li>• Coluna D: Responsável</li>
-              <li>• Coluna E: CNPJ</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderSettingsSection = () => (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Configurações da Plataforma</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Logo Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Logo da Empresa</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-400 text-xl">🏪</span>
+                    </div>
+                    <Badge variant="destructive">Não Usado</Badge>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Logo atual</p>
-                  <Button variant="link" className="text-primary p-0 h-auto">
-                    Alterar logo
-                  </Button>
-                </div>
-              </div>
+              ))}
             </div>
+            {metrics.unusedKitsList.length > 6 && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600">
+                  E mais {metrics.unusedKitsList.length - 6} kits não utilizados...
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {/* Color Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Paleta de Cores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Cor Primária</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-primary rounded border" />
-                  <input
-                    type="color"
-                    defaultValue="#1976D2"
-                    className="w-8 h-8 rounded border cursor-pointer"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Cor Secundária</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gray-700 rounded border" />
-                  <input
-                    type="color"
-                    defaultValue="#424242"
-                    className="w-8 h-8 rounded border cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case "dashboard":
-        return renderDashboardSection();
-      case "tickets":
-        return renderTicketsSection();
-      case "upload":
-        return renderUploadSection();
-      case "settings":
-        return renderSettingsSection();
-      default:
-        return renderDashboardSection();
-    }
-  };
-
-  return (
-    <div className="flex">
-      <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <div className="flex-1 ml-64 p-8">
-        {renderContent()}
-      </div>
+      )}
     </div>
   );
 }

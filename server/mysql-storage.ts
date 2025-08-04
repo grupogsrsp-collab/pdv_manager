@@ -20,13 +20,19 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 interface IStorage {
   // Suppliers
   getSupplierByCnpj(cnpj: string): Promise<Supplier | undefined>;
+  getSupplierById(id: number): Promise<Supplier>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier>;
+  deleteSupplier(id: number): Promise<void>;
   getAllSuppliers(): Promise<Supplier[]>;
   
   // Stores
   getStoreByCode(codigo_loja: string): Promise<Store | undefined>;
+  getStoreById(codigo_loja: string): Promise<Store>;
   getStoresByFilters(filters: Partial<Store>): Promise<Store[]>;
   createStore(store: InsertStore): Promise<Store>;
+  updateStore(codigo_loja: string, store: Partial<InsertStore>): Promise<Store>;
+  deleteStore(codigo_loja: string): Promise<void>;
   getAllStores(): Promise<Store[]>;
   
   // Kits
@@ -36,10 +42,13 @@ interface IStorage {
   // Tickets
   getAllTickets(): Promise<Ticket[]>;
   createTicket(ticket: InsertTicket): Promise<Ticket>;
+  resolveTicket(id: number): Promise<void>;
   
   // Admins
   getAllAdmins(): Promise<Admin[]>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
+  updateAdmin(id: number, admin: Partial<InsertAdmin>): Promise<Admin>;
+  deleteAdmin(id: number): Promise<void>;
   getAdminByEmail(email: string): Promise<Admin | undefined>;
   
   // Photos
@@ -55,9 +64,13 @@ interface IStorage {
     totalSuppliers: number;
     totalStores: number;
     totalTickets: number;
-    pendingInstallations: number;
+    openTickets: number;
+    resolvedTickets: number;
+    completedInstallations: number;
+    unusedKits: number;
     monthlyInstallations: number[];
     ticketsByStatus: { open: number; resolved: number };
+    unusedKitsList: any[];
   }>;
 }
 
@@ -233,6 +246,58 @@ export class MySQLStorage implements IStorage {
     return rows as Supplier[];
   }
 
+  async getSupplierById(id: number): Promise<Supplier> {
+    const [rows] = await pool.execute(
+      'SELECT * FROM fornecedores WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Supplier;
+  }
+
+  async updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier> {
+    const fields = [];
+    const values = [];
+    
+    if (supplier.nome_fornecedor) {
+      fields.push('nome_fornecedor = ?');
+      values.push(supplier.nome_fornecedor);
+    }
+    if (supplier.cnpj) {
+      fields.push('cnpj = ?');
+      values.push(supplier.cnpj);
+    }
+    if (supplier.nome_responsavel) {
+      fields.push('nome_responsavel = ?');
+      values.push(supplier.nome_responsavel);
+    }
+    if (supplier.telefone) {
+      fields.push('telefone = ?');
+      values.push(supplier.telefone);
+    }
+    if (supplier.endereco) {
+      fields.push('endereco = ?');
+      values.push(supplier.endereco);
+    }
+    if (supplier.valor_orcamento) {
+      fields.push('valor_orcamento = ?');
+      values.push(supplier.valor_orcamento);
+    }
+    
+    values.push(id);
+    
+    await pool.execute(
+      `UPDATE fornecedores SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    return this.getSupplierById(id);
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    await pool.execute('DELETE FROM fornecedores WHERE id = ?', [id]);
+  }
+
   async getStoreByCode(codigo_loja: string): Promise<Store | undefined> {
     const [rows] = await pool.execute(
       'SELECT * FROM lojas WHERE codigo_loja = ?',
@@ -286,6 +351,78 @@ export class MySQLStorage implements IStorage {
     return rows as Store[];
   }
 
+  async getStoreById(codigo_loja: string): Promise<Store> {
+    const [rows] = await pool.execute(
+      'SELECT * FROM lojas WHERE codigo_loja = ?',
+      [codigo_loja]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Store;
+  }
+
+  async updateStore(codigo_loja: string, store: Partial<InsertStore>): Promise<Store> {
+    const fields = [];
+    const values = [];
+    
+    if (store.nome_loja) {
+      fields.push('nome_loja = ?');
+      values.push(store.nome_loja);
+    }
+    if (store.nome_operador) {
+      fields.push('nome_operador = ?');
+      values.push(store.nome_operador);
+    }
+    if (store.logradouro) {
+      fields.push('logradouro = ?');
+      values.push(store.logradouro);
+    }
+    if (store.numero) {
+      fields.push('numero = ?');
+      values.push(store.numero);
+    }
+    if (store.complemento !== undefined) {
+      fields.push('complemento = ?');
+      values.push(store.complemento);
+    }
+    if (store.bairro) {
+      fields.push('bairro = ?');
+      values.push(store.bairro);
+    }
+    if (store.cidade) {
+      fields.push('cidade = ?');
+      values.push(store.cidade);
+    }
+    if (store.uf) {
+      fields.push('uf = ?');
+      values.push(store.uf);
+    }
+    if (store.cep) {
+      fields.push('cep = ?');
+      values.push(store.cep);
+    }
+    if (store.regiao) {
+      fields.push('regiao = ?');
+      values.push(store.regiao);
+    }
+    if (store.telefone_loja) {
+      fields.push('telefone_loja = ?');
+      values.push(store.telefone_loja);
+    }
+    
+    values.push(codigo_loja);
+    
+    await pool.execute(
+      `UPDATE lojas SET ${fields.join(', ')} WHERE codigo_loja = ?`,
+      values
+    );
+    
+    return this.getStoreById(codigo_loja);
+  }
+
+  async deleteStore(codigo_loja: string): Promise<void> {
+    await pool.execute('DELETE FROM lojas WHERE codigo_loja = ?', [codigo_loja]);
+  }
+
   async getAllKits(): Promise<Kit[]> {
     const [rows] = await pool.execute('SELECT * FROM kits') as [RowDataPacket[], any];
     return rows as Kit[];
@@ -324,6 +461,13 @@ export class MySQLStorage implements IStorage {
     return rows[0] as Ticket;
   }
 
+  async resolveTicket(id: number): Promise<void> {
+    await pool.execute(
+      'UPDATE chamados SET status = "resolvido" WHERE id = ?',
+      [id]
+    );
+  }
+
   async getAllAdmins(): Promise<Admin[]> {
     const [rows] = await pool.execute('SELECT * FROM admins') as [RowDataPacket[], any];
     return rows as Admin[];
@@ -350,6 +494,42 @@ export class MySQLStorage implements IStorage {
     ) as [RowDataPacket[], any];
     
     return rows.length > 0 ? rows[0] as Admin : undefined;
+  }
+
+  async updateAdmin(id: number, admin: Partial<InsertAdmin>): Promise<Admin> {
+    const fields = [];
+    const values = [];
+    
+    if (admin.nome) {
+      fields.push('nome = ?');
+      values.push(admin.nome);
+    }
+    if (admin.email) {
+      fields.push('email = ?');
+      values.push(admin.email);
+    }
+    if (admin.senha) {
+      fields.push('senha = ?');
+      values.push(admin.senha);
+    }
+    
+    values.push(id);
+    
+    await pool.execute(
+      `UPDATE admins SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM admins WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Admin;
+  }
+
+  async deleteAdmin(id: number): Promise<void> {
+    await pool.execute('DELETE FROM admins WHERE id = ?', [id]);
   }
 
   async getPhotosByStoreId(loja_id: string): Promise<Photo[]> {
@@ -408,29 +588,50 @@ export class MySQLStorage implements IStorage {
     totalSuppliers: number;
     totalStores: number;
     totalTickets: number;
-    pendingInstallations: number;
+    openTickets: number;
+    resolvedTickets: number;
+    completedInstallations: number;
+    unusedKits: number;
     monthlyInstallations: number[];
     ticketsByStatus: { open: number; resolved: number };
+    unusedKitsList: any[];
   }> {
     const [supplierRows] = await pool.execute('SELECT COUNT(*) as count FROM fornecedores') as [RowDataPacket[], any];
     const [storeRows] = await pool.execute('SELECT COUNT(*) as count FROM lojas') as [RowDataPacket[], any];
     const [ticketRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados') as [RowDataPacket[], any];
-    const [installationRows] = await pool.execute('SELECT COUNT(*) as count FROM instalacoes') as [RowDataPacket[], any];
     
     // Status dos tickets
     const [openTicketsRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados WHERE status = "aberto"') as [RowDataPacket[], any];
     const [resolvedTicketsRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados WHERE status = "resolvido"') as [RowDataPacket[], any];
 
+    // Instalações completas - instalacoes com dados preenchidos que correspondem ao codigo_loja das lojas
+    const [completedInstallationsRows] = await pool.execute(`
+      SELECT COUNT(DISTINCT i.loja_id) as count 
+      FROM instalacoes i 
+      INNER JOIN lojas l ON i.loja_id = l.codigo_loja 
+      WHERE i.photos IS NOT NULL AND i.photos != ''
+    `) as [RowDataPacket[], any];
+
+    // Kits não usados - contagem total de kits (como exemplo)
+    const [unusedKitsRows] = await pool.execute('SELECT COUNT(*) as count FROM kits') as [RowDataPacket[], any];
+    
+    // Lista de kits para subcategoria
+    const [unusedKitsListRows] = await pool.execute('SELECT * FROM kits LIMIT 10') as [RowDataPacket[], any];
+
     return {
       totalSuppliers: supplierRows[0].count,
       totalStores: storeRows[0].count,
       totalTickets: ticketRows[0].count,
-      pendingInstallations: installationRows[0].count,
+      openTickets: openTicketsRows[0].count,
+      resolvedTickets: resolvedTicketsRows[0].count,
+      completedInstallations: completedInstallationsRows[0].count,
+      unusedKits: unusedKitsRows[0].count,
       monthlyInstallations: [15, 23, 18, 31, 28, 19], // Dados exemplo para 6 meses
       ticketsByStatus: {
         open: openTicketsRows[0].count,
         resolved: resolvedTicketsRows[0].count,
       },
+      unusedKitsList: unusedKitsListRows,
     };
   }
 }

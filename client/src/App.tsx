@@ -11,6 +11,10 @@ import SupplierDashboard from "@/pages/supplier-dashboard";
 import InstallationChecklist from "@/pages/installation-checklist";
 import StoreDashboard from "@/pages/store-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminSuppliers from "@/pages/admin-suppliers";
+import AdminStores from "@/pages/admin-stores";
+import AdminTickets from "@/pages/admin-tickets";
+import AdminSettings from "@/pages/admin-settings";
 import Header from "@/components/layout/header";
 import NotFound from "@/pages/not-found";
 
@@ -45,6 +49,26 @@ function Router() {
         <Route path="/admin">
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/suppliers">
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminSuppliers />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/stores">
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminStores />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/tickets">
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminTickets />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/settings">
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminSettings />
           </ProtectedRoute>
         </Route>
         <Route component={NotFound} />

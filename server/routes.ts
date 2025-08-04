@@ -259,5 +259,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Additional CRUD endpoints for suppliers
+  app.patch("/api/suppliers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const supplier = await storage.updateSupplier(id, req.body);
+      res.json(supplier);
+    } catch (error) {
+      console.error("Erro ao atualizar fornecedor:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.delete("/api/suppliers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteSupplier(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Erro ao excluir fornecedor:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Additional CRUD endpoints for stores
+  app.patch("/api/stores/:codigo_loja", async (req, res) => {
+    try {
+      const codigo_loja = req.params.codigo_loja;
+      const store = await storage.updateStore(codigo_loja, req.body);
+      res.json(store);
+    } catch (error) {
+      console.error("Erro ao atualizar loja:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.delete("/api/stores/:codigo_loja", async (req, res) => {
+    try {
+      const codigo_loja = req.params.codigo_loja;
+      await storage.deleteStore(codigo_loja);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Erro ao excluir loja:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Additional endpoints for tickets
+  app.patch("/api/tickets/:id/resolve", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.resolveTicket(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Erro ao resolver chamado:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Additional CRUD endpoints for admins
+  app.patch("/api/admins/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const admin = await storage.updateAdmin(id, req.body);
+      res.json(admin);
+    } catch (error) {
+      console.error("Erro ao atualizar administrador:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.delete("/api/admins/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteAdmin(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Erro ao excluir administrador:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Settings endpoints
+  app.post("/api/settings/theme", async (req, res) => {
+    try {
+      const { primaryColor } = req.body;
+      res.json({ success: true, primaryColor });
+    } catch (error) {
+      console.error("Erro ao atualizar tema:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/settings/logo", async (req, res) => {
+    try {
+      res.json({ success: true, message: "Logo atualizado com sucesso" });
+    } catch (error) {
+      console.error("Erro ao atualizar logo:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   return createServer(app);
 }

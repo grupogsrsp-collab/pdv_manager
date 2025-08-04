@@ -5,9 +5,13 @@ interface DashboardMetrics {
   totalSuppliers: number;
   totalStores: number;
   totalTickets: number;
-  pendingInstallations: number;
+  openTickets: number;
+  resolvedTickets: number;
+  completedInstallations: number;
+  unusedKits: number;
   monthlyInstallations: number[];
   ticketsByStatus: { open: number; resolved: number };
+  unusedKitsList: any[];
 }
 
 interface DashboardChartsProps {
