@@ -10,10 +10,11 @@ import StoreAccess from "@/pages/store-access";
 import SupplierDashboard from "@/pages/supplier-dashboard";
 import InstallationChecklist from "@/pages/installation-checklist";
 import StoreDashboard from "@/pages/store-dashboard";
-import AdminDashboard from "@/pages/admin-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard-new";
 import AdminSuppliers from "@/pages/admin-suppliers";
 import AdminStores from "@/pages/admin-stores";
 import AdminTickets from "@/pages/admin-tickets";
+import AdminKits from "@/pages/admin-kits";
 import AdminSettings from "@/pages/admin-settings";
 import Header from "@/components/layout/header";
 import NotFound from "@/pages/not-found";
@@ -64,6 +65,11 @@ function Router() {
         <Route path="/admin/tickets">
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminTickets />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/kits">
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminKits />
           </ProtectedRoute>
         </Route>
         <Route path="/admin/settings">

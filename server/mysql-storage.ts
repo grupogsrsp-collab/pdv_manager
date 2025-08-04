@@ -708,6 +708,56 @@ export class MySQLStorage implements IStorage {
     return rows[0] as Kit;
   }
 
+  async createKit(kit: InsertKit): Promise<Kit> {
+    const [result] = await pool.execute(
+      'INSERT INTO kits (nome_peca, descricao, image_url, sim, nao) VALUES (?, ?, ?, 0, 0)',
+      [kit.nome_peca, kit.descricao, kit.image_url || null]
+    ) as [ResultSetHeader, any];
+
+    const [rows] = await pool.execute(
+      'SELECT * FROM kits WHERE id = ?',
+      [result.insertId]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Kit;
+  }
+
+  async updateKit(id: number, kit: Partial<InsertKit>): Promise<Kit> {
+    const fields = [];
+    const values = [];
+    
+    if (kit.nome_peca !== undefined) {
+      fields.push('nome_peca = ?');
+      values.push(kit.nome_peca);
+    }
+    if (kit.descricao !== undefined) {
+      fields.push('descricao = ?');
+      values.push(kit.descricao);
+    }
+    if (kit.image_url !== undefined) {
+      fields.push('image_url = ?');
+      values.push(kit.image_url);
+    }
+    
+    values.push(id);
+    
+    await pool.execute(
+      `UPDATE kits SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM kits WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Kit;
+  }
+
+  async deleteKit(id: number): Promise<void> {
+    await pool.execute('DELETE FROM kits WHERE id = ?', [id]);
+  }
+
   async getPhotosByStoreId(loja_id: string): Promise<Photo[]> {
     const [rows] = await pool.execute(
       'SELECT * FROM fotos WHERE loja_id = ?',

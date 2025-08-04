@@ -264,6 +264,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new kit
+  app.post("/api/kits", async (req, res) => {
+    try {
+      const kit = await storage.createKit(req.body);
+      res.status(201).json(kit);
+    } catch (error) {
+      console.error("Erro ao criar kit:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Update kit
+  app.put("/api/kits/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const kit = await storage.updateKit(id, req.body);
+      res.json(kit);
+    } catch (error) {
+      console.error("Erro ao atualizar kit:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Delete kit
+  app.delete("/api/kits/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteKit(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Erro ao deletar kit:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   app.post("/api/kits", async (req, res) => {
     try {
       const kitData = insertKitSchema.parse(req.body);

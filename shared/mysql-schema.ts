@@ -161,7 +161,7 @@ export const insertStoreSchema = z.object({
 export const insertKitSchema = z.object({
   nome_peca: z.string().min(1, "Nome da peça é obrigatório"),
   descricao: z.string().min(1, "Descrição é obrigatória"),
-  image: z.string().optional(),
+  image_url: z.string().url("URL da imagem inválida").optional(),
 });
 
 export const insertTicketSchema = z.object({
