@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Search, ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { type Supplier, type InsertSupplier } from "@shared/mysql-schema";
 
 export default function AdminSuppliers() {
@@ -17,13 +18,22 @@ export default function AdminSuppliers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState<Partial<InsertSupplier>>({});
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
-  const { data: suppliers, isLoading } = useQuery({
+  const { data: suppliers = [], isLoading } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertSupplier) => apiRequest("/api/suppliers", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: async (data: InsertSupplier) => {
+      const response = await fetch("/api/suppliers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Erro ao criar fornecedor");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       setIsCreateOpen(false);
@@ -36,8 +46,15 @@ export default function AdminSuppliers() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { id: number; supplier: Partial<InsertSupplier> }) =>
-      apiRequest(`/api/suppliers/${data.id}`, { method: "PATCH", body: JSON.stringify(data.supplier) }),
+    mutationFn: async (data: { id: number; supplier: Partial<InsertSupplier> }) => {
+      const response = await fetch(`/api/suppliers/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data.supplier),
+      });
+      if (!response.ok) throw new Error("Erro ao atualizar fornecedor");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       setEditingSupplier(null);
@@ -50,7 +67,11 @@ export default function AdminSuppliers() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/suppliers/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Erro ao excluir fornecedor");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       toast({ title: "Fornecedor excluído com sucesso!" });
@@ -60,11 +81,11 @@ export default function AdminSuppliers() {
     },
   });
 
-  const filteredSuppliers = suppliers?.filter((supplier: Supplier) =>
+  const filteredSuppliers = suppliers.filter((supplier: Supplier) =>
     supplier.nome_fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supplier.cnpj.includes(searchTerm) ||
     supplier.nome_responsavel.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +114,17 @@ export default function AdminSuppliers() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gerenciar Fornecedores</h1>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setLocation("/admin")}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <h1 className="text-2xl font-bold">Gerenciar Fornecedores</h1>
+        </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-supplier">
@@ -107,12 +138,12 @@ export default function AdminSuppliers() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="nome">Nome</Label>
+                <Label htmlFor="nome_fornecedor">Nome do Fornecedor</Label>
                 <Input
-                  id="nome"
+                  id="nome_fornecedor"
                   data-testid="input-supplier-name"
-                  value={formData.nome || ""}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  value={formData.nome_fornecedor || ""}
+                  onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
                   required
                 />
               </div>
@@ -127,24 +158,12 @@ export default function AdminSuppliers() {
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="nome_responsavel">Nome do Responsável</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  data-testid="input-supplier-email"
-                  value={formData.email || ""}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="senha">Senha</Label>
-                <Input
-                  id="senha"
-                  type="password"
-                  data-testid="input-supplier-password"
-                  value={formData.senha || ""}
-                  onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                  id="nome_responsavel"
+                  data-testid="input-supplier-responsible"
+                  value={formData.nome_responsavel || ""}
+                  onChange={(e) => setFormData({ ...formData, nome_responsavel: e.target.value })}
                   required
                 />
               </div>
@@ -155,6 +174,7 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-phone"
                   value={formData.telefone || ""}
                   onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  required
                 />
               </div>
               <div>
@@ -164,6 +184,19 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-address"
                   value={formData.endereco || ""}
                   onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="valor_orcamento">Valor do Orçamento</Label>
+                <Input
+                  id="valor_orcamento"
+                  type="number"
+                  step="0.01"
+                  data-testid="input-supplier-budget"
+                  value={formData.valor_orcamento || ""}
+                  onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
+                  required
                 />
               </div>
               <div className="flex gap-2">
@@ -183,7 +216,7 @@ export default function AdminSuppliers() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar por nome, CNPJ ou email..."
+            placeholder="Buscar por nome, CNPJ ou responsável..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -200,22 +233,26 @@ export default function AdminSuppliers() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead>Nome do Fornecedor</TableHead>
                 <TableHead>CNPJ</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Endereço</TableHead>
+                <TableHead>Valor Orçamento</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSuppliers.map((supplier: Supplier) => (
                 <TableRow key={supplier.id}>
-                  <TableCell data-testid={`text-supplier-name-${supplier.id}`}>{supplier.nome}</TableCell>
+                  <TableCell data-testid={`text-supplier-id-${supplier.id}`}>{supplier.id}</TableCell>
+                  <TableCell data-testid={`text-supplier-name-${supplier.id}`}>{supplier.nome_fornecedor}</TableCell>
                   <TableCell data-testid={`text-supplier-cnpj-${supplier.id}`}>{supplier.cnpj}</TableCell>
-                  <TableCell data-testid={`text-supplier-email-${supplier.id}`}>{supplier.email}</TableCell>
+                  <TableCell data-testid={`text-supplier-responsible-${supplier.id}`}>{supplier.nome_responsavel}</TableCell>
                   <TableCell data-testid={`text-supplier-phone-${supplier.id}`}>{supplier.telefone}</TableCell>
                   <TableCell data-testid={`text-supplier-address-${supplier.id}`}>{supplier.endereco}</TableCell>
+                  <TableCell data-testid={`text-supplier-budget-${supplier.id}`}>R$ {supplier.valor_orcamento}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
@@ -252,11 +289,11 @@ export default function AdminSuppliers() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="edit-nome">Nome</Label>
+              <Label htmlFor="edit-nome_fornecedor">Nome do Fornecedor</Label>
               <Input
-                id="edit-nome"
-                value={formData.nome || ""}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                id="edit-nome_fornecedor"
+                value={formData.nome_fornecedor || ""}
+                onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
                 required
               />
             </div>
@@ -270,12 +307,11 @@ export default function AdminSuppliers() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-nome_responsavel">Nome do Responsável</Label>
               <Input
-                id="edit-email"
-                type="email"
-                value={formData.email || ""}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                id="edit-nome_responsavel"
+                value={formData.nome_responsavel || ""}
+                onChange={(e) => setFormData({ ...formData, nome_responsavel: e.target.value })}
                 required
               />
             </div>
@@ -285,6 +321,7 @@ export default function AdminSuppliers() {
                 id="edit-telefone"
                 value={formData.telefone || ""}
                 onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                required
               />
             </div>
             <div>
@@ -293,6 +330,18 @@ export default function AdminSuppliers() {
                 id="edit-endereco"
                 value={formData.endereco || ""}
                 onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-valor_orcamento">Valor do Orçamento</Label>
+              <Input
+                id="edit-valor_orcamento"
+                type="number"
+                step="0.01"
+                value={formData.valor_orcamento || ""}
+                onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
+                required
               />
             </div>
             <div className="flex gap-2">
