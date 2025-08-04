@@ -84,7 +84,7 @@ export default function Login() {
       case "store":
         return { username: "store1", password: "store123" };
       case "admin":
-        return { username: "admin", password: "admin123" };
+        return { username: "rodrigo.aeromodelo@gmail.com", password: "123456" };
       default:
         return { username: "", password: "" };
     }
@@ -112,9 +112,13 @@ export default function Login() {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Usuário</FormLabel>
+                      <FormLabel>{selectedRole === "admin" ? "Email" : "Usuário"}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Digite seu usuário" {...field} />
+                        <Input 
+                          placeholder={selectedRole === "admin" ? "Digite seu email" : "Digite seu usuário"} 
+                          type={selectedRole === "admin" ? "email" : "text"}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -136,8 +140,10 @@ export default function Login() {
                 />
 
                 <div className="bg-gray-50 p-3 rounded-lg text-sm">
-                  <p className="font-medium text-gray-700">Credenciais de demonstração:</p>
-                  <p className="text-gray-600">Usuário: {demoCredentials.username}</p>
+                  <p className="font-medium text-gray-700">Credenciais do banco de dados:</p>
+                  <p className="text-gray-600">
+                    {selectedRole === "admin" ? "Email" : "Usuário"}: {demoCredentials.username}
+                  </p>
                   <p className="text-gray-600">Senha: {demoCredentials.password}</p>
                 </div>
 

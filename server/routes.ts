@@ -36,6 +36,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin authentication route
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password, role } = req.body;
+      
+      if (role === "admin") {
+        // Para admin, usa email como username
+        const admin = await storage.getAdminByEmail(username);
+        
+        if (!admin) {
+          return res.status(401).json({ error: "Email não encontrado" });
+        }
+        
+        // Verificar senha (simples comparação - em produção usar hash)
+        if (admin.senha !== password) {
+          return res.status(401).json({ error: "Senha incorreta" });
+        }
+        
+        // Login bem-sucedido
+        res.json({ 
+          user: { 
+            id: admin.id, 
+            username: admin.email, 
+            role: "admin" 
+          }, 
+          entity: admin 
+        });
+      } else {
+        // Para outras roles, manter lógica existente
+        res.status(400).json({ error: "Role não suportado nesta rota" });
+      }
+    } catch (error) {
+      console.error("Erro na autenticação:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   // Supplier authentication by CNPJ
   app.post("/api/suppliers/auth", async (req, res) => {
     try {

@@ -40,6 +40,7 @@ interface IStorage {
   // Admins
   getAllAdmins(): Promise<Admin[]>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
+  getAdminByEmail(email: string): Promise<Admin | undefined>;
   
   // Photos
   getPhotosByStoreId(loja_id: string): Promise<Photo[]>;
@@ -338,6 +339,15 @@ export class MySQLStorage implements IStorage {
     ) as [RowDataPacket[], any];
     
     return rows[0] as Admin;
+  }
+
+  async getAdminByEmail(email: string): Promise<Admin | undefined> {
+    const [rows] = await pool.execute(
+      'SELECT * FROM admins WHERE email = ?',
+      [email]
+    ) as [RowDataPacket[], any];
+    
+    return rows.length > 0 ? rows[0] as Admin : undefined;
   }
 
   async getPhotosByStoreId(loja_id: string): Promise<Photo[]> {
