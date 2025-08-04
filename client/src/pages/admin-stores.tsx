@@ -70,7 +70,7 @@ export default function AdminStores() {
     mutationFn: async (codigo_loja: string) => {
       const response = await fetch(`/api/stores/${codigo_loja}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Erro ao excluir loja");
-      return response.json();
+      return; // Não retorna JSON para status 204
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
