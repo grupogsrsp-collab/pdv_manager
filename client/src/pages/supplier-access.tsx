@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { type Supplier, type Store as StoreType } from "@shared/schema";
+import { type Supplier, type Store as StoreType } from "@shared/mysql-schema";
 
 export default function SupplierAccess() {
   const [, setLocation] = useLocation();
@@ -36,22 +36,11 @@ export default function SupplierAccess() {
   });
 
   const { data: stores = [], isLoading: storesLoading } = useQuery<StoreType[]>({
-    queryKey: ["/api/stores/search", filters],
+    queryKey: ["/api/stores", filters],
     queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value && value.trim()) {
-          searchParams.set(key, value.trim());
-        }
-      });
-      
-      const url = searchParams.toString() 
-        ? `/api/stores/search?${searchParams.toString()}`
-        : '/api/stores';
-        
-      const response = await fetch(url);
+      const response = await fetch('/api/stores');
       if (!response.ok) {
-        throw new Error('Failed to search stores');
+        throw new Error('Failed to fetch stores');
       }
       return response.json();
     },
@@ -175,7 +164,7 @@ export default function SupplierAccess() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
                     <Label className="block text-sm font-medium text-gray-700">Nome da Empresa</Label>
-                    <p className="text-gray-900">{supplier.name}</p>
+                    <p className="text-gray-900">{supplier.nome_fornecedor}</p>
                   </div>
                   <div>
                     <Label className="block text-sm font-medium text-gray-700">CNPJ</Label>
@@ -183,15 +172,15 @@ export default function SupplierAccess() {
                   </div>
                   <div>
                     <Label className="block text-sm font-medium text-gray-700">Responsável</Label>
-                    <p className="text-gray-900">{supplier.responsible}</p>
+                    <p className="text-gray-900">{supplier.nome_responsavel}</p>
                   </div>
                   <div>
                     <Label className="block text-sm font-medium text-gray-700">Telefone</Label>
-                    <p className="text-gray-900">{supplier.phone}</p>
+                    <p className="text-gray-900">{supplier.telefone}</p>
                   </div>
                   <div className="md:col-span-2">
                     <Label className="block text-sm font-medium text-gray-700">Endereço</Label>
-                    <p className="text-gray-900">{supplier.address}</p>
+                    <p className="text-gray-900">{supplier.endereco}</p>
                   </div>
                 </div>
               </CardContent>
@@ -278,9 +267,9 @@ export default function SupplierAccess() {
                     ) : (
                       stores.map((store) => (
                         <div
-                          key={store.id}
+                          key={store.codigo_loja}
                           className={`border rounded-lg p-4 cursor-pointer transition duration-200 ${
-                            selectedStore?.id === store.id
+                            selectedStore?.codigo_loja === store.codigo_loja
                               ? "border-blue-500 bg-blue-50"
                               : "border-gray-200 hover:shadow-md"
                           }`}
@@ -288,14 +277,19 @@ export default function SupplierAccess() {
                         >
                           <div className="flex justify-between items-center">
                             <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{store.name}</h4>
-                              <p className="text-sm text-gray-600">{store.address}</p>
-                              <p className="text-sm text-gray-500">CEP: {store.cep}</p>
-                              <p className="text-sm text-gray-500">
-                                {store.city}, {store.state}
+                              <h4 className="font-medium text-gray-900">
+                                Código: {store.codigo_loja} - {store.nome_loja}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                {store.logradouro}, {store.numero} {store.complemento && `- ${store.complemento}`}
                               </p>
+                              <p className="text-sm text-gray-600">
+                                {store.bairro} - {store.cidade}, {store.uf}
+                              </p>
+                              <p className="text-sm text-gray-500">CEP: {store.cep}</p>
+                              <p className="text-sm text-gray-500">Telefone: {store.telefone_loja}</p>
                             </div>
-                            {selectedStore?.id === store.id && (
+                            {selectedStore?.codigo_loja === store.codigo_loja && (
                               <div className="text-blue-600 font-medium">
                                 ✓ Selecionada
                               </div>
