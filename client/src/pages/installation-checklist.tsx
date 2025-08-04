@@ -11,7 +11,7 @@ import { Camera, CheckCircle } from "lucide-react";
 import TicketForm from "@/components/forms/ticket-form";
 import SuccessModal from "@/components/modals/success-modal";
 import { useToast } from "@/hooks/use-toast";
-import { type Store, type Supplier } from "@shared/schema";
+import { type Store, type Supplier } from "@shared/mysql-schema";
 
 export default function InstallationChecklist() {
   const [, setLocation] = useLocation();
@@ -38,8 +38,8 @@ export default function InstallationChecklist() {
   const finalizeMutation = useMutation({
     mutationFn: async () => {
       const formData = new FormData();
-      formData.append("storeId", store.id);
-      formData.append("supplierId", supplier.id);
+      formData.append("storeId", store.codigo_loja);
+      formData.append("supplierId", supplier.id.toString());
       formData.append("responsibleName", responsibleName);
       formData.append("installationDate", installationDate);
       
@@ -138,15 +138,18 @@ export default function InstallationChecklist() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="block text-sm font-medium text-gray-700">Nome da Loja</Label>
-                <p className="text-gray-900 font-medium">{store.name}</p>
+                <p className="text-gray-900 font-medium">{store.nome_loja}</p>
               </div>
               <div>
-                <Label className="block text-sm font-medium text-gray-700">CNPJ</Label>
-                <p className="text-gray-900">{store.cnpj}</p>
+                <Label className="block text-sm font-medium text-gray-700">Código da Loja</Label>
+                <p className="text-gray-900">{store.codigo_loja}</p>
               </div>
               <div className="md:col-span-2">
                 <Label className="block text-sm font-medium text-gray-700">Endereço</Label>
-                <p className="text-gray-900">{store.address}</p>
+                <p className="text-gray-900">
+                  {store.logradouro}, {store.numero} {store.complemento && `- ${store.complemento}`}<br/>
+                  {store.bairro} - {store.cidade}, {store.uf} - CEP: {store.cep}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -259,6 +262,9 @@ export default function InstallationChecklist() {
         <TicketForm
           open={showTicketForm}
           onClose={() => setShowTicketForm(false)}
+          entityId={store.codigo_loja}
+          entityName={store.nome_loja}
+          type="store"
         />
       )}
 
