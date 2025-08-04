@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type Store as StoreType } from "@shared/schema";
+import { type Store as StoreType } from "@shared/mysql-schema";
 
 export default function StoreAccess() {
   const [, setLocation] = useLocation();
@@ -43,7 +43,7 @@ export default function StoreAccess() {
   const handleSelectStore = (store: StoreType) => {
     // Store selected store data for access
     localStorage.setItem("store_access", JSON.stringify(store));
-    setLocation("/store");
+    setLocation("/store-dashboard");
   };
 
   const formatCep = (value: string) => {

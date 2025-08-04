@@ -357,6 +357,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get store installation status
+  app.get("/api/stores/:codigo_loja/installation-status", async (req, res) => {
+    try {
+      const codigo_loja = req.params.codigo_loja;
+      const status = await storage.getStoreInstallationStatus(codigo_loja);
+      res.json(status);
+    } catch (error) {
+      console.error("Erro ao buscar status da instalação:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Get store complete info with installation status
+  app.get("/api/stores/:codigo_loja/complete-info", async (req, res) => {
+    try {
+      const codigo_loja = req.params.codigo_loja;
+      const storeInfo = await storage.getStoreCompleteInfo(codigo_loja);
+      if (!storeInfo) {
+        return res.status(404).json({ error: "Loja não encontrada" });
+      }
+      res.json(storeInfo);
+    } catch (error) {
+      console.error("Erro ao buscar informações completas da loja:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   // Additional CRUD endpoints for stores
   app.patch("/api/stores/:codigo_loja", async (req, res) => {
     try {

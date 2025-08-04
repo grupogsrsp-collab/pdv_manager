@@ -501,6 +501,57 @@ export class MySQLStorage implements IStorage {
     await pool.execute('DELETE FROM lojas WHERE codigo_loja = ?', [codigo_loja]);
   }
 
+  async getStoreInstallationStatus(codigo_loja: string): Promise<{
+    isInstalled: boolean;
+    installation?: any;
+    supplier?: Supplier;
+  }> {
+    // Check if store has installation
+    const [installationRows] = await pool.execute(
+      'SELECT * FROM instalacoes WHERE loja_id = ?',
+      [codigo_loja]
+    ) as [RowDataPacket[], any];
+
+    const installation = installationRows[0];
+    
+    if (!installation) {
+      return { isInstalled: false };
+    }
+
+    // Get supplier info if installation exists
+    const [supplierRows] = await pool.execute(
+      'SELECT * FROM fornecedores WHERE id = ?',
+      [installation.fornecedor_id]
+    ) as [RowDataPacket[], any];
+
+    const supplier = supplierRows[0] as Supplier;
+
+    return {
+      isInstalled: true,
+      installation,
+      supplier
+    };
+  }
+
+  async getStoreCompleteInfo(codigo_loja: string): Promise<{
+    store: Store;
+    installationStatus: {
+      isInstalled: boolean;
+      installation?: any;
+      supplier?: Supplier;
+    };
+  } | null> {
+    const store = await this.getStoreByCode(codigo_loja);
+    if (!store) return null;
+
+    const installationStatus = await this.getStoreInstallationStatus(codigo_loja);
+
+    return {
+      store,
+      installationStatus
+    };
+  }
+
   async getAllKits(): Promise<Kit[]> {
     const [rows] = await pool.execute('SELECT * FROM kits') as [RowDataPacket[], any];
     return rows as Kit[];
