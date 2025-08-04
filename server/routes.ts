@@ -160,6 +160,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/stores/:codigo", async (req, res) => {
+    try {
+      const codigo_loja = req.params.codigo;
+      const updateData = req.body;
+      
+      console.log("Atualizando loja:", codigo_loja, "com dados:", updateData);
+      
+      const updatedStore = await storage.updateStore(codigo_loja, updateData);
+      res.json(updatedStore);
+    } catch (error) {
+      console.error("Erro ao atualizar loja:", error);
+      res.status(400).json({ error: "Erro ao atualizar loja" });
+    }
+  });
+
+  app.delete("/api/stores/:codigo", async (req, res) => {
+    try {
+      const codigo_loja = req.params.codigo;
+      
+      console.log("Deletando loja:", codigo_loja);
+      
+      await storage.deleteStore(codigo_loja);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Erro ao deletar loja:", error);
+      res.status(400).json({ error: "Erro ao deletar loja" });
+    }
+  });
+
   // Kits
   app.get("/api/kits", async (req, res) => {
     try {
