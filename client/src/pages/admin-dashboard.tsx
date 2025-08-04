@@ -14,10 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { type Ticket } from "@shared/schema";
 
 interface DashboardMetrics {
-  completedInstallations: number;
+  totalSuppliers: number;
+  totalStores: number;
+  totalTickets: number;
   pendingInstallations: number;
-  openTickets: number;
-  totalBudget: number;
   monthlyInstallations: number[];
   ticketsByStatus: { open: number; resolved: number };
 }
@@ -82,9 +82,9 @@ export default function AdminDashboard() {
                 <Check className="h-5 w-5 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Instalações Finalizadas</p>
+                <p className="text-sm text-gray-600">Total de Fornecedores</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.completedInstallations || 0}
+                  {metrics?.totalSuppliers || 0}
                 </p>
               </div>
             </div>
@@ -98,9 +98,9 @@ export default function AdminDashboard() {
                 <Clock className="h-5 w-5 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Instalações Pendentes</p>
+                <p className="text-sm text-gray-600">Total de Lojas</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.pendingInstallations || 0}
+                  {metrics?.totalStores || 0}
                 </p>
               </div>
             </div>
@@ -114,9 +114,9 @@ export default function AdminDashboard() {
                 <AlertTriangle className="h-5 w-5 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Chamados Abertos</p>
+                <p className="text-sm text-gray-600">Total de Chamados</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.openTickets || 0}
+                  {metrics?.totalTickets || 0}
                 </p>
               </div>
             </div>
@@ -130,9 +130,9 @@ export default function AdminDashboard() {
                 <DollarSign className="h-5 w-5 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Orçamentos</p>
+                <p className="text-sm text-gray-600">Instalações Pendentes</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(metrics?.totalBudget || 0)}
+                  {metrics?.pendingInstallations || 0}
                 </p>
               </div>
             </div>

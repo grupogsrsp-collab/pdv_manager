@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 interface DashboardMetrics {
-  completedInstallations: number;
+  totalSuppliers: number;
+  totalStores: number;
+  totalTickets: number;
   pendingInstallations: number;
-  openTickets: number;
-  totalBudget: number;
   monthlyInstallations: number[];
   ticketsByStatus: { open: number; resolved: number };
 }
@@ -15,18 +15,22 @@ interface DashboardChartsProps {
 }
 
 export default function DashboardCharts({ metrics }: DashboardChartsProps) {
+  // Garantir que os dados existem antes de usar
+  const monthlyInstallations = metrics?.monthlyInstallations || [0, 0, 0, 0, 0, 0];
+  const ticketsByStatus = metrics?.ticketsByStatus || { open: 0, resolved: 0 };
+  
   const monthlyData = [
-    { month: "Jan", installations: metrics.monthlyInstallations[0] || 0 },
-    { month: "Fev", installations: metrics.monthlyInstallations[1] || 0 },
-    { month: "Mar", installations: metrics.monthlyInstallations[2] || 0 },
-    { month: "Abr", installations: metrics.monthlyInstallations[3] || 0 },
-    { month: "Mai", installations: metrics.monthlyInstallations[4] || 0 },
-    { month: "Jun", installations: metrics.monthlyInstallations[5] || 0 },
+    { month: "Jan", installations: monthlyInstallations[0] || 0 },
+    { month: "Fev", installations: monthlyInstallations[1] || 0 },
+    { month: "Mar", installations: monthlyInstallations[2] || 0 },
+    { month: "Abr", installations: monthlyInstallations[3] || 0 },
+    { month: "Mai", installations: monthlyInstallations[4] || 0 },
+    { month: "Jun", installations: monthlyInstallations[5] || 0 },
   ];
 
   const ticketData = [
-    { name: "Abertos", value: metrics.ticketsByStatus.open, color: "#FF9800" },
-    { name: "Resolvidos", value: metrics.ticketsByStatus.resolved, color: "#4CAF50" },
+    { name: "Abertos", value: ticketsByStatus.open, color: "#FF9800" },
+    { name: "Resolvidos", value: ticketsByStatus.resolved, color: "#4CAF50" },
   ];
 
   return (

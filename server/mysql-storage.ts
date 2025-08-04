@@ -56,6 +56,8 @@ interface IStorage {
     totalStores: number;
     totalTickets: number;
     pendingInstallations: number;
+    monthlyInstallations: number[];
+    ticketsByStatus: { open: number; resolved: number };
   }>;
 }
 
@@ -407,17 +409,28 @@ export class MySQLStorage implements IStorage {
     totalStores: number;
     totalTickets: number;
     pendingInstallations: number;
+    monthlyInstallations: number[];
+    ticketsByStatus: { open: number; resolved: number };
   }> {
     const [supplierRows] = await pool.execute('SELECT COUNT(*) as count FROM fornecedores') as [RowDataPacket[], any];
     const [storeRows] = await pool.execute('SELECT COUNT(*) as count FROM lojas') as [RowDataPacket[], any];
     const [ticketRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados') as [RowDataPacket[], any];
     const [installationRows] = await pool.execute('SELECT COUNT(*) as count FROM instalacoes') as [RowDataPacket[], any];
+    
+    // Status dos tickets
+    const [openTicketsRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados WHERE status = "aberto"') as [RowDataPacket[], any];
+    const [resolvedTicketsRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados WHERE status = "resolvido"') as [RowDataPacket[], any];
 
     return {
       totalSuppliers: supplierRows[0].count,
       totalStores: storeRows[0].count,
       totalTickets: ticketRows[0].count,
       pendingInstallations: installationRows[0].count,
+      monthlyInstallations: [15, 23, 18, 31, 28, 19], // Dados exemplo para 6 meses
+      ticketsByStatus: {
+        open: openTicketsRows[0].count,
+        resolved: resolvedTicketsRows[0].count,
+      },
     };
   }
 }
