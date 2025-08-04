@@ -219,16 +219,42 @@ export class MySQLStorage implements IStorage {
 
   async getSupplierByCnpj(cnpj: string): Promise<Supplier | undefined> {
     // Limpar CNPJ removendo pontos, barras e hífens para busca flexível
-    const cleanCnpj = cnpj.replace(/[.\-\/]/g, '');
+    const cleanCnpj = cnpj.replace(/[.\-\/\s]/g, '');
     
     console.log('Buscando fornecedor com CNPJ:', cnpj, 'CNPJ limpo:', cleanCnpj);
     
-    const [rows] = await pool.execute(
+    // Primeira tentativa: busca exata com CNPJ limpo
+    let [rows] = await pool.execute(
       'SELECT * FROM fornecedores WHERE REPLACE(REPLACE(REPLACE(cnpj, ".", ""), "/", ""), "-", "") = ?',
       [cleanCnpj]
     ) as [RowDataPacket[], any];
     
-    console.log('Resultados encontrados:', rows.length);
+    console.log('Primeira busca - Resultados encontrados:', rows.length);
+    
+    // Se não encontrou, busca usando LIKE para encontrar CNPJs similares
+    if (rows.length === 0) {
+      console.log('Tentando busca com LIKE...');
+      [rows] = await pool.execute(
+        'SELECT * FROM fornecedores WHERE REPLACE(REPLACE(REPLACE(cnpj, ".", ""), "/", ""), "-", "") LIKE ?',
+        [`%${cleanCnpj}%`]
+      ) as [RowDataPacket[], any];
+      
+      console.log('Segunda busca (LIKE) - Resultados encontrados:', rows.length);
+    }
+    
+    // Se ainda não encontrou, lista todos os CNPJs para debug
+    if (rows.length === 0) {
+      console.log('Nenhum fornecedor encontrado. Listando todos os CNPJs na base:');
+      const [allRows] = await pool.execute(
+        'SELECT id, nome_fornecedor, cnpj FROM fornecedores'
+      ) as [RowDataPacket[], any];
+      
+      allRows.forEach((row: any) => {
+        const dbCleanCnpj = row.cnpj.replace(/[.\-\/\s]/g, '');
+        console.log(`ID: ${row.id}, Nome: ${row.nome_fornecedor}, CNPJ: ${row.cnpj}, CNPJ limpo: ${dbCleanCnpj}`);
+      });
+    }
+    
     return rows[0] as Supplier | undefined;
   }
 
