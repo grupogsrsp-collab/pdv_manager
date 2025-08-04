@@ -42,7 +42,7 @@ export default function TicketForm({ open, onClose, entityId, entityName, type }
       return apiRequest("POST", "/api/tickets", {
         descricao: data.description,
         status: "aberto",
-        loja_id: entityId,
+        loja_id: parseInt(entityId), // Convert store ID to number
         fornecedor_id: supplier?.id || 0,
       });
     },

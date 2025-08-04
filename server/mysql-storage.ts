@@ -103,7 +103,8 @@ export class MySQLStorage implements IStorage {
         )`,
         
         `CREATE TABLE IF NOT EXISTS lojas (
-          codigo_loja VARCHAR(20) PRIMARY KEY,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          codigo_loja VARCHAR(20) UNIQUE NOT NULL,
           nome_loja VARCHAR(255) NOT NULL,
           nome_operador VARCHAR(255) NOT NULL,
           logradouro VARCHAR(255) NOT NULL,
@@ -128,10 +129,10 @@ export class MySQLStorage implements IStorage {
           id INT AUTO_INCREMENT PRIMARY KEY,
           descricao TEXT NOT NULL,
           status VARCHAR(20) DEFAULT 'aberto',
-          loja_id VARCHAR(20) NOT NULL,
+          loja_id INT NOT NULL,
           fornecedor_id INT NOT NULL,
           data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
+          FOREIGN KEY (loja_id) REFERENCES lojas(id),
           FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id)
         )`,
         
@@ -144,20 +145,20 @@ export class MySQLStorage implements IStorage {
         
         `CREATE TABLE IF NOT EXISTS fotos (
           id INT AUTO_INCREMENT PRIMARY KEY,
-          loja_id VARCHAR(20) NOT NULL,
+          loja_id INT NOT NULL,
           foto_url VARCHAR(500) NOT NULL,
-          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja)
+          FOREIGN KEY (loja_id) REFERENCES lojas(id)
         )`,
         
         `CREATE TABLE IF NOT EXISTS instalacoes (
           id VARCHAR(36) PRIMARY KEY,
-          loja_id VARCHAR(20) NOT NULL,
+          loja_id INT NOT NULL,
           fornecedor_id INT NOT NULL,
           responsible VARCHAR(255) NOT NULL,
           installationDate VARCHAR(20) NOT NULL,
           photos JSON,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
+          FOREIGN KEY (loja_id) REFERENCES lojas(id),
           FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id)
         )`
       ];
@@ -181,11 +182,18 @@ export class MySQLStorage implements IStorage {
       ) as [RowDataPacket[], any];
       
       if (supplierRows[0].count === 0) {
-        await pool.execute(
-          `INSERT INTO fornecedores (nome_fornecedor, cnpj, nome_responsavel, telefone, endereco, valor_orcamento) 
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          ['TechSolutions Ltda', '12.345.678/0001-90', 'João Silva', '(11) 99999-9999', 'Rua das Flores, 123', 15000.00]
-        );
+        const suppliers = [
+          ['SuperTech Supplies', '12345678000190', 'João Silva', '(11) 99999-9999', 'Rua das Flores, 123', 15000.00],
+          ['ABC Ferramentas', '98765432000110', 'Maria Costa', '(11) 88888-8888', 'Av. Industrial, 456', 25000.00]
+        ];
+        
+        for (const supplier of suppliers) {
+          await pool.execute(
+            `INSERT INTO fornecedores (nome_fornecedor, cnpj, nome_responsavel, telefone, endereco, valor_orcamento) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            supplier
+          );
+        }
       }
 
       // Inserir lojas de exemplo
@@ -195,9 +203,9 @@ export class MySQLStorage implements IStorage {
       
       if (storeRows[0].count === 0) {
         const stores = [
-          ['L001', 'Loja Centro', 'Maria Santos', 'Rua Principal', '100', '', 'Centro', 'São Paulo', 'SP', '01010-000', 'Sudeste', '(11) 1111-1111'],
-          ['L002', 'Loja Norte', 'Pedro Costa', 'Av. Norte', '200', 'Sala 2', 'Vila Norte', 'São Paulo', 'SP', '02020-000', 'Sudeste', '(11) 2222-2222'],
-          ['L003', 'Loja Sul', 'Ana Oliveira', 'Rua Sul', '300', '', 'Jardim Sul', 'São Paulo', 'SP', '03030-000', 'Sudeste', '(11) 3333-3333']
+          ['51974', 'HELP INFORMATICA', 'Maria Santos', 'Rua Principal', '100', '', 'Centro', 'São Paulo', 'SP', '01010-000', 'Sudeste', '(11) 1111-1111'],
+          ['51975', 'Loja Norte', 'Pedro Costa', 'Av. Norte', '200', 'Sala 2', 'Vila Norte', 'São Paulo', 'SP', '02020-000', 'Sudeste', '(11) 2222-2222'],
+          ['51976', 'Loja Sul', 'Ana Oliveira', 'Rua Sul', '300', '', 'Jardim Sul', 'São Paulo', 'SP', '03030-000', 'Sudeste', '(11) 3333-3333']
         ];
 
         for (const store of stores) {
@@ -641,7 +649,7 @@ export class MySQLStorage implements IStorage {
     const result = rows[0];
     return {
       ...result,
-      photos: JSON.parse(result.photos || '[]')
+      photos: typeof result.photos === 'string' ? JSON.parse(result.photos || '[]') : (result.photos || [])
     } as Installation;
   }
 

@@ -24,6 +24,7 @@ export interface InsertSupplier {
 
 // Lojas
 export interface Store {
+  id: number;
   codigo_loja: string;
   nome_loja: string;
   nome_operador: string;
@@ -72,7 +73,7 @@ export interface Ticket {
   id: number;
   descricao: string;
   status: string;
-  loja_id: string;
+  loja_id: number;
   fornecedor_id: number;
   data_abertura: Date;
 }
@@ -80,7 +81,7 @@ export interface Ticket {
 export interface InsertTicket {
   descricao: string;
   status: string;
-  loja_id: string;
+  loja_id: number;
   fornecedor_id: number;
   data_abertura?: Date;
 }
@@ -114,7 +115,7 @@ export interface InsertPhoto {
 // Instalações (não estava nos campos originais, mas mantendo para compatibilidade)
 export interface Installation {
   id: string;
-  loja_id: string;
+  loja_id: number;
   fornecedor_id: number;
   responsible: string;
   installationDate: string;
@@ -123,7 +124,7 @@ export interface Installation {
 }
 
 export interface InsertInstallation {
-  loja_id: string;
+  loja_id: number;
   fornecedor_id: number;
   responsible: string;
   installationDate: string;
@@ -164,7 +165,7 @@ export const insertKitSchema = z.object({
 export const insertTicketSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   status: z.string().default("aberto"),
-  loja_id: z.string().min(1, "ID da loja é obrigatório"),
+  loja_id: z.number().positive("ID da loja é obrigatório"),
   fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
   data_abertura: z.date().optional(),
 });
@@ -181,7 +182,7 @@ export const insertPhotoSchema = z.object({
 });
 
 export const insertInstallationSchema = z.object({
-  loja_id: z.string().min(1, "ID da loja é obrigatório"),
+  loja_id: z.number().positive("ID da loja é obrigatório"),
   fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
   responsible: z.string().min(1, "Responsável é obrigatório"),
   installationDate: z.string().min(1, "Data de instalação é obrigatória"),

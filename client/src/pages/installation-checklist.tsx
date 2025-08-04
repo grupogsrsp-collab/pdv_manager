@@ -51,7 +51,7 @@ export default function InstallationChecklist() {
       }
 
       const installationData = {
-        loja_id: store.codigo_loja,
+        loja_id: store.id, // Use the numeric ID instead of codigo_loja
         fornecedor_id: supplier.id,
         responsible: responsibleName,
         installationDate: installationDate,
@@ -277,7 +277,7 @@ export default function InstallationChecklist() {
         <TicketForm
           open={showTicketForm}
           onClose={() => setShowTicketForm(false)}
-          entityId={store.codigo_loja}
+          entityId={store.id.toString()}
           entityName={store.nome_loja}
           type="store"
         />
