@@ -158,25 +158,25 @@ export default function StoreAccess() {
                         key={store.id}
                         className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200"
                       >
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{store.name}</h4>
-                            <p className="text-sm text-gray-600">{store.address}</p>
-                            <p className="text-sm text-gray-500">CEP: {store.cep}</p>
-                            <p className="text-sm text-gray-500">
-                              {store.city}, {store.state} | Código: {store.code}
-                            </p>
-                            {store.responsible && (
-                              <p className="text-sm text-gray-500">
-                                Responsável: {store.responsible}
-                              </p>
-                            )}
+                            <h4 className="font-semibold text-gray-900 mb-2">
+                              Código: {store.codigo_loja} - {store.nome_loja}
+                            </h4>
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <p><span className="font-medium">{store.logradouro}, {store.numero}</span>{store.complemento && ` - ${store.complemento}`}</p>
+                              <p><span className="font-medium">{store.bairro} - {store.cidade}, {store.uf}</span></p>
+                              <p><span className="font-medium">CEP:</span> {store.cep}</p>
+                              <p><span className="font-medium">Operador:</span> {store.nome_operador}</p>
+                              <p><span className="font-medium">Telefone:</span> {store.telefone_loja}</p>
+                            </div>
                           </div>
                           <Button
                             onClick={() => handleSelectStore(store)}
-                            className="bg-primary hover:bg-blue-700"
+                            className="ml-4"
+                            data-testid={`button-select-store-${store.codigo_loja}`}
                           >
-                            Selecionar Loja
+                            Selecionar
                           </Button>
                         </div>
                       </div>
