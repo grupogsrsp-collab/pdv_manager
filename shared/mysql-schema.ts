@@ -59,13 +59,15 @@ export interface Kit {
   id: number;
   nome_peca: string;
   descricao: string;
-  image?: string;
+  image_url: string | null;
+  sim: number;
+  nao: number;
 }
 
 export interface InsertKit {
   nome_peca: string;
   descricao: string;
-  image?: string;
+  image_url?: string;
 }
 
 // Chamados/Tickets
@@ -166,7 +168,7 @@ export const insertTicketSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   status: z.string().default("aberto"),
   loja_id: z.number().positive("ID da loja é obrigatório"),
-  fornecedor_id: z.number().optional(), // Tornando opcional para chamados de lojas
+  fornecedor_id: z.number().positive().optional(), // Tornando opcional para chamados de lojas
   data_abertura: z.date().optional(),
 });
 

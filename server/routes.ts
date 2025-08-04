@@ -246,6 +246,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update kit usage (sim/nao counters)
+  app.patch("/api/kits/:id/usage", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { action } = req.body; // 'sim' or 'nao'
+      
+      if (!['sim', 'nao'].includes(action)) {
+        return res.status(400).json({ error: "Ação deve ser 'sim' ou 'nao'" });
+      }
+      
+      const kit = await storage.updateKitUsage(id, action);
+      res.json(kit);
+    } catch (error) {
+      console.error("Erro ao atualizar uso do kit:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   app.post("/api/kits", async (req, res) => {
     try {
       const kitData = insertKitSchema.parse(req.body);

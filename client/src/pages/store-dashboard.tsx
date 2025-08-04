@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, XCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import TicketForm from "@/components/forms/ticket-form";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { type Store, type Kit } from "@shared/mysql-schema";
 
 interface InstallationStatus {
@@ -31,6 +33,7 @@ export default function StoreDashboard() {
   const [, setLocation] = useLocation();
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [currentKitIndex, setCurrentKitIndex] = useState(0);
+  const { toast } = useToast();
 
   // Get store data from localStorage (set during access)
   const storeData = localStorage.getItem("store_access");
@@ -71,6 +74,30 @@ export default function StoreDashboard() {
   const handleFinalize = () => {
     // Implement finalization logic
     alert("Processo finalizado com sucesso!");
+  };
+
+  const updateKitUsageMutation = useMutation({
+    mutationFn: async ({ kitId, action }: { kitId: number; action: 'sim' | 'nao' }) => {
+      return apiRequest("PATCH", `/api/kits/${kitId}/usage`, { action });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kits"] });
+      toast({
+        title: "Sucesso",
+        description: "Uso do kit atualizado!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar uso do kit",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleKitUsage = (kitId: number, action: 'sim' | 'nao') => {
+    updateKitUsageMutation.mutate({ kitId, action });
   };
 
   if (!storeInfo) {
@@ -186,7 +213,37 @@ export default function StoreDashboard() {
                           <span className="text-gray-400">Sem imagem</span>
                         </div>
                       )}
-                      <p className="text-sm text-gray-600">{kit.descricao}</p>
+                      <p className="text-sm text-gray-600 mb-4">{kit.descricao}</p>
+                      
+                      {/* Usage buttons */}
+                      <div className="space-y-3">
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Esta peça foi utilizada?</p>
+                        </div>
+                        <div className="flex gap-2 justify-center">
+                          <Button
+                            onClick={() => handleKitUsage(kit.id, 'sim')}
+                            className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 px-4 py-2"
+                            size="sm"
+                            disabled={updateKitUsageMutation.isPending}
+                          >
+                            <ThumbsUp className="h-4 w-4" />
+                            Sim
+                          </Button>
+                          <Button
+                            onClick={() => handleKitUsage(kit.id, 'nao')}
+                            className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 px-4 py-2"
+                            size="sm"
+                            disabled={updateKitUsageMutation.isPending}
+                          >
+                            <ThumbsDown className="h-4 w-4" />
+                            Não
+                          </Button>
+                        </div>
+                        <div className="text-center text-xs text-gray-500">
+                          Sim: {kit.sim} | Não: {kit.nao}
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

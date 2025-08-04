@@ -41,14 +41,22 @@ export default function TicketForm({ open, onClose, entityId, entityName, type }
         loja_id: parseInt(entityId),
       };
 
-      // Only add fornecedor_id if this is a supplier ticket
-      if (type === "supplier") {
-        const supplierData = localStorage.getItem("supplier_access");
-        const supplier = supplierData ? JSON.parse(supplierData) : null;
-        payload.fornecedor_id = supplier?.id || 1; // Default to 1 if no supplier
-      } else {
-        // For store tickets, we can set a default fornecedor_id or leave it null
-        payload.fornecedor_id = 1; // Default supplier ID
+      // Get the first available supplier ID for tickets
+      try {
+        const suppliersResponse = await fetch('/api/suppliers');
+        const suppliers = await suppliersResponse.json();
+        const firstSupplier = suppliers[0];
+        
+        if (type === "supplier") {
+          const supplierData = localStorage.getItem("supplier_access");
+          const supplier = supplierData ? JSON.parse(supplierData) : null;
+          payload.fornecedor_id = supplier?.id || firstSupplier?.id || null;
+        } else {
+          // For store tickets, use the first available supplier
+          payload.fornecedor_id = firstSupplier?.id || null;
+        }
+      } catch (error) {
+        console.error("Error fetching suppliers:", error);
       }
       
       return apiRequest("POST", "/api/tickets", payload);

@@ -605,9 +605,12 @@ export class MySQLStorage implements IStorage {
   }
 
   async createTicket(ticket: InsertTicket): Promise<Ticket> {
+    // If fornecedor_id is provided, use it; otherwise, set to NULL
+    const fornecedorId = ticket.fornecedor_id || null;
+    
     const [result] = await pool.execute(
       'INSERT INTO chamados (descricao, status, loja_id, fornecedor_id, data_abertura) VALUES (?, ?, ?, ?, ?)',
-      [ticket.descricao, ticket.status, ticket.loja_id, ticket.fornecedor_id, ticket.data_abertura || new Date()]
+      [ticket.descricao, ticket.status, ticket.loja_id, fornecedorId, ticket.data_abertura || new Date()]
     ) as [ResultSetHeader, any];
 
     const [rows] = await pool.execute(
@@ -687,6 +690,22 @@ export class MySQLStorage implements IStorage {
 
   async deleteAdmin(id: number): Promise<void> {
     await pool.execute('DELETE FROM admins WHERE id = ?', [id]);
+  }
+
+  async updateKitUsage(id: number, action: 'sim' | 'nao'): Promise<Kit> {
+    const column = action === 'sim' ? 'sim' : 'nao';
+    
+    await pool.execute(
+      `UPDATE kits SET ${column} = ${column} + 1 WHERE id = ?`,
+      [id]
+    );
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM kits WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Kit;
   }
 
   async getPhotosByStoreId(loja_id: string): Promise<Photo[]> {
