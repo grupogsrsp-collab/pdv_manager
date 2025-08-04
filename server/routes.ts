@@ -141,6 +141,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Store search with GET method and query parameters
+  app.get("/api/stores/search", async (req, res) => {
+    try {
+      const filters = {
+        cep: req.query.cep as string || "",
+        address: req.query.address as string || "",
+        state: req.query.state as string || "",
+        city: req.query.city as string || "",
+        code: req.query.code as string || "",
+      };
+      
+      console.log("Filtros de busca recebidos na rota:", filters);
+      
+      const stores = await storage.getStoresByFilters(filters);
+      
+      console.log("Lojas encontradas:", stores.length);
+      
+      if (stores.length === 0) {
+        return res.status(404).json({ error: "Loja não encontrada" });
+      }
+      
+      res.json(stores);
+    } catch (error) {
+      console.error("Erro na busca de lojas:", error);
+      res.status(500).json({ error: "Erro na busca de lojas" });
+    }
+  });
+
   app.post("/api/stores/search", async (req, res) => {
     try {
       const filters = storeFilterSchema.parse(req.body);

@@ -347,32 +347,41 @@ export class MySQLStorage implements IStorage {
     return rows[0] as Store | undefined;
   }
 
-  async getStoresByFilters(filters: Partial<Store>): Promise<Store[]> {
+  async getStoresByFilters(filters: any): Promise<Store[]> {
     let query = 'SELECT * FROM lojas WHERE 1=1';
     const params: any[] = [];
 
-    if (filters.codigo_loja) {
+    console.log("Filtros recebidos no storage:", filters);
+
+    // Mapear filtros do frontend para campos do banco
+    if (filters.code) {
       query += ' AND codigo_loja LIKE ?';
-      params.push(`%${filters.codigo_loja}%`);
+      params.push(`%${filters.code}%`);
     }
     if (filters.cep) {
+      // Remove formatação do CEP para busca
+      const cleanCep = filters.cep.replace(/\D/g, '');
       query += ' AND cep LIKE ?';
-      params.push(`%${filters.cep}%`);
+      params.push(`%${cleanCep}%`);
     }
-    if (filters.cidade) {
+    if (filters.city) {
       query += ' AND cidade LIKE ?';
-      params.push(`%${filters.cidade}%`);
+      params.push(`%${filters.city}%`);
     }
-    if (filters.uf) {
-      query += ' AND uf = ?';
-      params.push(filters.uf);
+    if (filters.state) {
+      query += ' AND uf LIKE ?';
+      params.push(`%${filters.state}%`);
     }
-    if (filters.regiao) {
-      query += ' AND regiao LIKE ?';
-      params.push(`%${filters.regiao}%`);
+    if (filters.address) {
+      query += ' AND (logradouro LIKE ? OR bairro LIKE ?)';
+      params.push(`%${filters.address}%`, `%${filters.address}%`);
     }
 
+    console.log("Query final:", query);
+    console.log("Parâmetros:", params);
+
     const [rows] = await pool.execute(query, params) as [RowDataPacket[], any];
+    console.log("Resultados encontrados:", rows.length);
     return rows as Store[];
   }
 
