@@ -13,7 +13,7 @@ export default function SupplierAccess() {
   const [, setLocation] = useLocation();
   const [cnpj, setCnpj] = useState("");
   const [searchedCnpj, setSearchedCnpj] = useState("");
-  const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
+
   const [filters, setFilters] = useState({
     cep: "",
     address: "",
@@ -55,19 +55,11 @@ export default function SupplierAccess() {
     }
   };
 
-  const handleConfirm = () => {
-    if (supplier && selectedStore) {
-      // Store both supplier and store data
-      localStorage.setItem("supplier_access", JSON.stringify(supplier));
-      localStorage.setItem("selected_store", JSON.stringify(selectedStore));
-      setLocation("/installation-checklist");
-    } else {
-      toast({
-        title: "Seleção incompleta",
-        description: "Por favor, selecione uma loja para continuar.",
-        variant: "destructive",
-      });
-    }
+  const handleSelectStore = (store: StoreType) => {
+    // Store both supplier and store data
+    localStorage.setItem("supplier_access", JSON.stringify(supplier));
+    localStorage.setItem("selected_store", JSON.stringify(store));
+    setLocation("/installation-checklist");
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -268,12 +260,7 @@ export default function SupplierAccess() {
                       stores.map((store) => (
                         <div
                           key={store.codigo_loja}
-                          className={`border rounded-lg p-4 cursor-pointer transition duration-200 ${
-                            selectedStore?.codigo_loja === store.codigo_loja
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 hover:shadow-md"
-                          }`}
-                          onClick={() => setSelectedStore(store)}
+                          className="border rounded-lg p-4 transition duration-200 border-gray-200 hover:shadow-md"
                         >
                           <div className="flex justify-between items-center">
                             <div className="flex-1">
@@ -289,11 +276,15 @@ export default function SupplierAccess() {
                               <p className="text-sm text-gray-500">CEP: {store.cep}</p>
                               <p className="text-sm text-gray-500">Telefone: {store.telefone_loja}</p>
                             </div>
-                            {selectedStore?.codigo_loja === store.codigo_loja && (
-                              <div className="text-blue-600 font-medium">
-                                ✓ Selecionada
-                              </div>
-                            )}
+                            <div className="ml-4">
+                              <Button 
+                                onClick={() => handleSelectStore(store)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 font-semibold"
+                                data-testid={`button-select-store-${store.codigo_loja}`}
+                              >
+                                Selecionar
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -301,14 +292,7 @@ export default function SupplierAccess() {
                   </div>
                 )}
 
-                {selectedStore && (
-                  <Button 
-                    onClick={handleConfirm}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold"
-                  >
-                    Confirmar e Continuar
-                  </Button>
-                )}
+
               </CardContent>
             </Card>
           )}
