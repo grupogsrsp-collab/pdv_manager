@@ -22,7 +22,7 @@ export default function Header() {
                 <Store className="h-4 w-4 text-white" />
               </div>
             </div>
-            <h1 className="text-xl font-semibold text-gray-900">Franquias Manager</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Positivação Help!</h1>
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600">

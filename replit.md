@@ -1,4 +1,4 @@
-# Franchise Management Platform
+# Positivação Help! Platform
 
 ## Overview
 
