@@ -64,15 +64,21 @@ export function ObjectUploader({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
+        allowedFileTypes: ['image/*'], // Apenas imagens
       },
       autoProceed: false,
+      debug: true, // Para debugging
     })
       .use(AwsS3, {
         shouldUseMultipart: false,
         getUploadParameters: onGetUploadParameters,
       })
       .on("complete", (result) => {
+        console.log("Upload complete:", result);
         onComplete?.(result);
+      })
+      .on("upload-error", (file, error, response) => {
+        console.error("Upload error:", error, response);
       })
   );
 
