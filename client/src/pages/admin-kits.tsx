@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Package, Image as ImageIcon, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Image as ImageIcon, Upload, ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { type Kit, type InsertKit } from "@shared/mysql-schema";
 import type { UploadResult } from "@uppy/core";
@@ -142,6 +143,14 @@ export default function AdminKits() {
     <div className="container mx-auto p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
+          <div className="flex items-center gap-4 mb-2">
+            <Link href="/admin">
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+            </Link>
+          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gerenciar Kits</h1>
           <p className="text-gray-600 mt-1">Adicione, edite ou remova kits de instalação</p>
         </div>

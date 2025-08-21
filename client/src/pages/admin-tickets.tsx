@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Search, CheckCircle, Clock, AlertTriangle, ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { type Ticket } from "@shared/mysql-schema";
 
 export default function AdminTickets() {
@@ -93,7 +94,17 @@ export default function AdminTickets() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gerenciar Chamados</h1>
+        <div>
+          <div className="flex items-center gap-4 mb-2">
+            <Link href="/admin">
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+            </Link>
+          </div>
+          <h1 className="text-2xl font-bold">Gerenciar Chamados</h1>
+        </div>
       </div>
 
       <div className="mb-4 flex gap-4">
