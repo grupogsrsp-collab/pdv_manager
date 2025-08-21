@@ -1,107 +1,104 @@
-import { useState } from "react";
+import { useRef } from "react";
 import type { ReactNode } from "react";
-import Uppy from "@uppy/core";
-import { DashboardModal } from "@uppy/react";
-import "@uppy/core/dist/style.min.css";
-import "@uppy/dashboard/dist/style.min.css";
-import AwsS3 from "@uppy/aws-s3";
-import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
-  onGetUploadParameters: () => Promise<{
-    method: "PUT";
-    url: string;
-  }>;
-  onComplete?: (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
-  ) => void;
+  onComplete?: (result: { success: boolean; imageURL?: string; error?: string }) => void;
   buttonClassName?: string;
   children: ReactNode;
 }
 
 /**
- * A file upload component that renders as a button and provides a modal interface for
- * file management.
- * 
- * Features:
- * - Renders as a customizable button that opens a file upload modal
- * - Provides a modal interface for:
- *   - File selection
- *   - File preview
- *   - Upload progress tracking
- *   - Upload status display
- * 
- * The component uses Uppy under the hood to handle all file upload functionality.
- * All file management features are automatically handled by the Uppy dashboard modal.
- * 
- * @param props - Component props
- * @param props.maxNumberOfFiles - Maximum number of files allowed to be uploaded
- *   (default: 1)
- * @param props.maxFileSize - Maximum file size in bytes (default: 10MB)
- * @param props.onGetUploadParameters - Function to get upload parameters (method and URL).
- *   Typically used to fetch a presigned URL from the backend server for direct-to-S3
- *   uploads.
- * @param props.onComplete - Callback function called when upload is complete. Typically
- *   used to make post-upload API calls to update server state and set object ACL
- *   policies.
- * @param props.buttonClassName - Optional CSS class name for the button
- * @param props.children - Content to be rendered inside the button
+ * Simple file upload component using native HTML input and form data
  */
 export function ObjectUploader({
   maxNumberOfFiles = 1,
   maxFileSize = 10485760, // 10MB default
-  onGetUploadParameters,
   onComplete,
   buttonClassName,
   children,
 }: ObjectUploaderProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
-      restrictions: {
-        maxNumberOfFiles,
-        maxFileSize,
-        allowedFileTypes: ['image/*'], // Apenas imagens
-      },
-      autoProceed: false,
-      debug: true, // Para debugging
-    })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
-      })
-      .on("complete", (result) => {
-        console.log("Upload complete:", result);
-        onComplete?.(result);
-      })
-      .on("upload-error", (file, error, response) => {
-        console.error("Upload error:", error, response);
-      })
-  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // Verificar tamanho do arquivo
+    if (file.size > maxFileSize) {
+      onComplete?.({ 
+        success: false, 
+        error: `Arquivo muito grande. Máximo: ${Math.round(maxFileSize / 1024 / 1024)}MB` 
+      });
+      return;
+    }
+
+    // Verificar tipo do arquivo
+    if (!file.type.startsWith('image/')) {
+      onComplete?.({ 
+        success: false, 
+        error: "Apenas imagens são permitidas" 
+      });
+      return;
+    }
+
+    try {
+      console.log("Uploading file:", file.name);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log("Upload result:", result);
+
+      onComplete?.({ 
+        success: true, 
+        imageURL: result.imageURL 
+      });
+
+      // Limpar input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      onComplete?.({ 
+        success: false, 
+        error: "Falha no upload da imagem" 
+      });
+    }
+  };
 
   return (
     <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+        multiple={maxNumberOfFiles > 1}
+      />
       <Button 
         type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setShowModal(true);
-        }} 
+        onClick={() => fileInputRef.current?.click()} 
         className={buttonClassName}
       >
         {children}
       </Button>
-
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
-      />
     </div>
   );
 }

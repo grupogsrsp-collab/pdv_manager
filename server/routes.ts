@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./mysql-storage";
 import * as fs from "fs";
 import * as path from "path";
+import multer from "multer";
 import { testConnection } from "./mysql-db";
 import { 
   insertSupplierSchema, 
@@ -16,6 +17,22 @@ import {
 } from "../shared/mysql-schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure multer for file uploads
+  const multerStorage = multer.memoryStorage();
+  const upload = multer({ 
+    storage: multerStorage,
+    limits: { 
+      fileSize: 10 * 1024 * 1024 // 10MB
+    },
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Apenas imagens são permitidas'));
+      }
+    }
+  });
+
   // Test MySQL connection
   try {
     await testConnection();
@@ -326,7 +343,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tickets", async (req, res) => {
     try {
       const ticketData = insertTicketSchema.parse(req.body);
-      const ticket = await storage.createTicket(ticketData);
+      const ticket = await storage.createTicket({
+        ...ticketData,
+        fornecedor_id: ticketData.fornecedor_id || 0
+      });
       res.status(201).json(ticket);
     } catch (error) {
       console.error("Erro ao criar chamado:", error);
@@ -517,18 +537,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Object storage upload endpoint
-  app.post("/api/objects/upload", async (req, res) => {
+  // Simple image upload endpoint using multer
+  app.post("/api/upload-image", upload.single('file'), async (req, res) => {
     try {
-      console.log("Getting upload URL for object storage...");
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhum arquivo enviado" });
+      }
+
+      console.log("Uploading file:", req.file.originalname);
+      
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      
+      // Get upload URL
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      
+      // Upload file to object storage
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': req.file.mimetype,
+        },
+        body: req.file.buffer,
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload to storage failed: ${uploadResponse.statusText}`);
+      }
+      
+      console.log("File uploaded successfully to object storage");
+      
+      // Return the upload URL as the image URL
+      res.json({ 
+        imageURL: uploadURL,
+        success: true 
+      });
+      
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ 
+        error: "Falha no upload", 
+        details: (error as Error).message 
+      });
+    }
+  });
+
+  // Test endpoint to verify object storage
+  app.post("/api/test-upload", async (req, res) => {
+    try {
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      console.log("Upload URL generated successfully:", uploadURL.substring(0, 100) + "...");
-      res.json({ uploadURL });
+      
+      // Test the URL with a simple fetch
+      const testResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: 'test content'
+      });
+      
+      res.json({ 
+        uploadURL,
+        testStatus: testResponse.status,
+        testStatusText: testResponse.statusText,
+        success: testResponse.ok
+      });
     } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL", details: error.message });
+      console.error("Test upload error:", error);
+      res.status(500).json({ error: "Test failed", details: (error as Error).message });
     }
   });
 

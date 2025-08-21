@@ -215,47 +215,20 @@ export default function AdminKits() {
                   <ObjectUploader
                     maxNumberOfFiles={1}
                     maxFileSize={10 * 1024 * 1024} // 10MB
-                    onGetUploadParameters={async () => {
-                      try {
-                        console.log("Solicitando URL de upload...");
-                        const response = await apiRequest("POST", "/api/objects/upload");
-                        console.log("Resposta do servidor:", response);
-                        
-                        const uploadURL = (response as any).uploadURL;
-                        if (!uploadURL) {
-                          throw new Error("URL de upload não foi retornada pelo servidor");
-                        }
-                        
-                        return {
-                          method: "PUT" as const,
-                          url: uploadURL,
-                        };
-                      } catch (error) {
-                        console.error("Erro ao obter parâmetros de upload:", error);
-                        throw error;
-                      }
-                    }}
-                    onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-                      if (result.successful && result.successful.length > 0) {
+                    onComplete={async (result) => {
+                      if (result.success && result.imageURL) {
                         try {
-                          const uploadedFile = result.successful[0];
-                          const imageURL = (uploadedFile as any).uploadURL || "";
-                          
-                          if (!imageURL) {
-                            throw new Error("URL de upload não encontrada");
-                          }
-
                           // Se estamos editando um kit, atualizar a imagem no servidor
                           if (editingKit) {
                             const response = await apiRequest("PUT", `/api/kits/${editingKit.id}/image`, {
-                              imageURL: imageURL
+                              imageURL: result.imageURL
                             });
                             
                             const normalizedPath = (response as any).objectPath;
                             setFormData({ ...formData, image_url: normalizedPath });
                           } else {
                             // Para novos kits, usar a URL diretamente
-                            setFormData({ ...formData, image_url: imageURL });
+                            setFormData({ ...formData, image_url: result.imageURL });
                           }
                           
                           toast({
@@ -270,11 +243,10 @@ export default function AdminKits() {
                             variant: "destructive",
                           });
                         }
-                      } else if (result.failed && result.failed.length > 0) {
-                        console.error("Upload failed:", result.failed);
+                      } else {
                         toast({
                           title: "Erro",
-                          description: "Falha no upload da imagem",
+                          description: result.error || "Falha no upload da imagem",
                           variant: "destructive",
                         });
                       }
