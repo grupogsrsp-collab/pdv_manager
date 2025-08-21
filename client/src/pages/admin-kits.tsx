@@ -157,13 +157,14 @@ export default function AdminKits() {
               Adicionar Kit
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
                 {editingKit ? "Editar Kit" : "Adicionar Novo Kit"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <Label htmlFor="nome_peca">Nome da Peça</Label>
                 <Input
@@ -182,21 +183,21 @@ export default function AdminKits() {
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                   required
-                  rows={3}
+                  rows={2}
                   data-testid="input-descricao"
                 />
               </div>
               
               <div>
                 <Label>Imagem do Kit</Label>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {formData.image_url && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                         <img 
                           src={formData.image_url} 
                           alt="Preview"
-                          className="w-12 h-12 rounded-lg object-cover"
+                          className="w-10 h-10 rounded-lg object-cover"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             if (e.currentTarget.nextElementSibling) {
@@ -204,8 +205,8 @@ export default function AdminKits() {
                             }
                           }}
                         />
-                        <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center" style={{ display: 'none' }}>
-                          <ImageIcon className="h-6 w-6 text-gray-400" />
+                        <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center" style={{ display: 'none' }}>
+                          <ImageIcon className="h-5 w-5 text-gray-400" />
                         </div>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900">Imagem selecionada</p>
@@ -221,16 +222,16 @@ export default function AdminKits() {
                         </Button>
                       </div>
                       
-                      {/* Preview maior da imagem */}
-                      <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Preview da Imagem:
+                      {/* Preview compacto da imagem */}
+                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Preview:
                         </label>
-                        <div className="flex items-center justify-center bg-white rounded border-2 border-dashed border-gray-300 overflow-hidden min-h-[200px]">
+                        <div className="flex items-center justify-center bg-white rounded border-2 border-dashed border-gray-300 overflow-hidden h-24">
                           <img 
                             src={formData.image_url} 
                             alt="Preview da imagem do kit"
-                            className="max-w-full max-h-64 object-contain"
+                            className="max-w-full max-h-full object-contain"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               if (e.currentTarget.nextElementSibling) {
@@ -239,8 +240,8 @@ export default function AdminKits() {
                             }}
                           />
                           <div className="text-center" style={{ display: 'none' }}>
-                            <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600">Erro ao carregar imagem</p>
+                            <ImageIcon className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                            <p className="text-xs text-gray-600">Erro ao carregar</p>
                           </div>
                         </div>
                       </div>
@@ -286,7 +287,7 @@ export default function AdminKits() {
                         });
                       }
                     }}
-                    buttonClassName="w-full"
+                    buttonClassName="w-full h-9 text-sm"
                   >
                     <div className="flex items-center gap-2">
                       <Upload className="h-4 w-4" />
