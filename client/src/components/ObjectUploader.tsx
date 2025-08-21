@@ -66,7 +66,7 @@ export function ObjectUploader({
 
       onComplete?.({ 
         success: true, 
-        imageURL: result.imageURL 
+        imageURL: result.objectPath || result.imageURL 
       });
 
       // Limpar input

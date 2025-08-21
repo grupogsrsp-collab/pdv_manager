@@ -191,24 +191,59 @@ export default function AdminKits() {
                 <Label>Imagem do Kit</Label>
                 <div className="space-y-3">
                   {formData.image_url && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <img 
-                        src={formData.image_url} 
-                        alt="Preview"
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">Imagem selecionada</p>
-                        <p className="text-xs text-gray-500">Clique em "Adicionar Imagem" para alterar</p>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <img 
+                          src={formData.image_url} 
+                          alt="Preview"
+                          className="w-12 h-12 rounded-lg object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                            }
+                          }}
+                        />
+                        <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center" style={{ display: 'none' }}>
+                          <ImageIcon className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">Imagem selecionada</p>
+                          <p className="text-xs text-gray-500">Clique em "Adicionar Imagem" para alterar</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, image_url: "" })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFormData({ ...formData, image_url: "" })}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      
+                      {/* Preview maior da imagem */}
+                      <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Preview da Imagem:
+                        </label>
+                        <div className="flex items-center justify-center bg-white rounded border-2 border-dashed border-gray-300 overflow-hidden min-h-[200px]">
+                          <img 
+                            src={formData.image_url} 
+                            alt="Preview da imagem do kit"
+                            className="max-w-full max-h-64 object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              if (e.currentTarget.nextElementSibling) {
+                                (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block';
+                              }
+                            }}
+                          />
+                          <div className="text-center" style={{ display: 'none' }}>
+                            <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600">Erro ao carregar imagem</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
@@ -227,7 +262,7 @@ export default function AdminKits() {
                             const normalizedPath = (response as any).objectPath;
                             setFormData({ ...formData, image_url: normalizedPath });
                           } else {
-                            // Para novos kits, usar a URL diretamente
+                            // Para novos kits, usar o path normalizado
                             setFormData({ ...formData, image_url: result.imageURL });
                           }
                           
@@ -309,11 +344,22 @@ export default function AdminKits() {
                       <TableCell>
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                           {kit.image_url ? (
-                            <img 
-                              src={kit.image_url} 
-                              alt={kit.nome_peca}
-                              className="w-full h-full object-cover"
-                            />
+                            <>
+                              <img 
+                                src={kit.image_url} 
+                                alt={kit.nome_peca}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  if (e.currentTarget.nextElementSibling) {
+                                    (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                                  }
+                                }}
+                              />
+                              <div className="w-full h-full flex items-center justify-center" style={{ display: 'none' }}>
+                                <ImageIcon className="h-5 w-5 text-gray-400" />
+                              </div>
+                            </>
                           ) : (
                             <ImageIcon className="h-5 w-5 text-gray-400" />
                           )}

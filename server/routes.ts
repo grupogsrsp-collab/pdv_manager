@@ -567,9 +567,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("File uploaded successfully to object storage");
       
-      // Return the upload URL as the image URL
+      // Extract object path from upload URL for serving
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      
+      // Return both the storage URL and normalized path
       res.json({ 
         imageURL: uploadURL,
+        objectPath: objectPath,
         success: true 
       });
       
@@ -579,6 +583,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Falha no upload", 
         details: (error as Error).message 
       });
+    }
+  });
+
+  // Endpoint to serve object storage images
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      await objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      res.status(404).json({ error: "Imagem não encontrada" });
     }
   });
 
