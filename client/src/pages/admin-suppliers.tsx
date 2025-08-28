@@ -76,15 +76,20 @@ export default function AdminSuppliers() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Erro ao excluir fornecedor");
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Erro ao excluir fornecedor");
+      }
+      // Status 204 não tem conteúdo, então não fazemos .json()
+      return response.status === 204 ? null : response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       toast({ title: "Fornecedor excluído com sucesso!" });
     },
-    onError: () => {
-      toast({ title: "Erro ao excluir fornecedor", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Erro ao excluir fornecedor:", error);
+      toast({ title: error.message || "Erro ao excluir fornecedor", variant: "destructive" });
     },
   });
 
@@ -116,15 +121,20 @@ export default function AdminSuppliers() {
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/supplier-employees/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Erro ao excluir funcionário");
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Erro ao excluir funcionário");
+      }
+      // Status 204 não tem conteúdo, então não fazemos .json()
+      return response.status === 204 ? null : response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers", selectedSupplier?.id, "employees"] });
       toast({ title: "Funcionário excluído com sucesso!" });
     },
-    onError: () => {
-      toast({ title: "Erro ao excluir funcionário", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Erro ao excluir funcionário:", error);
+      toast({ title: error.message || "Erro ao excluir funcionário", variant: "destructive" });
     },
   });
 
