@@ -2,6 +2,7 @@ import express from "express";
 import { storage } from './mysql-storage';
 import { 
   insertSupplierSchema, 
+  insertSupplierEmployeeSchema,
   insertStoreSchema, 
   insertKitSchema, 
   insertTicketSchema, 
@@ -9,6 +10,7 @@ import {
   insertPhotoSchema, 
   insertInstallationSchema,
   cnpjSearchSchema,
+  cpfSearchSchema,
   storeFilterSchema
 } from '../shared/mysql-schema';
 
@@ -31,6 +33,22 @@ router.post("/api/suppliers/search", async (req, res) => {
   }
 });
 
+router.post("/api/suppliers/search-cpf", async (req, res) => {
+  try {
+    const { cpf } = cpfSearchSchema.parse(req.body);
+    const supplier = await storage.getSupplierByCpf(cpf);
+    
+    if (!supplier) {
+      return res.status(404).json({ error: "Fornecedor não encontrado" });
+    }
+    
+    res.json(supplier);
+  } catch (error) {
+    console.error("Erro ao buscar fornecedor por CPF:", error);
+    res.status(400).json({ error: "Erro na busca do fornecedor" });
+  }
+});
+
 router.get("/api/suppliers", async (req, res) => {
   try {
     const suppliers = await storage.getAllSuppliers();
@@ -49,6 +67,79 @@ router.post("/api/suppliers", async (req, res) => {
   } catch (error) {
     console.error("Erro ao criar fornecedor:", error);
     res.status(400).json({ error: "Erro ao criar fornecedor" });
+  }
+});
+
+router.patch("/api/suppliers/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const supplierData = req.body;
+    const supplier = await storage.updateSupplier(id, supplierData);
+    res.json(supplier);
+  } catch (error) {
+    console.error("Erro ao atualizar fornecedor:", error);
+    res.status(400).json({ error: "Erro ao atualizar fornecedor" });
+  }
+});
+
+router.delete("/api/suppliers/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteSupplier(id);
+    res.status(204).send();
+  } catch (error) {
+    console.error("Erro ao excluir fornecedor:", error);
+    res.status(400).json({ error: "Erro ao excluir fornecedor" });
+  }
+});
+
+// Supplier Employees routes
+router.get("/api/suppliers/:id/employees", async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.id);
+    const employees = await storage.getSupplierEmployees(supplierId);
+    res.json(employees);
+  } catch (error) {
+    console.error("Erro ao listar funcionários:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+router.post("/api/suppliers/:id/employees", async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.id);
+    const employeeData = insertSupplierEmployeeSchema.parse({
+      ...req.body,
+      fornecedor_id: supplierId
+    });
+    const employee = await storage.createSupplierEmployee(employeeData);
+    res.status(201).json(employee);
+  } catch (error) {
+    console.error("Erro ao criar funcionário:", error);
+    res.status(400).json({ error: "Erro ao criar funcionário" });
+  }
+});
+
+router.patch("/api/supplier-employees/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const employeeData = req.body;
+    const employee = await storage.updateSupplierEmployee(id, employeeData);
+    res.json(employee);
+  } catch (error) {
+    console.error("Erro ao atualizar funcionário:", error);
+    res.status(400).json({ error: "Erro ao atualizar funcionário" });
+  }
+});
+
+router.delete("/api/supplier-employees/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteSupplierEmployee(id);
+    res.status(204).send();
+  } catch (error) {
+    console.error("Erro ao excluir funcionário:", error);
+    res.status(400).json({ error: "Erro ao excluir funcionário" });
   }
 });
 

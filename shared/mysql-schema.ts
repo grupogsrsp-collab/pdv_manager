@@ -7,6 +7,7 @@ export interface Supplier {
   id: number;
   nome_fornecedor: string;
   cnpj: string;
+  cpf: string;
   nome_responsavel: string;
   telefone: string;
   endereco: string;
@@ -16,10 +17,27 @@ export interface Supplier {
 export interface InsertSupplier {
   nome_fornecedor: string;
   cnpj: string;
+  cpf: string;
   nome_responsavel: string;
   telefone: string;
   endereco: string;
   valor_orcamento: number;
+}
+
+// Funcionários dos Fornecedores
+export interface SupplierEmployee {
+  id: number;
+  fornecedor_id: number;
+  nome_funcionario: string;
+  cpf: string;
+  telefone: string;
+}
+
+export interface InsertSupplierEmployee {
+  fornecedor_id: number;
+  nome_funcionario: string;
+  cpf: string;
+  telefone: string;
 }
 
 // Lojas
@@ -137,10 +155,18 @@ export interface InsertInstallation {
 export const insertSupplierSchema = z.object({
   nome_fornecedor: z.string().min(1, "Nome do fornecedor é obrigatório"),
   cnpj: z.string().min(14, "CNPJ deve ter 14 dígitos"),
+  cpf: z.string().min(11, "CPF deve ter 11 dígitos"),
   nome_responsavel: z.string().min(1, "Nome do responsável é obrigatório"),
   telefone: z.string().min(1, "Telefone é obrigatório"),
   endereco: z.string().min(1, "Endereço é obrigatório"),
   valor_orcamento: z.number().positive("Valor do orçamento deve ser positivo"),
+});
+
+export const insertSupplierEmployeeSchema = z.object({
+  fornecedor_id: z.number().positive("ID do fornecedor é obrigatório"),
+  nome_funcionario: z.string().min(1, "Nome do funcionário é obrigatório"),
+  cpf: z.string().min(11, "CPF deve ter 11 dígitos"),
+  telefone: z.string().min(1, "Telefone é obrigatório"),
 });
 
 export const insertStoreSchema = z.object({
@@ -194,6 +220,11 @@ export const insertInstallationSchema = z.object({
 // Schema para busca de CNPJ
 export const cnpjSearchSchema = z.object({
   cnpj: z.string().min(14, "CNPJ deve ter pelo menos 14 caracteres"),
+});
+
+// Schema para busca de CPF
+export const cpfSearchSchema = z.object({
+  cpf: z.string().min(11, "CPF deve ter pelo menos 11 caracteres"),
 });
 
 // Schema para filtros de loja

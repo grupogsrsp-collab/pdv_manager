@@ -6,17 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Search, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, Search, ArrowLeft, UserPlus, Users } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { type Supplier, type InsertSupplier } from "@shared/mysql-schema";
+import { type Supplier, type InsertSupplier, type SupplierEmployee, type InsertSupplierEmployee } from "@shared/mysql-schema";
 
 export default function AdminSuppliers() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchType, setSearchType] = useState<"name" | "cnpj" | "cpf">("name");
   const [formData, setFormData] = useState<Partial<InsertSupplier>>({});
+  const [showEmployeesDialog, setShowEmployeesDialog] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [isEmployeeFormOpen, setIsEmployeeFormOpen] = useState(false);
+  const [employeeFormData, setEmployeeFormData] = useState<Partial<InsertSupplierEmployee>>({});
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -81,11 +86,22 @@ export default function AdminSuppliers() {
     },
   });
 
-  const filteredSuppliers = suppliers.filter((supplier: Supplier) =>
-    supplier.nome_fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.cnpj.includes(searchTerm) ||
-    supplier.nome_responsavel.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const { data: employees = [] } = useQuery<SupplierEmployee[]>({
+    queryKey: ["/api/suppliers", selectedSupplier?.id, "employees"],
+    enabled: !!selectedSupplier?.id,
+  });
+
+  const filteredSuppliers = suppliers.filter((supplier: Supplier) => {
+    if (searchType === "name") {
+      return supplier.nome_fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             supplier.nome_responsavel.toLowerCase().includes(searchTerm.toLowerCase());
+    } else if (searchType === "cnpj") {
+      return supplier.cnpj.includes(searchTerm);
+    } else if (searchType === "cpf") {
+      return supplier.cpf?.includes(searchTerm);
+    }
+    return true;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +174,16 @@ export default function AdminSuppliers() {
                 />
               </div>
               <div>
+                <Label htmlFor="cpf">CPF</Label>
+                <Input
+                  id="cpf"
+                  data-testid="input-supplier-cpf"
+                  value={formData.cpf || ""}
+                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
                 <Label htmlFor="nome_responsavel">Nome do Responsável</Label>
                 <Input
                   id="nome_responsavel"
@@ -214,16 +240,39 @@ export default function AdminSuppliers() {
         </Dialog>
       </div>
 
-      <div className="mb-4">
-        <div className="relative">
+      <div className="mb-4 flex gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar por nome, CNPJ ou responsável..."
+            placeholder={`Buscar por ${searchType === 'name' ? 'nome' : searchType === 'cnpj' ? 'CNPJ' : 'CPF'}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
             data-testid="input-search-suppliers"
           />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant={searchType === 'name' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => { setSearchType('name'); setSearchTerm(''); }}
+          >
+            Nome
+          </Button>
+          <Button
+            variant={searchType === 'cnpj' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => { setSearchType('cnpj'); setSearchTerm(''); }}
+          >
+            CNPJ
+          </Button>
+          <Button
+            variant={searchType === 'cpf' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => { setSearchType('cpf'); setSearchTerm(''); }}
+          >
+            CPF
+          </Button>
         </div>
       </div>
 
@@ -238,9 +287,9 @@ export default function AdminSuppliers() {
                 <TableHead>ID</TableHead>
                 <TableHead>Nome do Fornecedor</TableHead>
                 <TableHead>CNPJ</TableHead>
+                <TableHead>CPF</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Endereço</TableHead>
                 <TableHead>Valor Orçamento</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -251,9 +300,9 @@ export default function AdminSuppliers() {
                   <TableCell data-testid={`text-supplier-id-${supplier.id}`}>{supplier.id}</TableCell>
                   <TableCell data-testid={`text-supplier-name-${supplier.id}`}>{supplier.nome_fornecedor}</TableCell>
                   <TableCell data-testid={`text-supplier-cnpj-${supplier.id}`}>{supplier.cnpj}</TableCell>
+                  <TableCell data-testid={`text-supplier-cpf-${supplier.id}`}>{supplier.cpf}</TableCell>
                   <TableCell data-testid={`text-supplier-responsible-${supplier.id}`}>{supplier.nome_responsavel}</TableCell>
                   <TableCell data-testid={`text-supplier-phone-${supplier.id}`}>{supplier.telefone}</TableCell>
-                  <TableCell data-testid={`text-supplier-address-${supplier.id}`}>{supplier.endereco}</TableCell>
                   <TableCell data-testid={`text-supplier-budget-${supplier.id}`}>
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
@@ -269,6 +318,17 @@ export default function AdminSuppliers() {
                         data-testid={`button-edit-supplier-${supplier.id}`}
                       >
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedSupplier(supplier);
+                          setShowEmployeesDialog(true);
+                        }}
+                        data-testid={`button-employees-${supplier.id}`}
+                      >
+                        <Users className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -310,6 +370,15 @@ export default function AdminSuppliers() {
                 id="edit-cnpj"
                 value={formData.cnpj || ""}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-cpf">CPF</Label>
+              <Input
+                id="edit-cpf"
+                value={formData.cpf || ""}
+                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                 required
               />
             </div>
@@ -362,6 +431,117 @@ export default function AdminSuppliers() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Employees Management Dialog */}
+      <Dialog open={showEmployeesDialog} onOpenChange={setShowEmployeesDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Funcionários - {selectedSupplier?.nome_fornecedor}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Lista de Funcionários</h3>
+              <Dialog open={isEmployeeFormOpen} onOpenChange={setIsEmployeeFormOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Adicionar Funcionário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Novo Funcionário</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    // Implementar criação de funcionário
+                    toast({ title: "Funcionalidade em desenvolvimento" });
+                  }} className="space-y-4">
+                    <div>
+                      <Label htmlFor="employee-name">Nome do Funcionário</Label>
+                      <Input
+                        id="employee-name"
+                        value={employeeFormData.nome_funcionario || ""}
+                        onChange={(e) => setEmployeeFormData({ ...employeeFormData, nome_funcionario: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="employee-cpf">CPF</Label>
+                      <Input
+                        id="employee-cpf"
+                        value={employeeFormData.cpf || ""}
+                        onChange={(e) => setEmployeeFormData({ ...employeeFormData, cpf: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="employee-phone">Telefone</Label>
+                      <Input
+                        id="employee-phone"
+                        value={employeeFormData.telefone || ""}
+                        onChange={(e) => setEmployeeFormData({ ...employeeFormData, telefone: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit">
+                        Salvar
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => {
+                        setIsEmployeeFormOpen(false);
+                        setEmployeeFormData({});
+                      }}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {employees.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>CPF</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.map((employee) => (
+                    <TableRow key={employee.id}>
+                      <TableCell>{employee.nome_funcionario}</TableCell>
+                      <TableCell>{employee.cpf}</TableCell>
+                      <TableCell>{employee.telefone}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                Nenhum funcionário cadastrado para este fornecedor.
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

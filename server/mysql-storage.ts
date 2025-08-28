@@ -2,6 +2,8 @@ import { pool, testConnection } from './mysql-db';
 import { 
   Supplier, 
   InsertSupplier, 
+  SupplierEmployee,
+  InsertSupplierEmployee,
   Store, 
   InsertStore, 
   Kit, 
@@ -20,11 +22,18 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 interface IStorage {
   // Suppliers
   getSupplierByCnpj(cnpj: string): Promise<Supplier | undefined>;
+  getSupplierByCpf(cpf: string): Promise<Supplier | undefined>;
   getSupplierById(id: number): Promise<Supplier>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
   updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier>;
   deleteSupplier(id: number): Promise<void>;
   getAllSuppliers(): Promise<Supplier[]>;
+  
+  // Supplier Employees
+  getSupplierEmployees(supplierId: number): Promise<SupplierEmployee[]>;
+  createSupplierEmployee(employee: InsertSupplierEmployee): Promise<SupplierEmployee>;
+  updateSupplierEmployee(id: number, employee: Partial<InsertSupplierEmployee>): Promise<SupplierEmployee>;
+  deleteSupplierEmployee(id: number): Promise<void>;
   
   // Stores
   getStoreByCode(codigo_loja: string): Promise<Store | undefined>;
@@ -96,10 +105,20 @@ export class MySQLStorage implements IStorage {
           id INT AUTO_INCREMENT PRIMARY KEY,
           nome_fornecedor VARCHAR(255) NOT NULL,
           cnpj VARCHAR(18) UNIQUE NOT NULL,
+          cpf VARCHAR(14) NOT NULL,
           nome_responsavel VARCHAR(255) NOT NULL,
           telefone VARCHAR(20) NOT NULL,
           endereco TEXT NOT NULL,
           valor_orcamento DECIMAL(10,2) NOT NULL
+        )`,
+        
+        `CREATE TABLE IF NOT EXISTS funcionarios_fornecedores (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          fornecedor_id INT NOT NULL,
+          nome_funcionario VARCHAR(255) NOT NULL,
+          cpf VARCHAR(14) NOT NULL,
+          telefone VARCHAR(20) NOT NULL,
+          FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id) ON DELETE CASCADE
         )`,
         
         `CREATE TABLE IF NOT EXISTS lojas (
@@ -183,14 +202,14 @@ export class MySQLStorage implements IStorage {
       
       if (supplierRows[0].count === 0) {
         const suppliers = [
-          ['SuperTech Supplies', '12345678000190', 'João Silva', '(11) 99999-9999', 'Rua das Flores, 123', 15000.00],
-          ['ABC Ferramentas', '98765432000110', 'Maria Costa', '(11) 88888-8888', 'Av. Industrial, 456', 25000.00]
+          ['SuperTech Supplies', '12345678000190', '12345678901', 'João Silva', '(11) 99999-9999', 'Rua das Flores, 123', 15000.00],
+          ['ABC Ferramentas', '98765432000110', '98765432100', 'Maria Costa', '(11) 88888-8888', 'Av. Industrial, 456', 25000.00]
         ];
         
         for (const supplier of suppliers) {
           await pool.execute(
-            `INSERT INTO fornecedores (nome_fornecedor, cnpj, nome_responsavel, telefone, endereco, valor_orcamento) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, valor_orcamento) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
             supplier
           );
         }
@@ -294,11 +313,21 @@ export class MySQLStorage implements IStorage {
     return rows[0] as Supplier | undefined;
   }
 
+  async getSupplierByCpf(cpf: string): Promise<Supplier | undefined> {
+    const cleanCpf = cpf.replace(/[.\-\s]/g, '');
+    const [rows] = await pool.execute(
+      'SELECT * FROM fornecedores WHERE REPLACE(REPLACE(cpf, ".", ""), "-", "") = ?',
+      [cleanCpf]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Supplier | undefined;
+  }
+
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
     const [result] = await pool.execute(
-      `INSERT INTO fornecedores (nome_fornecedor, cnpj, nome_responsavel, telefone, endereco, valor_orcamento)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [supplier.nome_fornecedor, supplier.cnpj, supplier.nome_responsavel, supplier.telefone, supplier.endereco, supplier.valor_orcamento]
+      `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, valor_orcamento)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [supplier.nome_fornecedor, supplier.cnpj, supplier.cpf, supplier.nome_responsavel, supplier.telefone, supplier.endereco, supplier.valor_orcamento]
     ) as [ResultSetHeader, any];
 
     const [rows] = await pool.execute(
@@ -334,6 +363,10 @@ export class MySQLStorage implements IStorage {
     if (supplier.cnpj) {
       fields.push('cnpj = ?');
       values.push(supplier.cnpj);
+    }
+    if (supplier.cpf) {
+      fields.push('cpf = ?');
+      values.push(supplier.cpf);
     }
     if (supplier.nome_responsavel) {
       fields.push('nome_responsavel = ?');
@@ -859,6 +892,66 @@ export class MySQLStorage implements IStorage {
       },
       unusedKitsList: unusedKitsListRows,
     };
+  }
+
+  // Supplier Employees methods
+  async getSupplierEmployees(supplierId: number): Promise<SupplierEmployee[]> {
+    const [rows] = await pool.execute(
+      'SELECT * FROM funcionarios_fornecedores WHERE fornecedor_id = ?',
+      [supplierId]
+    ) as [RowDataPacket[], any];
+    
+    return rows as SupplierEmployee[];
+  }
+
+  async createSupplierEmployee(employee: InsertSupplierEmployee): Promise<SupplierEmployee> {
+    const [result] = await pool.execute(
+      'INSERT INTO funcionarios_fornecedores (fornecedor_id, nome_funcionario, cpf, telefone) VALUES (?, ?, ?, ?)',
+      [employee.fornecedor_id, employee.nome_funcionario, employee.cpf, employee.telefone]
+    ) as [ResultSetHeader, any];
+
+    const [rows] = await pool.execute(
+      'SELECT * FROM funcionarios_fornecedores WHERE id = ?',
+      [result.insertId]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as SupplierEmployee;
+  }
+
+  async updateSupplierEmployee(id: number, employee: Partial<InsertSupplierEmployee>): Promise<SupplierEmployee> {
+    const fields = [];
+    const values = [];
+    
+    if (employee.nome_funcionario) {
+      fields.push('nome_funcionario = ?');
+      values.push(employee.nome_funcionario);
+    }
+    if (employee.cpf) {
+      fields.push('cpf = ?');
+      values.push(employee.cpf);
+    }
+    if (employee.telefone) {
+      fields.push('telefone = ?');
+      values.push(employee.telefone);
+    }
+    
+    values.push(id);
+    
+    await pool.execute(
+      `UPDATE funcionarios_fornecedores SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM funcionarios_fornecedores WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as SupplierEmployee;
+  }
+
+  async deleteSupplierEmployee(id: number): Promise<void> {
+    await pool.execute('DELETE FROM funcionarios_fornecedores WHERE id = ?', [id]);
   }
 }
 
