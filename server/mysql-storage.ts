@@ -707,9 +707,9 @@ export class MySQLStorage implements IStorage {
     installation?: any;
     supplier?: Supplier;
   }> {
-    // Check if store has installation
+    // Check if store has installation (get the most recent one)
     const [installationRows] = await pool.execute(
-      'SELECT * FROM instalacoes WHERE loja_id = ?',
+      'SELECT * FROM instalacoes WHERE loja_id = ? ORDER BY id DESC LIMIT 1',
       [codigo_loja]
     ) as [RowDataPacket[], any];
 
@@ -1154,6 +1154,7 @@ export class MySQLStorage implements IStorage {
     // Atualizar instalação existente
     await pool.execute(
       `UPDATE instalacoes SET 
+        fornecedor_id = ?,
         responsible = ?, 
         installationDate = ?, 
         fotosOriginais = ?, 
@@ -1166,6 +1167,7 @@ export class MySQLStorage implements IStorage {
         geolocalizacao_timestamp = ?
       WHERE id = ?`,
       [
+        installation.fornecedor_id || null,
         installation.responsible,
         installation.installationDate,
         fotosOriginaisJson,
