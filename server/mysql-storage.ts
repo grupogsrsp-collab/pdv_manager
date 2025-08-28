@@ -12,8 +12,10 @@ import {
   InsertTicket, 
   Admin, 
   InsertAdmin, 
-  Photo, 
-  InsertPhoto, 
+  FotoFinal, 
+  InsertFotoFinal,
+  FotoOriginalLoja,
+  InsertFotoOriginalLoja, 
   Installation, 
   InsertInstallation 
 } from '../shared/mysql-schema';
@@ -60,9 +62,13 @@ interface IStorage {
   deleteAdmin(id: number): Promise<void>;
   getAdminByEmail(email: string): Promise<Admin | undefined>;
   
-  // Photos
-  getPhotosByStoreId(loja_id: string): Promise<Photo[]>;
-  createPhoto(photo: InsertPhoto): Promise<Photo>;
+  // Fotos Finais (depois da instalação)
+  getFotosFinaisByStoreId(loja_id: string): Promise<FotoFinal[]>;
+  createFotoFinal(foto: InsertFotoFinal): Promise<FotoFinal>;
+  
+  // Fotos Originais da Loja (antes da instalação)
+  getFotosOriginaisByStoreId(loja_id: string): Promise<FotoOriginalLoja[]>;
+  createFotoOriginalLoja(foto: InsertFotoOriginalLoja): Promise<FotoOriginalLoja>;
   
   // Installations
   getAllInstallations(): Promise<Installation[]>;
@@ -205,12 +211,23 @@ export class MySQLStorage implements IStorage {
           senha VARCHAR(255) NOT NULL
         )`,
         
-        `CREATE TABLE IF NOT EXISTS fotos (
+        `CREATE TABLE IF NOT EXISTS fotos_finais (
           id INT AUTO_INCREMENT PRIMARY KEY,
-          loja_id INT NOT NULL,
+          loja_id VARCHAR(20) NOT NULL,
           foto_url VARCHAR(500) NOT NULL,
-          FOREIGN KEY (loja_id) REFERENCES lojas(id)
+          kit_id INT,
+          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
+          FOREIGN KEY (kit_id) REFERENCES kits(id)
         )`,
+        
+        `CREATE TABLE IF NOT EXISTS fotos_originais_loja (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          loja_id VARCHAR(20) NOT NULL,
+          foto_url VARCHAR(500) NOT NULL,
+          kit_id INT NOT NULL,
+          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
+          FOREIGN KEY (kit_id) REFERENCES kits(id)
+        )`, 
         
         `CREATE TABLE IF NOT EXISTS instalacoes (
           id VARCHAR(36) PRIMARY KEY,
@@ -218,7 +235,9 @@ export class MySQLStorage implements IStorage {
           fornecedor_id INT NOT NULL,
           responsible VARCHAR(255) NOT NULL,
           installationDate VARCHAR(20) NOT NULL,
-          photos JSON,
+          fotosOriginais JSON,
+          fotosFinais JSON,
+          justificativaFotos TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
           FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id)
@@ -864,44 +883,69 @@ export class MySQLStorage implements IStorage {
     await pool.execute('DELETE FROM kits WHERE id = ?', [id]);
   }
 
-  async getPhotosByStoreId(loja_id: string): Promise<Photo[]> {
+  async getFotosFinaisByStoreId(loja_id: string): Promise<FotoFinal[]> {
     const [rows] = await pool.execute(
-      'SELECT * FROM fotos WHERE loja_id = ?',
+      'SELECT * FROM fotos_finais WHERE loja_id = ?',
       [loja_id]
     ) as [RowDataPacket[], any];
     
-    return rows as Photo[];
+    return rows as FotoFinal[];
   }
 
-  async createPhoto(photo: InsertPhoto): Promise<Photo> {
+  async createFotoFinal(foto: InsertFotoFinal): Promise<FotoFinal> {
     const [result] = await pool.execute(
-      'INSERT INTO fotos (loja_id, foto_url) VALUES (?, ?)',
-      [photo.loja_id, photo.foto_url]
+      'INSERT INTO fotos_finais (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
+      [foto.loja_id, foto.foto_url, foto.kit_id || null]
     ) as [ResultSetHeader, any];
 
     const [rows] = await pool.execute(
-      'SELECT * FROM fotos WHERE id = ?',
+      'SELECT * FROM fotos_finais WHERE id = ?',
       [result.insertId]
     ) as [RowDataPacket[], any];
     
-    return rows[0] as Photo;
+    return rows[0] as FotoFinal;
+  }
+
+  async getFotosOriginaisByStoreId(loja_id: string): Promise<FotoOriginalLoja[]> {
+    const [rows] = await pool.execute(
+      'SELECT * FROM fotos_originais_loja WHERE loja_id = ?',
+      [loja_id]
+    ) as [RowDataPacket[], any];
+    
+    return rows as FotoOriginalLoja[];
+  }
+
+  async createFotoOriginalLoja(foto: InsertFotoOriginalLoja): Promise<FotoOriginalLoja> {
+    const [result] = await pool.execute(
+      'INSERT INTO fotos_originais_loja (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
+      [foto.loja_id, foto.foto_url, foto.kit_id]
+    ) as [ResultSetHeader, any];
+
+    const [rows] = await pool.execute(
+      'SELECT * FROM fotos_originais_loja WHERE id = ?',
+      [result.insertId]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as FotoOriginalLoja;
   }
 
   async getAllInstallations(): Promise<Installation[]> {
     const [rows] = await pool.execute('SELECT * FROM instalacoes') as [RowDataPacket[], any];
     return rows.map(row => ({
       ...row,
-      photos: JSON.parse(row.photos || '[]')
+      fotosOriginais: JSON.parse(row.fotosOriginais || '[]'),
+      fotosFinais: JSON.parse(row.fotosFinais || '[]')
     })) as Installation[];
   }
 
   async createInstallation(installation: InsertInstallation): Promise<Installation> {
     const id = `inst_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const photosJson = JSON.stringify(installation.photos || []);
+    const fotosOriginaisJson = JSON.stringify(installation.fotosOriginais || []);
+    const fotosFinaisJson = JSON.stringify(installation.fotosFinais || []);
     
     await pool.execute(
-      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, photos) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, installation.loja_id, installation.fornecedor_id, installation.responsible, installation.installationDate, photosJson]
+      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, fotosOriginais, fotosFinais, justificativaFotos) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, installation.loja_id, installation.fornecedor_id, installation.responsible, installation.installationDate, fotosOriginaisJson, fotosFinaisJson, installation.justificativaFotos || null]
     );
 
     const [rows] = await pool.execute(
@@ -912,7 +956,8 @@ export class MySQLStorage implements IStorage {
     const result = rows[0];
     return {
       ...result,
-      photos: typeof result.photos === 'string' ? JSON.parse(result.photos || '[]') : (result.photos || [])
+      fotosOriginais: typeof result.fotosOriginais === 'string' ? JSON.parse(result.fotosOriginais || '[]') : (result.fotosOriginais || []),
+      fotosFinais: typeof result.fotosFinais === 'string' ? JSON.parse(result.fotosFinais || '[]') : (result.fotosFinais || [])
     } as Installation;
   }
 

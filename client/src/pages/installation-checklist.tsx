@@ -18,10 +18,12 @@ export default function InstallationChecklist() {
   const { toast } = useToast();
   const [responsibleName, setResponsibleName] = useState("");
   const [installationDate, setInstallationDate] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]);
+  const [originalPhotos, setOriginalPhotos] = useState<File[]>([]);
   const [postInstallationPhotos, setPostInstallationPhotos] = useState<File[]>([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [photoJustification, setPhotoJustification] = useState("");
+  const [showJustificationField, setShowJustificationField] = useState(false);
 
   // Fetch kits data
   const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
@@ -43,9 +45,9 @@ export default function InstallationChecklist() {
 
   const finalizeMutation = useMutation({
     mutationFn: async () => {
-      // Convert photos to compressed base64 strings for storage
-      const photoUrls: string[] = [];
-      for (const photo of photos) {
+      // Convert original photos to compressed base64 strings for storage
+      const originalPhotoUrls: string[] = [];
+      for (const photo of originalPhotos) {
         if (photo) {
           const compressedBase64 = await new Promise<string>((resolve) => {
             const canvas = document.createElement('canvas');
@@ -81,7 +83,7 @@ export default function InstallationChecklist() {
             };
             reader.readAsDataURL(photo);
           });
-          photoUrls.push(compressedBase64);
+          originalPhotoUrls.push(compressedBase64);
         }
       }
 
@@ -132,8 +134,9 @@ export default function InstallationChecklist() {
         fornecedor_id: supplier.id,
         responsible: responsibleName,
         installationDate: installationDate,
-        photos: photoUrls,
-        postInstallationPhotos: postInstallationPhotoUrls,
+        fotosOriginais: originalPhotoUrls,
+        fotosFinais: postInstallationPhotoUrls,
+        justificativaFotos: photoJustification || undefined,
       };
 
       const response = await fetch("/api/installations", {
@@ -164,8 +167,8 @@ export default function InstallationChecklist() {
     },
   });
 
-  const handlePhotoUpload = (index: number, file: File | null) => {
-    setPhotos(prev => {
+  const handleOriginalPhotoUpload = (index: number, file: File | null) => {
+    setOriginalPhotos(prev => {
       const newPhotos = [...prev];
       if (file) {
         newPhotos[index] = file;
@@ -205,6 +208,22 @@ export default function InstallationChecklist() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Verificar se todas as fotos foram preenchidas
+    const missingOriginalPhotos = kits.length - originalPhotos.length;
+    const missingPostInstallationPhotos = kits.length - postInstallationPhotos.length;
+    
+    if (missingOriginalPhotos > 0 || missingPostInstallationPhotos > 0) {
+      if (!photoJustification.trim()) {
+        setShowJustificationField(true);
+        toast({
+          title: "Fotos obrigatórias",
+          description: "Todas as fotos são obrigatórias. Por favor, justifique a ausência das fotos em falta.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     finalizeMutation.mutate();
@@ -302,47 +321,58 @@ export default function InstallationChecklist() {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, index) => (
-                <div
-                  key={index}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  {photos[index] ? (
-                    <div className="relative w-full h-full">
-                      <img
-                        src={URL.createObjectURL(photos[index])}
-                        alt={`Foto ${index + 1}`}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => handlePhotoUpload(index, null)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
-                      <Camera className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500">Foto {index + 1}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handlePhotoUpload(index, file);
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-              ))}
-            </div>
+            {kitsLoading ? (
+              <div className="text-center py-4">Carregando kits...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {kits.map((kit, index) => (
+                  <div
+                    key={kit.id}
+                    className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    {originalPhotos[index] ? (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={URL.createObjectURL(originalPhotos[index])}
+                          alt={`Foto original - ${kit.nome_peca}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() => handleOriginalPhotoUpload(index, null)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
+                        <Camera className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-700 font-medium mb-1">{kit.nome_peca}</span>
+                        <span className="text-xs text-gray-500">{kit.descricao}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          data-testid={`input-foto-original-${kit.id}`}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              // Verificar se é uma foto tirada da câmera (verificação básica)
+                              if (file.size > 0) {
+                                handleOriginalPhotoUpload(index, file);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -390,9 +420,15 @@ export default function InstallationChecklist() {
                           accept="image/*"
                           capture="environment"
                           className="hidden"
+                          data-testid={`input-foto-final-${kit.id}`}
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handlePostInstallationPhotoUpload(index, file);
+                            if (file) {
+                              // Verificar se é uma foto tirada da câmera (verificação básica)
+                              if (file.size > 0) {
+                                handlePostInstallationPhotoUpload(index, file);
+                              }
+                            }
                           }}
                         />
                       </label>
@@ -404,12 +440,34 @@ export default function InstallationChecklist() {
           </CardContent>
         </Card>
 
+        {/* Justification Field */}
+        {showJustificationField && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Justificar Ausência de Foto</CardTitle>
+              <p className="text-sm text-gray-600 mt-2">
+                Por favor, explique o motivo pela ausência de algumas fotos
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Digite a justificativa para a ausência das fotos..."
+                value={photoJustification}
+                onChange={(e) => setPhotoJustification(e.target.value)}
+                className="min-h-[100px]"
+                data-testid="textarea-justificativa-fotos"
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
             onClick={handleFinalize}
             disabled={finalizeMutation.isPending}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            data-testid="button-finalizar-instalacao"
           >
             <CheckCircle className="mr-2 h-4 w-4" />
             {finalizeMutation.isPending ? "Finalizando..." : "Instalação Finalizada"}
@@ -418,6 +476,7 @@ export default function InstallationChecklist() {
             onClick={() => setShowTicketForm(true)}
             variant="outline"
             className="flex-1"
+            data-testid="button-abrir-chamado"
           >
             Abrir Chamado
           </Button>

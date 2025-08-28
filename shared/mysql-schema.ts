@@ -124,16 +124,32 @@ export interface InsertAdmin {
   senha: string;
 }
 
-// Fotos
-export interface Photo {
+// Fotos Finais (depois da instalação)
+export interface FotoFinal {
   id: number;
   loja_id: string;
   foto_url: string;
+  kit_id?: number;
 }
 
-export interface InsertPhoto {
+export interface InsertFotoFinal {
   loja_id: string;
   foto_url: string;
+  kit_id?: number;
+}
+
+// Fotos Originais da Loja (antes da instalação)
+export interface FotoOriginalLoja {
+  id: number;
+  loja_id: string;
+  foto_url: string;
+  kit_id: number;
+}
+
+export interface InsertFotoOriginalLoja {
+  loja_id: string;
+  foto_url: string;
+  kit_id: number;
 }
 
 // Instalações (não estava nos campos originais, mas mantendo para compatibilidade)
@@ -143,7 +159,9 @@ export interface Installation {
   fornecedor_id: number;
   responsible: string;
   installationDate: string;
-  photos: string[];
+  fotosOriginais: string[];
+  fotosFinais: string[];
+  justificativaFotos?: string;
   createdAt: Date;
 }
 
@@ -152,7 +170,9 @@ export interface InsertInstallation {
   fornecedor_id: number;
   responsible: string;
   installationDate: string;
-  photos?: string[];
+  fotosOriginais?: string[];
+  fotosFinais?: string[];
+  justificativaFotos?: string;
 }
 
 // Schemas de validação usando Zod
@@ -209,9 +229,16 @@ export const insertAdminSchema = z.object({
   senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
 
-export const insertPhotoSchema = z.object({
+export const insertFotoFinalSchema = z.object({
   loja_id: z.string().min(1, "ID da loja é obrigatório"),
   foto_url: z.string().url("URL da foto deve ser válida"),
+  kit_id: z.number().optional(),
+});
+
+export const insertFotoOriginalLojaSchema = z.object({
+  loja_id: z.string().min(1, "ID da loja é obrigatório"),
+  foto_url: z.string().url("URL da foto deve ser válida"),
+  kit_id: z.number().positive("ID do kit é obrigatório"),
 });
 
 export const insertInstallationSchema = z.object({
@@ -219,7 +246,9 @@ export const insertInstallationSchema = z.object({
   fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
   responsible: z.string().min(1, "Responsável é obrigatório"),
   installationDate: z.string().min(1, "Data de instalação é obrigatória"),
-  photos: z.array(z.string()).optional(),
+  fotosOriginais: z.array(z.string()).optional(),
+  fotosFinais: z.array(z.string()).optional(),
+  justificativaFotos: z.string().optional(),
 });
 
 // Schema para busca de CNPJ

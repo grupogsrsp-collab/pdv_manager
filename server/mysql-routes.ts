@@ -7,7 +7,8 @@ import {
   insertKitSchema, 
   insertTicketSchema, 
   insertAdminSchema, 
-  insertPhotoSchema, 
+  insertFotoFinalSchema,
+  insertFotoOriginalLojaSchema, 
   insertInstallationSchema,
   cnpjSearchSchema,
   cpfSearchSchema,
@@ -258,24 +259,47 @@ router.post("/api/admins", async (req, res) => {
 });
 
 // Photos routes
-router.get("/api/photos/:loja_id", async (req, res) => {
+// Fotos Finais (depois da instalação)
+router.get("/api/fotos-finais/:loja_id", async (req, res) => {
   try {
-    const photos = await storage.getPhotosByStoreId(req.params.loja_id);
-    res.json(photos);
+    const fotos = await storage.getFotosFinaisByStoreId(req.params.loja_id);
+    res.json(fotos);
   } catch (error) {
-    console.error("Erro ao listar fotos:", error);
+    console.error("Erro ao listar fotos finais:", error);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
-router.post("/api/photos", async (req, res) => {
+router.post("/api/fotos-finais", async (req, res) => {
   try {
-    const photoData = insertPhotoSchema.parse(req.body);
-    const photo = await storage.createPhoto(photoData);
-    res.status(201).json(photo);
+    const fotoData = insertFotoFinalSchema.parse(req.body);
+    const foto = await storage.createFotoFinal(fotoData);
+    res.status(201).json(foto);
   } catch (error) {
-    console.error("Erro ao criar foto:", error);
-    res.status(400).json({ error: "Erro ao criar foto" });
+    console.error("Erro ao criar foto final:", error);
+    res.status(400).json({ error: "Erro ao criar foto final" });
+  }
+});
+
+// Fotos Originais da Loja (antes da instalação)
+router.get("/api/fotos-originais/:loja_id", async (req, res) => {
+  try {
+    const fotos = await storage.getFotosOriginaisByStoreId(req.params.loja_id);
+    res.json(fotos);
+  } catch (error) {
+    console.error("Erro ao listar fotos originais:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+router.post("/api/fotos-originais", async (req, res) => {
+  try {
+    const fotoData = insertFotoOriginalLojaSchema.parse(req.body);
+    const foto = await storage.createFotoOriginalLoja(fotoData);
+    res.status(201).json(foto);
+  } catch (error) {
+    console.error("Erro ao criar foto original:", error);
+    res.status(400).json({ error: "Erro ao criar foto original" });
   }
 });
 
