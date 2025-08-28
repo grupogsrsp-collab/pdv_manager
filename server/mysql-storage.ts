@@ -436,7 +436,20 @@ export class MySQLStorage implements IStorage {
   }
 
   async deleteSupplier(id: number): Promise<void> {
-    await pool.execute('DELETE FROM fornecedores WHERE id = ?', [id]);
+    // Primeiro, excluir registros relacionados que dependem deste fornecedor
+    try {
+      // Excluir funcionários do fornecedor
+      await pool.execute('DELETE FROM funcionarios_fornecedores WHERE fornecedor_id = ?', [id]);
+      
+      // Atualizar chamados para remover a referência ao fornecedor (ao invés de excluir)
+      await pool.execute('UPDATE chamados SET fornecedor_id = NULL WHERE fornecedor_id = ?', [id]);
+      
+      // Agora excluir o fornecedor
+      await pool.execute('DELETE FROM fornecedores WHERE id = ?', [id]);
+    } catch (error) {
+      console.error('Erro ao excluir fornecedor:', error);
+      throw error;
+    }
   }
 
   async getStoreByCode(codigo_loja: string): Promise<Store | undefined> {
