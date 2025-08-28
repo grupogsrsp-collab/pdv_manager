@@ -303,6 +303,27 @@ router.post("/api/fotos-originais", async (req, res) => {
   }
 });
 
+// Rotas para buscar fotos com detalhes completos para dashboard
+router.get("/api/fotos-originais-detalhes", async (req, res) => {
+  try {
+    const fotosDetalhes = await storage.getAllFotosOriginaisWithDetails();
+    res.json(fotosDetalhes);
+  } catch (error) {
+    console.error("Erro ao listar fotos originais com detalhes:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+router.get("/api/fotos-finais-detalhes", async (req, res) => {
+  try {
+    const fotosDetalhes = await storage.getAllFotosFinaisWithDetails();
+    res.json(fotosDetalhes);
+  } catch (error) {
+    console.error("Erro ao listar fotos finais com detalhes:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
 // Installations routes
 router.get("/api/installations", async (req, res) => {
   try {

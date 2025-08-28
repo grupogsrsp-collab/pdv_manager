@@ -65,10 +65,12 @@ interface IStorage {
   // Fotos Finais (depois da instalação)
   getFotosFinaisByStoreId(loja_id: string): Promise<FotoFinal[]>;
   createFotoFinal(foto: InsertFotoFinal): Promise<FotoFinal>;
+  getAllFotosFinaisWithDetails(): Promise<any[]>;
   
   // Fotos Originais da Loja (antes da instalação)
   getFotosOriginaisByStoreId(loja_id: string): Promise<FotoOriginalLoja[]>;
   createFotoOriginalLoja(foto: InsertFotoOriginalLoja): Promise<FotoOriginalLoja>;
+  getAllFotosOriginaisWithDetails(): Promise<any[]>;
   
   // Installations
   getAllInstallations(): Promise<Installation[]>;
@@ -964,6 +966,60 @@ export class MySQLStorage implements IStorage {
     return rows[0] as FotoOriginalLoja;
   }
 
+  async getAllFotosOriginaisWithDetails(): Promise<any[]> {
+    const [rows] = await pool.execute(`
+      SELECT 
+        fo.id as foto_id,
+        fo.foto_url,
+        fo.loja_id,
+        l.nome_loja,
+        l.cidade,
+        l.uf,
+        k.id as kit_id,
+        k.nome_peca,
+        k.descricao as kit_descricao,
+        i.responsible as instalador,
+        i.installationDate as data_instalacao,
+        i.fornecedor_id,
+        f.nome_fornecedor
+      FROM fotos_originais_loja fo
+      LEFT JOIN lojas l ON fo.loja_id = l.codigo_loja
+      LEFT JOIN kits k ON fo.kit_id = k.id
+      LEFT JOIN instalacoes i ON fo.loja_id = i.loja_id
+      LEFT JOIN fornecedores f ON i.fornecedor_id = f.id
+      ORDER BY fo.id DESC
+    `) as [RowDataPacket[], any];
+    
+    return rows;
+  }
+
+  async getAllFotosFinaisWithDetails(): Promise<any[]> {
+    const [rows] = await pool.execute(`
+      SELECT 
+        ff.id as foto_id,
+        ff.foto_url,
+        ff.loja_id,
+        l.nome_loja,
+        l.cidade,
+        l.uf,
+        k.id as kit_id,
+        k.nome_peca,
+        k.descricao as kit_descricao,
+        i.responsible as instalador,
+        i.installationDate as data_instalacao,
+        i.fornecedor_id,
+        f.nome_fornecedor
+      FROM fotos_finais ff
+      LEFT JOIN lojas l ON ff.loja_id = l.codigo_loja
+      LEFT JOIN kits k ON ff.kit_id = k.id
+      LEFT JOIN instalacoes i ON ff.loja_id = i.loja_id
+      LEFT JOIN fornecedores f ON i.fornecedor_id = f.id
+      ORDER BY ff.id DESC
+    `) as [RowDataPacket[], any];
+    
+    return rows;
+  }
+
   async getAllInstallations(): Promise<Installation[]> {
     const [rows] = await pool.execute('SELECT * FROM instalacoes') as [RowDataPacket[], any];
     return rows.map(row => ({
@@ -978,10 +1034,45 @@ export class MySQLStorage implements IStorage {
     const fotosOriginaisJson = JSON.stringify(installation.fotosOriginais || []);
     const fotosFinaisJson = JSON.stringify(installation.fotosFinais || []);
     
+    // Salvar instalação principal
     await pool.execute(
       'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, fotosOriginais, fotosFinais, justificativaFotos) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [id, installation.loja_id, installation.fornecedor_id, installation.responsible, installation.installationDate, fotosOriginaisJson, fotosFinaisJson, installation.justificativaFotos || null]
     );
+
+    // Buscar todos os kits para associar às fotos
+    const [kitsRows] = await pool.execute('SELECT * FROM kits ORDER BY id') as [RowDataPacket[], any];
+    const kits = kitsRows as Kit[];
+
+    // Salvar fotos originais individualmente
+    if (installation.fotosOriginais && installation.fotosOriginais.length > 0) {
+      for (let i = 0; i < installation.fotosOriginais.length; i++) {
+        const foto = installation.fotosOriginais[i];
+        const kit = kits[i]; // Associar foto ao kit pelo índice
+        
+        if (foto && kit) {
+          await pool.execute(
+            'INSERT INTO fotos_originais_loja (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
+            [installation.loja_id, foto, kit.id]
+          );
+        }
+      }
+    }
+
+    // Salvar fotos finais individuamente
+    if (installation.fotosFinais && installation.fotosFinais.length > 0) {
+      for (let i = 0; i < installation.fotosFinais.length; i++) {
+        const foto = installation.fotosFinais[i];
+        const kit = kits[i]; // Associar foto ao kit pelo índice
+        
+        if (foto && kit) {
+          await pool.execute(
+            'INSERT INTO fotos_finais (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
+            [installation.loja_id, foto, kit.id]
+          );
+        }
+      }
+    }
 
     const [rows] = await pool.execute(
       'SELECT * FROM instalacoes WHERE id = ?',
