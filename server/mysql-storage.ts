@@ -95,9 +95,43 @@ export class MySQLStorage implements IStorage {
     });
   }
 
+  private async ensureTableStructure() {
+    try {
+      // Verificar se a coluna cpf existe
+      const [columns] = await pool.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = 'rodr1657_pdv_manager' 
+        AND TABLE_NAME = 'fornecedores'
+      `) as [RowDataPacket[], any];
+      
+      const columnNames = columns.map((col: any) => col.COLUMN_NAME);
+      console.log('Colunas existentes na tabela fornecedores:', columnNames);
+      
+      // Adicionar coluna cpf se não existir
+      if (!columnNames.includes('cpf')) {
+        console.log('Adicionando coluna cpf...');
+        await pool.execute('ALTER TABLE fornecedores ADD COLUMN cpf VARCHAR(14)');
+      }
+      
+      // Adicionar coluna estado se não existir
+      if (!columnNames.includes('estado')) {
+        console.log('Adicionando coluna estado...');
+        await pool.execute('ALTER TABLE fornecedores ADD COLUMN estado VARCHAR(2)');
+      }
+      
+      console.log('✅ Estrutura da tabela verificada e corrigida!');
+    } catch (error) {
+      console.log('Erro ao verificar estrutura da tabela:', error);
+    }
+  }
+
   private async initializeTables() {
     try {
       await testConnection();
+      
+      // Verificar e corrigir estrutura da tabela primeiro
+      await this.ensureTableStructure();
       
       // Criar tabelas se não existirem
       const tables = [
