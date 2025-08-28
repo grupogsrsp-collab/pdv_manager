@@ -31,6 +31,16 @@ export default function AdminSuppliers() {
     queryKey: ["/api/suppliers"],
   });
 
+  // Query para buscar contagem de funcionários para cada fornecedor
+  const { data: employeeCounts = {} } = useQuery<Record<number, number>>({
+    queryKey: ["/api/suppliers/employee-counts"],
+    queryFn: async () => {
+      const response = await fetch("/api/suppliers/employee-counts");
+      if (!response.ok) throw new Error("Erro ao buscar contagem de funcionários");
+      return response.json();
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: InsertSupplier) => {
       const response = await fetch("/api/suppliers", {
@@ -85,6 +95,7 @@ export default function AdminSuppliers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers/employee-counts"] });
       toast({ title: "Fornecedor excluído com sucesso!" });
     },
     onError: (error: Error) => {
@@ -108,6 +119,7 @@ export default function AdminSuppliers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers", selectedSupplier?.id, "employees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers/employee-counts"] });
       setIsEmployeeFormOpen(false);
       setEmployeeFormData({});
       toast({ title: "Funcionário criado com sucesso!" });
@@ -130,6 +142,7 @@ export default function AdminSuppliers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers", selectedSupplier?.id, "employees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers/employee-counts"] });
       toast({ title: "Funcionário excluído com sucesso!" });
     },
     onError: (error: Error) => {
@@ -379,25 +392,22 @@ export default function AdminSuppliers() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
                 <TableHead>Nome do Fornecedor</TableHead>
                 <TableHead>CNPJ</TableHead>
                 <TableHead>CPF</TableHead>
-                <TableHead>Responsável</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Valor Orçamento</TableHead>
+                <TableHead>Funcionários</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSuppliers.map((supplier: Supplier) => (
                 <TableRow key={supplier.id}>
-                  <TableCell data-testid={`text-supplier-id-${supplier.id}`}>{supplier.id}</TableCell>
                   <TableCell data-testid={`text-supplier-name-${supplier.id}`}>{supplier.nome_fornecedor}</TableCell>
                   <TableCell data-testid={`text-supplier-cnpj-${supplier.id}`}>{supplier.cnpj}</TableCell>
                   <TableCell data-testid={`text-supplier-cpf-${supplier.id}`}>{supplier.cpf}</TableCell>
-                  <TableCell data-testid={`text-supplier-responsible-${supplier.id}`}>{supplier.nome_responsavel}</TableCell>
                   <TableCell data-testid={`text-supplier-phone-${supplier.id}`}>{supplier.telefone}</TableCell>
                   <TableCell data-testid={`text-supplier-state-${supplier.id}`}>{supplier.estado}</TableCell>
                   <TableCell data-testid={`text-supplier-budget-${supplier.id}`}>
@@ -405,6 +415,9 @@ export default function AdminSuppliers() {
                       style: 'currency',
                       currency: 'BRL'
                     }).format(parseFloat(supplier.valor_orcamento.toString()))}
+                  </TableCell>
+                  <TableCell data-testid={`text-supplier-employees-${supplier.id}`}>
+                    {employeeCounts[supplier.id] || 0}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

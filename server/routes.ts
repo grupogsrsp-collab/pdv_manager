@@ -192,6 +192,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Employee counts endpoint
+  app.get("/api/suppliers/employee-counts", async (req, res) => {
+    try {
+      const counts = await storage.getSupplierEmployeeCounts();
+      res.json(counts);
+    } catch (error) {
+      console.error("Erro ao buscar contagem de funcionários:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   // Stores
   app.get("/api/stores", async (req, res) => {
     try {

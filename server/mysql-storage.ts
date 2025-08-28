@@ -1015,6 +1015,21 @@ export class MySQLStorage implements IStorage {
   async deleteSupplierEmployee(id: number): Promise<void> {
     await pool.execute('DELETE FROM funcionarios_fornecedores WHERE id = ?', [id]);
   }
+
+  async getSupplierEmployeeCounts(): Promise<Record<number, number>> {
+    const [rows] = await pool.execute(`
+      SELECT fornecedor_id, COUNT(*) as count 
+      FROM funcionarios_fornecedores 
+      GROUP BY fornecedor_id
+    `) as [RowDataPacket[], any];
+    
+    const counts: Record<number, number> = {};
+    (rows as any[]).forEach(row => {
+      counts[row.fornecedor_id] = parseInt(row.count);
+    });
+    
+    return counts;
+  }
 }
 
 export const storage = new MySQLStorage();
