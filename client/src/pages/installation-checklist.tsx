@@ -211,15 +211,32 @@ export default function InstallationChecklist() {
     }
 
     // Verificar se todas as fotos foram preenchidas
-    const missingOriginalPhotos = kits.length - originalPhotos.length;
-    const missingPostInstallationPhotos = kits.length - postInstallationPhotos.length;
+    const totalKits = kits.length;
+    let missingOriginalPhotos = 0;
+    let missingPostInstallationPhotos = 0;
     
-    if (missingOriginalPhotos > 0 || missingPostInstallationPhotos > 0) {
+    // Contar fotos originais faltando
+    for (let i = 0; i < totalKits; i++) {
+      if (!originalPhotos[i]) {
+        missingOriginalPhotos++;
+      }
+    }
+    
+    // Contar fotos finais faltando
+    for (let i = 0; i < totalKits; i++) {
+      if (!postInstallationPhotos[i]) {
+        missingPostInstallationPhotos++;
+      }
+    }
+    
+    const totalMissingPhotos = missingOriginalPhotos + missingPostInstallationPhotos;
+    
+    if (totalMissingPhotos > 0) {
       if (!photoJustification.trim()) {
         setShowJustificationField(true);
         toast({
           title: "Fotos obrigatórias",
-          description: "Todas as fotos são obrigatórias. Por favor, justifique a ausência das fotos em falta.",
+          description: `Faltam ${totalMissingPhotos} foto(s). Por favor, justifique a ausência das fotos em falta.`,
           variant: "destructive",
         });
         return;
