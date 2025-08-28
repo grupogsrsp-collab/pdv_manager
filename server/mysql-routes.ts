@@ -181,6 +181,22 @@ router.get("/api/stores/:codigo", async (req, res) => {
   }
 });
 
+// Rota para buscar dados completos da loja com status de instalação
+router.get("/api/stores/:codigo/complete-info", async (req, res) => {
+  try {
+    const storeInfo = await storage.getStoreCompleteInfo(req.params.codigo);
+    
+    if (!storeInfo) {
+      return res.status(404).json({ error: "Loja não encontrada" });
+    }
+    
+    res.json(storeInfo);
+  } catch (error) {
+    console.error("Erro ao buscar informações completas da loja:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
 router.post("/api/stores", async (req, res) => {
   try {
     const storeData = insertStoreSchema.parse(req.body);

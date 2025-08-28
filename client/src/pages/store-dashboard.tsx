@@ -31,15 +31,8 @@ export default function StoreDashboard() {
     },
   });
 
-  // Fetch fotos finais
-  const { data: fotosFinais = [] } = useQuery<FotoFinal[]>({
-    queryKey: ["/api/fotos-finais", store.codigo_loja],
-    queryFn: async () => {
-      const response = await fetch(`/api/fotos-finais/${store.codigo_loja}`);
-      if (!response.ok) throw new Error('Failed to fetch fotos finais');
-      return response.json();
-    },
-  });
+  // Extract fotos finais from installation data
+  const fotosFinais = storeInfo?.installationStatus?.installation?.fotosFinais || [];
 
   const handleLogout = () => {
     localStorage.removeItem("store_access");
@@ -156,11 +149,11 @@ export default function StoreDashboard() {
                 className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"
                 style={{ scrollBehavior: 'smooth' }}
               >
-                {fotosFinais.map((foto, index) => (
-                  <div key={foto.id} className="min-w-[300px] snap-center">
+                {fotosFinais.map((fotoBase64: string, index: number) => (
+                  <div key={index} className="min-w-[300px] snap-center">
                     <div className="bg-gray-100 rounded-lg overflow-hidden">
                       <img 
-                        src={foto.foto_url} 
+                        src={fotoBase64} 
                         alt={`Foto da instalação ${index + 1}`}
                         className="w-full h-64 object-cover"
                       />
