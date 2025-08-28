@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Camera, CheckCircle } from "lucide-react";
 import TicketForm from "@/components/forms/ticket-form";
 import SuccessModal from "@/components/modals/success-modal";
 import { useToast } from "@/hooks/use-toast";
-import { type Store, type Supplier } from "@shared/mysql-schema";
+import { type Store, type Supplier, type Kit } from "@shared/mysql-schema";
 
 export default function InstallationChecklist() {
   const [, setLocation] = useLocation();
@@ -19,8 +19,14 @@ export default function InstallationChecklist() {
   const [responsibleName, setResponsibleName] = useState("");
   const [installationDate, setInstallationDate] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
+  const [postInstallationPhotos, setPostInstallationPhotos] = useState<File[]>([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Fetch kits data
+  const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
+    queryKey: ["/api/kits"],
+  });
 
   // Get data from localStorage
   const supplierData = localStorage.getItem("supplier_access");
@@ -79,12 +85,55 @@ export default function InstallationChecklist() {
         }
       }
 
+      // Convert post-installation photos to compressed base64 strings for storage
+      const postInstallationPhotoUrls: string[] = [];
+      for (const photo of postInstallationPhotos) {
+        if (photo) {
+          const compressedBase64 = await new Promise<string>((resolve) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+              // Resize image to max 800px width/height to reduce size
+              const maxSize = 800;
+              let { width, height } = img;
+              
+              if (width > height && width > maxSize) {
+                height = (height * maxSize) / width;
+                width = maxSize;
+              } else if (height > maxSize) {
+                width = (width * maxSize) / height;
+                height = maxSize;
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              
+              ctx?.drawImage(img, 0, 0, width, height);
+              
+              // Compress to 70% quality JPEG
+              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+              resolve(compressedDataUrl);
+            };
+            
+            const reader = new FileReader();
+            reader.onload = () => {
+              img.src = reader.result as string;
+            };
+            reader.readAsDataURL(photo);
+          });
+          postInstallationPhotoUrls.push(compressedBase64);
+        }
+      }
+
       const installationData = {
         loja_id: store.codigo_loja, // Use codigo_loja for installations
         fornecedor_id: supplier.id,
         responsible: responsibleName,
         installationDate: installationDate,
         photos: photoUrls,
+        postInstallationPhotos: postInstallationPhotoUrls,
       };
 
       const response = await fetch("/api/installations", {
@@ -117,6 +166,18 @@ export default function InstallationChecklist() {
 
   const handlePhotoUpload = (index: number, file: File | null) => {
     setPhotos(prev => {
+      const newPhotos = [...prev];
+      if (file) {
+        newPhotos[index] = file;
+      } else {
+        newPhotos.splice(index, 1);
+      }
+      return newPhotos;
+    });
+  };
+
+  const handlePostInstallationPhotoUpload = (index: number, file: File | null) => {
+    setPostInstallationPhotos(prev => {
       const newPhotos = [...prev];
       if (file) {
         newPhotos[index] = file;
@@ -270,6 +331,7 @@ export default function InstallationChecklist() {
                       <input
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -281,6 +343,64 @@ export default function InstallationChecklist() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Post Installation Photos Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Fotos Após Instalação</CardTitle>
+            <p className="text-sm text-gray-600 mt-2">
+              Instalador, fotografe todos os itens instalados
+            </p>
+          </CardHeader>
+          <CardContent>
+            {kitsLoading ? (
+              <div className="text-center py-4">Carregando kits...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {kits.map((kit, index) => (
+                  <div
+                    key={kit.id}
+                    className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    {postInstallationPhotos[index] ? (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={URL.createObjectURL(postInstallationPhotos[index])}
+                          alt={`${kit.nome_peca}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() => handlePostInstallationPhotoUpload(index, null)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
+                        <Camera className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-700 font-medium mb-1">{kit.nome_peca}</span>
+                        <span className="text-xs text-gray-500">{kit.descricao}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePostInstallationPhotoUpload(index, file);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
