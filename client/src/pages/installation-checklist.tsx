@@ -58,47 +58,47 @@ export default function InstallationChecklist() {
         return;
       }
 
+      console.log("Iniciando captura de geolocalização...");
+
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          console.log("Geolocalização obtida:", position.coords);
           const { latitude, longitude } = position.coords;
           
-          try {
-            // Usar reverse geocoding para obter endereço
-            const response = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
-            );
-            
-            let address = "Endereço não encontrado";
-            if (response.ok) {
-              const data = await response.json();
-              address = data.display_name || `${data.locality || ''} ${data.city || ''} ${data.principalSubdivision || ''}`.trim() || "Endereço não encontrado";
-            }
-
-            // Criar screenshot do mapa usando API do Google Maps Static
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=16&size=600x400&markers=color:red%7C${latitude},${longitude}&key=YOUR_GOOGLE_MAPS_API_KEY`;
-            
-            resolve({
-              latitude,
-              longitude,
-              address,
-              mapScreenshot: mapUrl // Em produção, usar uma API válida
-            });
-          } catch (error) {
-            // Se falhar o reverse geocoding, ainda retornar as coordenadas
-            resolve({
-              latitude,
-              longitude,
-              address: `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`
-            });
-          }
+          // Criar endereço simples com as coordenadas
+          const address = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+          
+          console.log("Endereço formatado:", address);
+          
+          resolve({
+            latitude,
+            longitude,
+            address,
+            mapScreenshot: undefined // Removendo dependência de APIs externas por enquanto
+          });
         },
         (error) => {
-          reject(new Error(`Erro ao obter localização: ${error.message}`));
+          console.error("Erro de geolocalização:", error);
+          let errorMessage = "Erro desconhecido";
+          
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Permissão negada pelo usuário";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Localização indisponível";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Tempo esgotado para obter localização";
+              break;
+          }
+          
+          reject(new Error(`Erro ao obter localização: ${errorMessage}`));
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // 5 minutos
+          timeout: 15000, // Aumentei o timeout para 15 segundos
+          maximumAge: 60000 // 1 minuto
         }
       );
     });
@@ -111,17 +111,19 @@ export default function InstallationChecklist() {
       // Capturar geolocalização antes de processar fotos
       let geoData = null;
       try {
+        console.log("Iniciando processo de captura de geolocalização...");
         geoData = await captureGeolocation();
         setLocationData(geoData);
+        console.log("Geolocalização capturada com sucesso:", geoData);
         toast({
-          title: "Localização capturada",
-          description: `Local: ${geoData.address}`,
+          title: "Localização capturada!",
+          description: `Coordenadas: ${geoData.latitude.toFixed(4)}, ${geoData.longitude.toFixed(4)}`,
         });
       } catch (error) {
-        console.warn("Erro ao capturar geolocalização:", error);
+        console.error("Erro completo ao capturar geolocalização:", error);
         toast({
-          title: "Aviso",
-          description: "Não foi possível capturar a localização. Continuando sem dados de localização.",
+          title: "Aviso - Geolocalização",
+          description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Instalação continuará sem localização.`,
           variant: "destructive",
         });
       } finally {
