@@ -103,33 +103,68 @@ export class MySQLStorage implements IStorage {
 
   private async ensureTableStructure() {
     try {
-      // Verificar se a coluna cpf existe
-      const [columns] = await pool.execute(`
+      // Verificar se a coluna cpf existe na tabela fornecedores
+      const [supplierColumns] = await pool.execute(`
         SELECT COLUMN_NAME 
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_SCHEMA = 'rodr1657_pdv_manager' 
         AND TABLE_NAME = 'fornecedores'
       `) as [RowDataPacket[], any];
       
-      const columnNames = columns.map((col: any) => col.COLUMN_NAME);
-      console.log('Colunas existentes na tabela fornecedores:', columnNames);
+      const supplierColumnNames = supplierColumns.map((col: any) => col.COLUMN_NAME);
+      console.log('Colunas existentes na tabela fornecedores:', supplierColumnNames);
       
       // Adicionar coluna cpf se não existir
-      if (!columnNames.includes('cpf')) {
+      if (!supplierColumnNames.includes('cpf')) {
         console.log('Adicionando coluna cpf...');
         await pool.execute('ALTER TABLE fornecedores ADD COLUMN cpf VARCHAR(14)');
       }
       
       // Adicionar coluna estado se não existir
-      if (!columnNames.includes('estado')) {
+      if (!supplierColumnNames.includes('estado')) {
         console.log('Adicionando coluna estado...');
         await pool.execute('ALTER TABLE fornecedores ADD COLUMN estado VARCHAR(2)');
       }
       
       // Adicionar coluna email se não existir
-      if (!columnNames.includes('email')) {
+      if (!supplierColumnNames.includes('email')) {
         console.log('Adicionando coluna email...');
         await pool.execute('ALTER TABLE fornecedores ADD COLUMN email VARCHAR(255)');
+      }
+      
+      // Verificar e migrar estrutura da tabela instalacoes
+      const [installationColumns] = await pool.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = 'rodr1657_pdv_manager' 
+        AND TABLE_NAME = 'instalacoes'
+      `) as [RowDataPacket[], any];
+      
+      const installationColumnNames = installationColumns.map((col: any) => col.COLUMN_NAME);
+      console.log('Colunas existentes na tabela instalacoes:', installationColumnNames);
+      
+      // Migrar de photos para fotosOriginais e fotosFinais
+      if (installationColumnNames.includes('photos') && !installationColumnNames.includes('fotosOriginais')) {
+        console.log('Migrando estrutura da tabela instalacoes...');
+        
+        // Adicionar novas colunas
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN fotosOriginais JSON');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN fotosFinais JSON');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN justificativaFotos TEXT');
+        
+        // Migrar dados existentes (photos -> fotosFinais)
+        await pool.execute('UPDATE instalacoes SET fotosFinais = photos WHERE photos IS NOT NULL');
+        
+        // Remover coluna antiga
+        await pool.execute('ALTER TABLE instalacoes DROP COLUMN photos');
+        
+        console.log('✅ Migração da tabela instalacoes concluída!');
+      } else if (!installationColumnNames.includes('fotosOriginais')) {
+        // Adicionar colunas se não existirem
+        console.log('Adicionando colunas na tabela instalacoes...');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN fotosOriginais JSON');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN fotosFinais JSON');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN justificativaFotos TEXT');
       }
       
       console.log('✅ Estrutura da tabela verificada e corrigida!');
