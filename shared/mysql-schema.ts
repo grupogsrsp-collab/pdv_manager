@@ -13,6 +13,7 @@ export interface Supplier {
   endereco: string;
   estado: string;
   valor_orcamento: number;
+  email: string;
 }
 
 export interface InsertSupplier {
@@ -24,6 +25,7 @@ export interface InsertSupplier {
   endereco?: string;
   estado?: string;
   valor_orcamento?: number;
+  email?: string;
 }
 
 // Funcionários dos Fornecedores

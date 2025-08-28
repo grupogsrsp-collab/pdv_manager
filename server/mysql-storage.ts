@@ -120,6 +120,12 @@ export class MySQLStorage implements IStorage {
         await pool.execute('ALTER TABLE fornecedores ADD COLUMN estado VARCHAR(2)');
       }
       
+      // Adicionar coluna email se não existir
+      if (!columnNames.includes('email')) {
+        console.log('Adicionando coluna email...');
+        await pool.execute('ALTER TABLE fornecedores ADD COLUMN email VARCHAR(255)');
+      }
+      
       console.log('✅ Estrutura da tabela verificada e corrigida!');
     } catch (error) {
       console.log('Erro ao verificar estrutura da tabela:', error);
@@ -144,6 +150,7 @@ export class MySQLStorage implements IStorage {
           telefone VARCHAR(20),
           endereco TEXT,
           estado VARCHAR(2),
+          email VARCHAR(255),
           valor_orcamento DECIMAL(10,2),
           UNIQUE KEY unique_cnpj (cnpj)
         )`,
@@ -361,9 +368,9 @@ export class MySQLStorage implements IStorage {
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
     const [result] = await pool.execute(
-      `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, estado, valor_orcamento)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [supplier.nome_fornecedor || '', supplier.cnpj || '', supplier.cpf || '', supplier.nome_responsavel || '', supplier.telefone || '', supplier.endereco || '', supplier.estado || '', supplier.valor_orcamento || 0]
+      `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, estado, email, valor_orcamento)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [supplier.nome_fornecedor || '', supplier.cnpj || '', supplier.cpf || '', supplier.nome_responsavel || '', supplier.telefone || '', supplier.endereco || '', supplier.estado || '', supplier.email || '', supplier.valor_orcamento || 0]
     ) as [ResultSetHeader, any];
 
     const [rows] = await pool.execute(
@@ -419,6 +426,10 @@ export class MySQLStorage implements IStorage {
     if (supplier.estado) {
       fields.push('estado = ?');
       values.push(supplier.estado);
+    }
+    if (supplier.email) {
+      fields.push('email = ?');
+      values.push(supplier.email);
     }
     if (supplier.valor_orcamento !== undefined) {
       fields.push('valor_orcamento = ?');

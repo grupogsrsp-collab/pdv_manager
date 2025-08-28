@@ -157,8 +157,19 @@ export default function AdminSuppliers() {
   });
 
   const filteredSuppliers = suppliers.filter((supplier: Supplier) => {
-    if (!searchTerm) return true;
+    // Se não há termo de busca, mostrar apenas os que têm o campo do filtro atual preenchido
+    if (!searchTerm) {
+      if (searchType === "state") {
+        return supplier.estado && supplier.estado.trim() !== '';
+      } else if (searchType === "cnpj") {
+        return supplier.cnpj && supplier.cnpj.trim() !== '';
+      } else if (searchType === "cpf") {
+        return supplier.cpf && supplier.cpf.trim() !== '';
+      }
+      return true;
+    }
     
+    // Se há termo de busca, aplicar o filtro específico
     if (searchType === "state") {
       return supplier.estado?.toLowerCase().includes(searchTerm.toLowerCase());
     } else if (searchType === "cnpj") {
@@ -324,6 +335,17 @@ export default function AdminSuppliers() {
                 </Select>
               </div>
               <div>
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="fornecedor@email.com"
+                  data-testid="input-supplier-email"
+                  value={formData.email || ""}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div>
                 <Label htmlFor="valor_orcamento">Valor do Orçamento (R$)</Label>
                 <Input
                   id="valor_orcamento"
@@ -364,21 +386,45 @@ export default function AdminSuppliers() {
           <Button
             variant={searchType === 'state' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => { setSearchType('state'); setSearchTerm(''); }}
+            onClick={() => { 
+              setSearchType('state'); 
+              setSearchTerm('');
+              // Aplicar filtro para mostrar apenas fornecedores com estado preenchido
+              if (searchType !== 'state') {
+                setSearchTerm(' '); // Força atualização do filtro
+                setTimeout(() => setSearchTerm(''), 0);
+              }
+            }}
           >
             Estado
           </Button>
           <Button
             variant={searchType === 'cnpj' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => { setSearchType('cnpj'); setSearchTerm(''); }}
+            onClick={() => { 
+              setSearchType('cnpj'); 
+              setSearchTerm('');
+              // Aplicar filtro para mostrar apenas fornecedores com CNPJ preenchido
+              if (searchType !== 'cnpj') {
+                setSearchTerm(' '); 
+                setTimeout(() => setSearchTerm(''), 0);
+              }
+            }}
           >
             CNPJ
           </Button>
           <Button
             variant={searchType === 'cpf' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => { setSearchType('cpf'); setSearchTerm(''); }}
+            onClick={() => { 
+              setSearchType('cpf'); 
+              setSearchTerm('');
+              // Aplicar filtro para mostrar apenas fornecedores com CPF preenchido
+              if (searchType !== 'cpf') {
+                setSearchTerm(' '); 
+                setTimeout(() => setSearchTerm(''), 0);
+              }
+            }}
           >
             CPF
           </Button>
