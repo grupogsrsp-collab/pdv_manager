@@ -86,6 +86,42 @@ export default function AdminSuppliers() {
     },
   });
 
+  const createEmployeeMutation = useMutation({
+    mutationFn: async (data: { supplierId: number; employee: InsertSupplierEmployee }) => {
+      const response = await fetch(`/api/suppliers/${data.supplierId}/employees`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data.employee),
+      });
+      if (!response.ok) throw new Error("Erro ao criar funcionário");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers", selectedSupplier?.id, "employees"] });
+      setIsEmployeeFormOpen(false);
+      setEmployeeFormData({});
+      toast({ title: "Funcionário criado com sucesso!" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao criar funcionário", variant: "destructive" });
+    },
+  });
+
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/supplier-employees/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Erro ao excluir funcionário");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers", selectedSupplier?.id, "employees"] });
+      toast({ title: "Funcionário excluído com sucesso!" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao excluir funcionário", variant: "destructive" });
+    },
+  });
+
   const { data: employees = [] } = useQuery<SupplierEmployee[]>({
     queryKey: ["/api/suppliers", selectedSupplier?.id, "employees"],
     enabled: !!selectedSupplier?.id,
@@ -121,6 +157,16 @@ export default function AdminSuppliers() {
     setFormData({});
     setEditingSupplier(null);
     setIsCreateOpen(false);
+  };
+
+  const handleEmployeeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedSupplier && employeeFormData.nome_funcionario) {
+      createEmployeeMutation.mutate({
+        supplierId: selectedSupplier.id,
+        employee: employeeFormData as InsertSupplierEmployee
+      });
+    }
   };
 
   if (isLoading) {
@@ -160,7 +206,6 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-name"
                   value={formData.nome_fornecedor || ""}
                   onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
-                  required
                 />
               </div>
               <div>
@@ -170,7 +215,6 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-cnpj"
                   value={formData.cnpj || ""}
                   onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                  required
                 />
               </div>
               <div>
@@ -180,19 +224,9 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-cpf"
                   value={formData.cpf || ""}
                   onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                  required
                 />
               </div>
-              <div>
-                <Label htmlFor="nome_responsavel">Nome do Responsável</Label>
-                <Input
-                  id="nome_responsavel"
-                  data-testid="input-supplier-responsible"
-                  value={formData.nome_responsavel || ""}
-                  onChange={(e) => setFormData({ ...formData, nome_responsavel: e.target.value })}
-                  required
-                />
-              </div>
+
               <div>
                 <Label htmlFor="telefone">Telefone</Label>
                 <Input
@@ -200,7 +234,6 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-phone"
                   value={formData.telefone || ""}
                   onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                  required
                 />
               </div>
               <div>
@@ -210,7 +243,6 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-address"
                   value={formData.endereco || ""}
                   onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                  required
                 />
               </div>
               <div>
@@ -224,7 +256,6 @@ export default function AdminSuppliers() {
                   data-testid="input-supplier-budget"
                   value={formData.valor_orcamento || ""}
                   onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
-                  required
                 />
               </div>
               <div className="flex gap-2">
@@ -458,11 +489,7 @@ export default function AdminSuppliers() {
                   <DialogHeader>
                     <DialogTitle>Novo Funcionário</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    // Implementar criação de funcionário
-                    toast({ title: "Funcionalidade em desenvolvimento" });
-                  }} className="space-y-4">
+                  <form onSubmit={handleEmployeeSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="employee-name">Nome do Funcionário</Label>
                       <Input
@@ -491,8 +518,8 @@ export default function AdminSuppliers() {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button type="submit">
-                        Salvar
+                      <Button type="submit" disabled={createEmployeeMutation.isPending}>
+                        {createEmployeeMutation.isPending ? "Salvando..." : "Salvar"}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => {
                         setIsEmployeeFormOpen(false);
@@ -527,7 +554,12 @@ export default function AdminSuppliers() {
                           <Button size="sm" variant="outline">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="destructive">
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => deleteEmployeeMutation.mutate(employee.id)}
+                            disabled={deleteEmployeeMutation.isPending}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
