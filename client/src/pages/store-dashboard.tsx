@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { type Store, type FotoFinal } from "@shared/mysql-schema";
 import TicketForm from "@/components/forms/ticket-form";
 
 export default function StoreDashboard() {
   const [showTicketForm, setShowTicketForm] = useState(false);
+  const [isFinalized, setIsFinalized] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   const [, setLocation] = useLocation();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Get store from localStorage
   const storeData = localStorage.getItem("store_access");
@@ -40,7 +45,48 @@ export default function StoreDashboard() {
   };
 
   const handleFinalize = () => {
+    setIsFinalized(true);
     alert("Processo finalizado com sucesso!");
+  };
+
+  // Mouse drag handlers for desktop navigation
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartX(e.pageX - (scrollContainerRef.current?.offsetLeft || 0));
+    setScrollLeft(scrollContainerRef.current?.scrollLeft || 0);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - (scrollContainerRef.current?.offsetLeft || 0);
+    const walk = (x - startX) * 2;
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Scroll navigation with buttons
+  const scrollGallery = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 320; // width of one photo + gap
+      const newScrollLeft = direction === 'left' 
+        ? scrollContainerRef.current.scrollLeft - scrollAmount
+        : scrollContainerRef.current.scrollLeft + scrollAmount;
+      
+      scrollContainerRef.current.scrollTo({
+        left: newScrollLeft,
+        behavior: 'smooth'
+      });
+    }
   };
 
   if (!storeInfo) {
@@ -144,10 +190,35 @@ export default function StoreDashboard() {
             </div>
           ) : (
             <div className="w-full">
-              <p className="text-sm text-gray-600 mb-4">Arraste para navegar pelas fotos da instalação:</p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-gray-600">📱 Mobile: Deslize com o dedo | 🖥️ Desktop: Arraste com o mouse ou use as setas</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => scrollGallery('left')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => scrollGallery('right')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <div 
-                className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"
+                ref={scrollContainerRef}
+                className={`flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                 style={{ scrollBehavior: 'smooth' }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
               >
                 {fotosFinais.map((fotoBase64: string, index: number) => (
                   <div key={index} className="min-w-[300px] snap-center">
@@ -155,7 +226,8 @@ export default function StoreDashboard() {
                       <img 
                         src={fotoBase64} 
                         alt={`Foto da instalação ${index + 1}`}
-                        className="w-full h-64 object-cover"
+                        className="w-full h-64 object-cover select-none"
+                        draggable={false}
                       />
                     </div>
                     <div className="mt-2 text-center">
@@ -173,9 +245,13 @@ export default function StoreDashboard() {
       <div className="flex justify-center gap-4">
         <Button 
           onClick={handleFinalize}
-          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+          disabled={isFinalized}
+          className={isFinalized 
+            ? "bg-gray-600 hover:bg-gray-600 text-white px-8 py-3 cursor-not-allowed" 
+            : "bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+          }
         >
-          Finalizar
+          {isFinalized ? "Loja Finalizada" : "Finalizar"}
         </Button>
         <Button 
           onClick={() => setShowTicketForm(true)}
