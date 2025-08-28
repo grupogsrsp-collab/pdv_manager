@@ -7,6 +7,7 @@ import multer from "multer";
 import { testConnection } from "./mysql-db";
 import { 
   insertSupplierSchema, 
+  insertSupplierEmployeeSchema,
   insertStoreSchema, 
   insertTicketSchema, 
   insertKitSchema, 
@@ -146,6 +147,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Erro ao criar fornecedor:", error);
       res.status(400).json({ error: "Dados do fornecedor inválidos" });
+    }
+  });
+
+  // Supplier Employees endpoints
+  app.get("/api/suppliers/:id/employees", async (req, res) => {
+    try {
+      const supplierId = parseInt(req.params.id);
+      const employees = await storage.getSupplierEmployees(supplierId);
+      res.json(employees);
+    } catch (error) {
+      console.error("Erro ao listar funcionários:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/suppliers/:id/employees", async (req, res) => {
+    try {
+      console.log("Recebendo dados do funcionário:", req.body);
+      const supplierId = parseInt(req.params.id);
+      const employeeData = {
+        ...req.body,
+        fornecedor_id: supplierId
+      };
+      console.log("Dados processados do funcionário:", employeeData);
+      
+      const employee = await storage.createSupplierEmployee(employeeData);
+      console.log("Funcionário criado com sucesso:", employee);
+      res.status(201).json(employee);
+    } catch (error) {
+      console.error("Erro ao criar funcionário:", error);
+      res.status(400).json({ error: "Erro ao criar funcionário" });
+    }
+  });
+
+  app.delete("/api/supplier-employees/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteSupplierEmployee(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Erro ao excluir funcionário:", error);
+      res.status(400).json({ error: "Erro ao excluir funcionário" });
     }
   });
 
