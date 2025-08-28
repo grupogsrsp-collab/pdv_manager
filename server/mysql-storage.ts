@@ -168,6 +168,17 @@ export class MySQLStorage implements IStorage {
         await pool.execute('ALTER TABLE instalacoes ADD COLUMN fotosFinais JSON');
         await pool.execute('ALTER TABLE instalacoes ADD COLUMN justificativaFotos TEXT');
       }
+
+      // Adicionar colunas de geolocalização se não existirem
+      if (!installationColumnNames.includes('latitude')) {
+        console.log('Adicionando colunas de geolocalização...');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN latitude DECIMAL(10, 8)');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN longitude DECIMAL(11, 8)');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN endereco_geolocalizacao TEXT');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN mapa_screenshot_url VARCHAR(500)');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN geolocalizacao_timestamp TIMESTAMP');
+        console.log('✅ Colunas de geolocalização adicionadas!');
+      }
       
       console.log('✅ Estrutura da tabela verificada e corrigida!');
     } catch (error) {
@@ -1036,8 +1047,22 @@ export class MySQLStorage implements IStorage {
     
     // Salvar instalação principal
     await pool.execute(
-      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, fotosOriginais, fotosFinais, justificativaFotos) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, installation.loja_id, installation.fornecedor_id, installation.responsible, installation.installationDate, fotosOriginaisJson, fotosFinaisJson, installation.justificativaFotos || null]
+      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, fotosOriginais, fotosFinais, justificativaFotos, latitude, longitude, endereco_geolocalizacao, mapa_screenshot_url, geolocalizacao_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        id, 
+        installation.loja_id, 
+        installation.fornecedor_id, 
+        installation.responsible, 
+        installation.installationDate, 
+        fotosOriginaisJson, 
+        fotosFinaisJson, 
+        installation.justificativaFotos || null,
+        installation.latitude || null,
+        installation.longitude || null,
+        installation.endereco_geolocalizacao || null,
+        installation.mapa_screenshot_url || null,
+        installation.geolocalizacao_timestamp || null
+      ]
     );
 
     // Buscar todos os kits para associar às fotos

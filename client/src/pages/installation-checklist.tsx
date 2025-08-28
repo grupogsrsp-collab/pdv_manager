@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, CheckCircle } from "lucide-react";
+import { Camera, CheckCircle, MapPin, Navigation } from "lucide-react";
 import TicketForm from "@/components/forms/ticket-form";
 import SuccessModal from "@/components/modals/success-modal";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,13 @@ export default function InstallationChecklist() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [photoJustification, setPhotoJustification] = useState("");
   const [showJustificationField, setShowJustificationField] = useState(false);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
+  const [locationData, setLocationData] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+    mapScreenshot?: string;
+  } | null>(null);
 
   // Fetch kits data
   const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
@@ -43,8 +50,84 @@ export default function InstallationChecklist() {
     return null;
   }
 
+  // Função para capturar geolocalização
+  const captureGeolocation = async (): Promise<{latitude: number, longitude: number, address: string, mapScreenshot?: string}> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocalização não é suportada pelo navegador"));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          try {
+            // Usar reverse geocoding para obter endereço
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
+            );
+            
+            let address = "Endereço não encontrado";
+            if (response.ok) {
+              const data = await response.json();
+              address = data.display_name || `${data.locality || ''} ${data.city || ''} ${data.principalSubdivision || ''}`.trim() || "Endereço não encontrado";
+            }
+
+            // Criar screenshot do mapa usando API do Google Maps Static
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=16&size=600x400&markers=color:red%7C${latitude},${longitude}&key=YOUR_GOOGLE_MAPS_API_KEY`;
+            
+            resolve({
+              latitude,
+              longitude,
+              address,
+              mapScreenshot: mapUrl // Em produção, usar uma API válida
+            });
+          } catch (error) {
+            // Se falhar o reverse geocoding, ainda retornar as coordenadas
+            resolve({
+              latitude,
+              longitude,
+              address: `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`
+            });
+          }
+        },
+        (error) => {
+          reject(new Error(`Erro ao obter localização: ${error.message}`));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutos
+        }
+      );
+    });
+  };
+
   const finalizeMutation = useMutation({
     mutationFn: async () => {
+      setIsCapturingLocation(true);
+      
+      // Capturar geolocalização antes de processar fotos
+      let geoData = null;
+      try {
+        geoData = await captureGeolocation();
+        setLocationData(geoData);
+        toast({
+          title: "Localização capturada",
+          description: `Local: ${geoData.address}`,
+        });
+      } catch (error) {
+        console.warn("Erro ao capturar geolocalização:", error);
+        toast({
+          title: "Aviso",
+          description: "Não foi possível capturar a localização. Continuando sem dados de localização.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsCapturingLocation(false);
+      }
+      
       // Convert original photos to compressed base64 strings for storage
       const originalPhotoUrls: string[] = [];
       for (const photo of originalPhotos) {
@@ -137,6 +220,12 @@ export default function InstallationChecklist() {
         fotosOriginais: originalPhotoUrls,
         fotosFinais: postInstallationPhotoUrls,
         justificativaFotos: photoJustification || undefined,
+        // Dados de geolocalização
+        latitude: geoData?.latitude,
+        longitude: geoData?.longitude,
+        endereco_geolocalizacao: geoData?.address,
+        mapa_screenshot_url: geoData?.mapScreenshot,
+        geolocalizacao_timestamp: geoData ? new Date() : undefined,
       };
 
       const response = await fetch("/api/installations", {
@@ -478,16 +567,56 @@ export default function InstallationChecklist() {
           </Card>
         )}
 
+        {/* Geolocalization Status */}
+        {(isCapturingLocation || locationData) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Status da Localização
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isCapturingLocation ? (
+                <div className="flex items-center gap-2 text-blue-600">
+                  <Navigation className="h-4 w-4 animate-spin" />
+                  <span>Capturando localização do instalador...</span>
+                </div>
+              ) : locationData ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Localização capturada com sucesso!</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <p><strong>Endereço:</strong> {locationData.address}</p>
+                    <p><strong>Coordenadas:</strong> {locationData.latitude.toFixed(6)}, {locationData.longitude.toFixed(6)}</p>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
             onClick={handleFinalize}
-            disabled={finalizeMutation.isPending}
+            disabled={finalizeMutation.isPending || isCapturingLocation}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             data-testid="button-finalizar-instalacao"
           >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            {finalizeMutation.isPending ? "Finalizando..." : "Instalação Finalizada"}
+            {isCapturingLocation ? (
+              <>
+                <Navigation className="mr-2 h-4 w-4 animate-spin" />
+                Capturando Localização...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {finalizeMutation.isPending ? "Finalizando..." : "Instalação Finalizada"}
+              </>
+            )}
           </Button>
           <Button
             onClick={() => setShowTicketForm(true)}

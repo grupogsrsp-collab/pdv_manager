@@ -163,6 +163,12 @@ export interface Installation {
   fotosFinais: string[];
   justificativaFotos?: string;
   createdAt: Date;
+  // Campos de geolocalização
+  latitude?: number;
+  longitude?: number;
+  endereco_geolocalizacao?: string;
+  mapa_screenshot_url?: string;
+  geolocalizacao_timestamp?: Date;
 }
 
 export interface InsertInstallation {
@@ -173,6 +179,12 @@ export interface InsertInstallation {
   fotosOriginais?: string[];
   fotosFinais?: string[];
   justificativaFotos?: string;
+  // Campos de geolocalização
+  latitude?: number;
+  longitude?: number;
+  endereco_geolocalizacao?: string;
+  mapa_screenshot_url?: string;
+  geolocalizacao_timestamp?: Date;
 }
 
 // Schemas de validação usando Zod
@@ -249,6 +261,12 @@ export const insertInstallationSchema = z.object({
   fotosOriginais: z.array(z.string()).optional(),
   fotosFinais: z.array(z.string()).optional(),
   justificativaFotos: z.string().optional(),
+  // Campos de geolocalização
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  endereco_geolocalizacao: z.string().optional(),
+  mapa_screenshot_url: z.string().optional(),
+  geolocalizacao_timestamp: z.date().optional(),
 });
 
 // Schema para busca de CNPJ
