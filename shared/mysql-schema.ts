@@ -11,17 +11,19 @@ export interface Supplier {
   nome_responsavel: string;
   telefone: string;
   endereco: string;
+  estado: string;
   valor_orcamento: number;
 }
 
 export interface InsertSupplier {
-  nome_fornecedor: string;
-  cnpj: string;
-  cpf: string;
-  nome_responsavel: string;
-  telefone: string;
-  endereco: string;
-  valor_orcamento: number;
+  nome_fornecedor?: string;
+  cnpj?: string;
+  cpf?: string;
+  nome_responsavel?: string;
+  telefone?: string;
+  endereco?: string;
+  estado?: string;
+  valor_orcamento?: number;
 }
 
 // Funcionários dos Fornecedores
@@ -34,10 +36,10 @@ export interface SupplierEmployee {
 }
 
 export interface InsertSupplierEmployee {
-  fornecedor_id: number;
+  fornecedor_id?: number;
   nome_funcionario: string;
-  cpf: string;
-  telefone: string;
+  cpf?: string;
+  telefone?: string;
 }
 
 // Lojas
@@ -153,20 +155,21 @@ export interface InsertInstallation {
 
 // Schemas de validação usando Zod
 export const insertSupplierSchema = z.object({
-  nome_fornecedor: z.string().min(1, "Nome do fornecedor é obrigatório"),
-  cnpj: z.string().min(14, "CNPJ deve ter 14 dígitos"),
-  cpf: z.string().min(11, "CPF deve ter 11 dígitos"),
-  nome_responsavel: z.string().min(1, "Nome do responsável é obrigatório"),
-  telefone: z.string().min(1, "Telefone é obrigatório"),
-  endereco: z.string().min(1, "Endereço é obrigatório"),
-  valor_orcamento: z.number().positive("Valor do orçamento deve ser positivo"),
+  nome_fornecedor: z.string().optional(),
+  cnpj: z.string().optional(),
+  cpf: z.string().optional(),
+  nome_responsavel: z.string().optional(),
+  telefone: z.string().optional(),
+  endereco: z.string().optional(),
+  estado: z.string().optional(),
+  valor_orcamento: z.number().optional(),
 });
 
 export const insertSupplierEmployeeSchema = z.object({
-  fornecedor_id: z.number().positive("ID do fornecedor é obrigatório"),
+  fornecedor_id: z.number().optional(),
   nome_funcionario: z.string().min(1, "Nome do funcionário é obrigatório"),
-  cpf: z.string().min(11, "CPF deve ter 11 dígitos"),
-  telefone: z.string().min(1, "Telefone é obrigatório"),
+  cpf: z.string().optional(),
+  telefone: z.string().optional(),
 });
 
 export const insertStoreSchema = z.object({

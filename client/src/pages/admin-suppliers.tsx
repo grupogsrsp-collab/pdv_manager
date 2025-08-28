@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Search, ArrowLeft, UserPlus, Users } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -246,6 +247,46 @@ export default function AdminSuppliers() {
                 />
               </div>
               <div>
+                <Label htmlFor="estado">Estado</Label>
+                <Select 
+                  value={formData.estado || ""} 
+                  onValueChange={(value) => setFormData({ ...formData, estado: value })}
+                >
+                  <SelectTrigger data-testid="select-supplier-state">
+                    <SelectValue placeholder="Selecione o estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AC">Acre</SelectItem>
+                    <SelectItem value="AL">Alagoas</SelectItem>
+                    <SelectItem value="AP">Amapá</SelectItem>
+                    <SelectItem value="AM">Amazonas</SelectItem>
+                    <SelectItem value="BA">Bahia</SelectItem>
+                    <SelectItem value="CE">Ceará</SelectItem>
+                    <SelectItem value="DF">Distrito Federal</SelectItem>
+                    <SelectItem value="ES">Espírito Santo</SelectItem>
+                    <SelectItem value="GO">Goiás</SelectItem>
+                    <SelectItem value="MA">Maranhão</SelectItem>
+                    <SelectItem value="MT">Mato Grosso</SelectItem>
+                    <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                    <SelectItem value="MG">Minas Gerais</SelectItem>
+                    <SelectItem value="PA">Pará</SelectItem>
+                    <SelectItem value="PB">Paraíba</SelectItem>
+                    <SelectItem value="PR">Paraná</SelectItem>
+                    <SelectItem value="PE">Pernambuco</SelectItem>
+                    <SelectItem value="PI">Piauí</SelectItem>
+                    <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                    <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                    <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                    <SelectItem value="RO">Rondônia</SelectItem>
+                    <SelectItem value="RR">Roraima</SelectItem>
+                    <SelectItem value="SC">Santa Catarina</SelectItem>
+                    <SelectItem value="SP">São Paulo</SelectItem>
+                    <SelectItem value="SE">Sergipe</SelectItem>
+                    <SelectItem value="TO">Tocantins</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label htmlFor="valor_orcamento">Valor do Orçamento (R$)</Label>
                 <Input
                   id="valor_orcamento"
@@ -321,6 +362,7 @@ export default function AdminSuppliers() {
                 <TableHead>CPF</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead>Valor Orçamento</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -334,6 +376,7 @@ export default function AdminSuppliers() {
                   <TableCell data-testid={`text-supplier-cpf-${supplier.id}`}>{supplier.cpf}</TableCell>
                   <TableCell data-testid={`text-supplier-responsible-${supplier.id}`}>{supplier.nome_responsavel}</TableCell>
                   <TableCell data-testid={`text-supplier-phone-${supplier.id}`}>{supplier.telefone}</TableCell>
+                  <TableCell data-testid={`text-supplier-state-${supplier.id}`}>{supplier.estado}</TableCell>
                   <TableCell data-testid={`text-supplier-budget-${supplier.id}`}>
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
@@ -392,7 +435,6 @@ export default function AdminSuppliers() {
                 id="edit-nome_fornecedor"
                 value={formData.nome_fornecedor || ""}
                 onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
-                required
               />
             </div>
             <div>
@@ -401,7 +443,6 @@ export default function AdminSuppliers() {
                 id="edit-cnpj"
                 value={formData.cnpj || ""}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                required
               />
             </div>
             <div>
@@ -410,7 +451,6 @@ export default function AdminSuppliers() {
                 id="edit-cpf"
                 value={formData.cpf || ""}
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                required
               />
             </div>
             <div>
@@ -419,7 +459,6 @@ export default function AdminSuppliers() {
                 id="edit-nome_responsavel"
                 value={formData.nome_responsavel || ""}
                 onChange={(e) => setFormData({ ...formData, nome_responsavel: e.target.value })}
-                required
               />
             </div>
             <div>
@@ -428,7 +467,6 @@ export default function AdminSuppliers() {
                 id="edit-telefone"
                 value={formData.telefone || ""}
                 onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                required
               />
             </div>
             <div>
@@ -437,8 +475,47 @@ export default function AdminSuppliers() {
                 id="edit-endereco"
                 value={formData.endereco || ""}
                 onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                required
               />
+            </div>
+            <div>
+              <Label htmlFor="edit-estado">Estado</Label>
+              <Select 
+                value={formData.estado || ""} 
+                onValueChange={(value) => setFormData({ ...formData, estado: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AC">Acre</SelectItem>
+                  <SelectItem value="AL">Alagoas</SelectItem>
+                  <SelectItem value="AP">Amapá</SelectItem>
+                  <SelectItem value="AM">Amazonas</SelectItem>
+                  <SelectItem value="BA">Bahia</SelectItem>
+                  <SelectItem value="CE">Ceará</SelectItem>
+                  <SelectItem value="DF">Distrito Federal</SelectItem>
+                  <SelectItem value="ES">Espírito Santo</SelectItem>
+                  <SelectItem value="GO">Goiás</SelectItem>
+                  <SelectItem value="MA">Maranhão</SelectItem>
+                  <SelectItem value="MT">Mato Grosso</SelectItem>
+                  <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                  <SelectItem value="MG">Minas Gerais</SelectItem>
+                  <SelectItem value="PA">Pará</SelectItem>
+                  <SelectItem value="PB">Paraíba</SelectItem>
+                  <SelectItem value="PR">Paraná</SelectItem>
+                  <SelectItem value="PE">Pernambuco</SelectItem>
+                  <SelectItem value="PI">Piauí</SelectItem>
+                  <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                  <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                  <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                  <SelectItem value="RO">Rondônia</SelectItem>
+                  <SelectItem value="RR">Roraima</SelectItem>
+                  <SelectItem value="SC">Santa Catarina</SelectItem>
+                  <SelectItem value="SP">São Paulo</SelectItem>
+                  <SelectItem value="SE">Sergipe</SelectItem>
+                  <SelectItem value="TO">Tocantins</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="edit-valor_orcamento">Valor do Orçamento (R$)</Label>
@@ -450,7 +527,6 @@ export default function AdminSuppliers() {
                 placeholder="0,00"
                 value={formData.valor_orcamento || ""}
                 onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
-                required
               />
             </div>
             <div className="flex gap-2">
@@ -505,7 +581,6 @@ export default function AdminSuppliers() {
                         id="employee-cpf"
                         value={employeeFormData.cpf || ""}
                         onChange={(e) => setEmployeeFormData({ ...employeeFormData, cpf: e.target.value })}
-                        required
                       />
                     </div>
                     <div>
@@ -514,7 +589,6 @@ export default function AdminSuppliers() {
                         id="employee-phone"
                         value={employeeFormData.telefone || ""}
                         onChange={(e) => setEmployeeFormData({ ...employeeFormData, telefone: e.target.value })}
-                        required
                       />
                     </div>
                     <div className="flex gap-2">

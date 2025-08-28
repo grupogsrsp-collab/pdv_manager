@@ -103,13 +103,15 @@ export class MySQLStorage implements IStorage {
       const tables = [
         `CREATE TABLE IF NOT EXISTS fornecedores (
           id INT AUTO_INCREMENT PRIMARY KEY,
-          nome_fornecedor VARCHAR(255) NOT NULL,
-          cnpj VARCHAR(18) UNIQUE NOT NULL,
-          cpf VARCHAR(14) NOT NULL,
-          nome_responsavel VARCHAR(255) NOT NULL,
-          telefone VARCHAR(20) NOT NULL,
-          endereco TEXT NOT NULL,
-          valor_orcamento DECIMAL(10,2) NOT NULL
+          nome_fornecedor VARCHAR(255),
+          cnpj VARCHAR(18),
+          cpf VARCHAR(14),
+          nome_responsavel VARCHAR(255),
+          telefone VARCHAR(20),
+          endereco TEXT,
+          estado VARCHAR(2),
+          valor_orcamento DECIMAL(10,2),
+          UNIQUE KEY unique_cnpj (cnpj)
         )`,
         
         `CREATE TABLE IF NOT EXISTS funcionarios_fornecedores (
@@ -202,14 +204,14 @@ export class MySQLStorage implements IStorage {
       
       if (supplierRows[0].count === 0) {
         const suppliers = [
-          ['SuperTech Supplies', '12345678000190', '12345678901', 'João Silva', '(11) 99999-9999', 'Rua das Flores, 123', 15000.00],
-          ['ABC Ferramentas', '98765432000110', '98765432100', 'Maria Costa', '(11) 88888-8888', 'Av. Industrial, 456', 25000.00]
+          ['SuperTech Supplies', '12345678000190', '12345678901', 'João Silva', '(11) 99999-9999', 'Rua das Flores, 123', 'SP', 15000.00],
+          ['ABC Ferramentas', '98765432000110', '98765432100', 'Maria Costa', '(11) 88888-8888', 'Av. Industrial, 456', 'RJ', 25000.00]
         ];
         
         for (const supplier of suppliers) {
           await pool.execute(
-            `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, valor_orcamento) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, estado, valor_orcamento) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             supplier
           );
         }
@@ -325,9 +327,9 @@ export class MySQLStorage implements IStorage {
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
     const [result] = await pool.execute(
-      `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, valor_orcamento)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [supplier.nome_fornecedor, supplier.cnpj, supplier.cpf, supplier.nome_responsavel, supplier.telefone, supplier.endereco, supplier.valor_orcamento]
+      `INSERT INTO fornecedores (nome_fornecedor, cnpj, cpf, nome_responsavel, telefone, endereco, estado, valor_orcamento)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [supplier.nome_fornecedor || '', supplier.cnpj || '', supplier.cpf || '', supplier.nome_responsavel || '', supplier.telefone || '', supplier.endereco || '', supplier.estado || '', supplier.valor_orcamento || 0]
     ) as [ResultSetHeader, any];
 
     const [rows] = await pool.execute(
@@ -380,7 +382,11 @@ export class MySQLStorage implements IStorage {
       fields.push('endereco = ?');
       values.push(supplier.endereco);
     }
-    if (supplier.valor_orcamento) {
+    if (supplier.estado) {
+      fields.push('estado = ?');
+      values.push(supplier.estado);
+    }
+    if (supplier.valor_orcamento !== undefined) {
       fields.push('valor_orcamento = ?');
       values.push(supplier.valor_orcamento);
     }
