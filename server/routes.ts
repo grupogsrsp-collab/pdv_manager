@@ -471,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error("Erro ao excluir fornecedor:", error);
-      res.status(500).json({ error: "Erro interno do servidor" });
+      res.status(400).json({ error: "Erro ao excluir fornecedor" });
     }
   });
 
