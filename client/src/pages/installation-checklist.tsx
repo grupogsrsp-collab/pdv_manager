@@ -48,7 +48,7 @@ export default function InstallationChecklist() {
   const store: Store | null = storeData ? JSON.parse(storeData) : null;
 
   // Fetch existing installation data for this store
-  const { data: existingInstallation, isLoading: installationLoading } = useQuery({
+  const { data: existingInstallation, isLoading: installationLoading } = useQuery<Installation | null>({
     queryKey: ["/api/installations/store", store?.codigo_loja],
     enabled: !!store?.codigo_loja,
   });
@@ -63,20 +63,38 @@ export default function InstallationChecklist() {
   useEffect(() => {
     if (existingInstallation && kits.length > 0) {
       console.log("Carregando dados da instalação existente:", existingInstallation);
+      console.log("Fotos originais:", existingInstallation.fotosOriginais);
+      console.log("Fotos finais:", existingInstallation.fotosFinais);
+      
       setIsEditMode(true);
       setResponsibleName(existingInstallation.responsible || "");
       setInstallationDate(existingInstallation.installationDate || "");
       setPhotoJustification(existingInstallation.justificativaFotos || "");
       
-      // Carregar fotos originais existentes
-      if (existingInstallation.fotosOriginais && existingInstallation.fotosOriginais.length > 0) {
-        setOriginalPhotosBase64(existingInstallation.fotosOriginais);
-        // Não criamos File objects das fotos base64 para economizar memória
+      // Carregar fotos originais existentes - garantir que tenham o mesmo tamanho que o array de kits
+      if (existingInstallation.fotosOriginais && Array.isArray(existingInstallation.fotosOriginais)) {
+        console.log("Configurando fotos originais:", existingInstallation.fotosOriginais.length);
+        // Criar array com o tamanho dos kits para manter posições corretas
+        const originalPhotosArray = new Array(kits.length).fill("");
+        existingInstallation.fotosOriginais.forEach((photo, index) => {
+          if (index < kits.length && photo && photo.trim() !== "") {
+            originalPhotosArray[index] = photo;
+          }
+        });
+        setOriginalPhotosBase64(originalPhotosArray);
       }
       
-      // Carregar fotos finais existentes
-      if (existingInstallation.fotosFinais && existingInstallation.fotosFinais.length > 0) {
-        setPostInstallationPhotosBase64(existingInstallation.fotosFinais);
+      // Carregar fotos finais existentes - garantir que tenham o mesmo tamanho que o array de kits
+      if (existingInstallation.fotosFinais && Array.isArray(existingInstallation.fotosFinais)) {
+        console.log("Configurando fotos finais:", existingInstallation.fotosFinais.length);
+        // Criar array com o tamanho dos kits para manter posições corretas
+        const finalPhotosArray = new Array(kits.length).fill("");
+        existingInstallation.fotosFinais.forEach((photo, index) => {
+          if (index < kits.length && photo && photo.trim() !== "") {
+            finalPhotosArray[index] = photo;
+          }
+        });
+        setPostInstallationPhotosBase64(finalPhotosArray);
       }
       
       // Se há fotos faltando, mostrar campo de justificativa
@@ -424,7 +442,15 @@ export default function InstallationChecklist() {
         {/* Installation Details */}
         <Card>
           <CardHeader>
-            <CardTitle>Detalhes da Instalação</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              Detalhes da Instalação
+              {isEditMode && (
+                <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Loja Já Finalizada
+                </div>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -499,8 +525,8 @@ export default function InstallationChecklist() {
                           ×
                         </Button>
                         {originalPhotosBase64[index] && !originalPhotos[index] && (
-                          <div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                            Foto Existente
+                          <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
+                            ✓ Salva
                           </div>
                         )}
                       </div>
@@ -579,8 +605,8 @@ export default function InstallationChecklist() {
                           ×
                         </Button>
                         {postInstallationPhotosBase64[index] && !postInstallationPhotos[index] && (
-                          <div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                            Foto Existente
+                          <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
+                            ✓ Salva
                           </div>
                         )}
                       </div>
