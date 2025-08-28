@@ -266,7 +266,7 @@ export const insertInstallationSchema = z.object({
   longitude: z.number().optional(),
   endereco_geolocalizacao: z.string().optional(),
   mapa_screenshot_url: z.string().optional(),
-  geolocalizacao_timestamp: z.date().optional(),
+  geolocalizacao_timestamp: z.union([z.date(), z.string()]).optional(),
 });
 
 // Schema para busca de CNPJ

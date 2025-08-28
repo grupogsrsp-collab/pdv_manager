@@ -225,7 +225,7 @@ export default function InstallationChecklist() {
         longitude: geoData?.longitude,
         endereco_geolocalizacao: geoData?.address,
         mapa_screenshot_url: geoData?.mapScreenshot,
-        geolocalizacao_timestamp: geoData ? new Date() : undefined,
+        geolocalizacao_timestamp: geoData ? new Date().toISOString() : undefined,
       };
 
       const response = await fetch("/api/installations", {
