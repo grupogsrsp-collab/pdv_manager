@@ -50,55 +50,32 @@ export default function InstallationChecklist() {
     return null;
   }
 
-  // Função para capturar geolocalização
-  const captureGeolocation = async (): Promise<{latitude: number, longitude: number, address: string, mapScreenshot?: string}> => {
+  // Função para capturar geolocalização (forma simplificada)
+  const captureGeolocation = async (): Promise<{latitude: number, longitude: number, address: string}> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error("Geolocalização não é suportada pelo navegador"));
+        reject(new Error("Geolocalização não suportada"));
         return;
       }
 
-      console.log("Iniciando captura de geolocalização...");
-
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          console.log("Geolocalização obtida:", position.coords);
+        (position) => {
           const { latitude, longitude } = position.coords;
-          
-          // Criar endereço simples com as coordenadas
-          const address = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
-          
-          console.log("Endereço formatado:", address);
+          const address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
           
           resolve({
             latitude,
             longitude,
-            address,
-            mapScreenshot: undefined // Removendo dependência de APIs externas por enquanto
+            address
           });
         },
-        (error) => {
-          console.error("Erro de geolocalização:", error);
-          let errorMessage = "Erro desconhecido";
-          
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = "Permissão negada pelo usuário";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = "Localização indisponível";
-              break;
-            case error.TIMEOUT:
-              errorMessage = "Tempo esgotado para obter localização";
-              break;
-          }
-          
-          reject(new Error(`Erro ao obter localização: ${errorMessage}`));
+        () => {
+          reject(new Error("Erro ao obter localização"));
         },
         {
-          enableHighAccuracy: true,
-          timeout: 15000, // Aumentei o timeout para 15 segundos
-          maximumAge: 60000 // 1 minuto
+          enableHighAccuracy: false, // Menos preciso, mais rápido
+          timeout: 5000, // 5 segundos apenas
+          maximumAge: 300000 // 5 minutos
         }
       );
     });
@@ -108,24 +85,22 @@ export default function InstallationChecklist() {
     mutationFn: async () => {
       setIsCapturingLocation(true);
       
-      // Capturar geolocalização antes de processar fotos
+      // Tentar capturar geolocalização de forma silenciosa
       let geoData = null;
       try {
-        console.log("Iniciando processo de captura de geolocalização...");
-        geoData = await captureGeolocation();
+        geoData = await Promise.race([
+          captureGeolocation(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 8000)
+          )
+        ]) as {latitude: number, longitude: number, address: string, mapScreenshot?: string};
+        
         setLocationData(geoData);
-        console.log("Geolocalização capturada com sucesso:", geoData);
-        toast({
-          title: "Localização capturada!",
-          description: `Coordenadas: ${geoData.latitude.toFixed(4)}, ${geoData.longitude.toFixed(4)}`,
-        });
+        console.log("Localização capturada:", geoData);
       } catch (error) {
-        console.error("Erro completo ao capturar geolocalização:", error);
-        toast({
-          title: "Aviso - Geolocalização",
-          description: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Instalação continuará sem localização.`,
-          variant: "destructive",
-        });
+        // Falha silenciosa - não mostrar erro para o usuário
+        console.log("Geolocalização não disponível, continuando sem localização");
+        geoData = null;
       } finally {
         setIsCapturingLocation(false);
       }
@@ -569,33 +544,23 @@ export default function InstallationChecklist() {
           </Card>
         )}
 
-        {/* Geolocalization Status */}
-        {(isCapturingLocation || locationData) && (
+        {/* Geolocalization Status - Apenas quando tem dados */}
+        {locationData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                Status da Localização
+                Localização Registrada
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isCapturingLocation ? (
-                <div className="flex items-center gap-2 text-blue-600">
-                  <Navigation className="h-4 w-4 animate-spin" />
-                  <span>Capturando localização do instalador...</span>
-                </div>
-              ) : locationData ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Localização capturada com sucesso!</span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    <p><strong>Endereço:</strong> {locationData.address}</p>
-                    <p><strong>Coordenadas:</strong> {locationData.latitude.toFixed(6)}, {locationData.longitude.toFixed(6)}</p>
-                  </div>
-                </div>
-              ) : null}
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="h-4 w-4" />
+                <span>Localização do instalador salva!</span>
+              </div>
+              <div className="text-sm text-gray-600 mt-2">
+                <p><strong>Coordenadas:</strong> {locationData.latitude.toFixed(6)}, {locationData.longitude.toFixed(6)}</p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -604,21 +569,12 @@ export default function InstallationChecklist() {
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
             onClick={handleFinalize}
-            disabled={finalizeMutation.isPending || isCapturingLocation}
+            disabled={finalizeMutation.isPending}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             data-testid="button-finalizar-instalacao"
           >
-            {isCapturingLocation ? (
-              <>
-                <Navigation className="mr-2 h-4 w-4 animate-spin" />
-                Capturando Localização...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                {finalizeMutation.isPending ? "Finalizando..." : "Instalação Finalizada"}
-              </>
-            )}
+            <CheckCircle className="mr-2 h-4 w-4" />
+            {finalizeMutation.isPending ? "Finalizando..." : "Instalação Finalizada"}
           </Button>
           <Button
             onClick={() => setShowTicketForm(true)}
