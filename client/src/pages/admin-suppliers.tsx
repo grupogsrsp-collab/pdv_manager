@@ -94,7 +94,10 @@ export default function AdminSuppliers() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data.employee),
       });
-      if (!response.ok) throw new Error("Erro ao criar funcionário");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro ao criar funcionário: ${errorText}`);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -103,8 +106,9 @@ export default function AdminSuppliers() {
       setEmployeeFormData({});
       toast({ title: "Funcionário criado com sucesso!" });
     },
-    onError: () => {
-      toast({ title: "Erro ao criar funcionário", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Erro na mutation de funcionário:", error);
+      toast({ title: error.message || "Erro ao criar funcionário", variant: "destructive" });
     },
   });
 
@@ -162,11 +166,19 @@ export default function AdminSuppliers() {
 
   const handleEmployeeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Dados do funcionário sendo enviados:', employeeFormData);
     if (selectedSupplier && employeeFormData.nome_funcionario) {
+      const employeeData = {
+        ...employeeFormData,
+        fornecedor_id: selectedSupplier.id
+      };
+      console.log('Dados completos do funcionário:', employeeData);
       createEmployeeMutation.mutate({
         supplierId: selectedSupplier.id,
-        employee: employeeFormData as InsertSupplierEmployee
+        employee: employeeData as InsertSupplierEmployee
       });
+    } else {
+      toast({ title: "Nome do funcionário é obrigatório", variant: "destructive" });
     }
   };
 
