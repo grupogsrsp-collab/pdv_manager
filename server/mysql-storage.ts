@@ -1038,14 +1038,40 @@ export class MySQLStorage implements IStorage {
       let fotosFinais = [];
       
       try {
-        fotosOriginais = row.fotosOriginais ? JSON.parse(row.fotosOriginais) : [];
+        if (row.fotosOriginais) {
+          const fotosStr = String(row.fotosOriginais);
+          // Tentar JSON primeiro
+          if (fotosStr.startsWith('[')) {
+            fotosOriginais = JSON.parse(fotosStr);
+          } else if (fotosStr.startsWith('data:image/')) {
+            // Se for uma única foto base64, converter para array
+            fotosOriginais = [fotosStr];
+          } else {
+            fotosOriginais = [];
+          }
+        } else {
+          fotosOriginais = [];
+        }
       } catch (error) {
         console.log('Erro ao fazer parse das fotos originais:', error);
         fotosOriginais = [];
       }
       
       try {
-        fotosFinais = row.fotosFinais ? JSON.parse(row.fotosFinais) : [];
+        if (row.fotosFinais) {
+          const fotosStr = String(row.fotosFinais);
+          // Tentar JSON primeiro
+          if (fotosStr.startsWith('[')) {
+            fotosFinais = JSON.parse(fotosStr);
+          } else if (fotosStr.startsWith('data:image/')) {
+            // Se for uma única foto base64, converter para array
+            fotosFinais = [fotosStr];
+          } else {
+            fotosFinais = [];
+          }
+        } else {
+          fotosFinais = [];
+        }
       } catch (error) {
         console.log('Erro ao fazer parse das fotos finais:', error);
         fotosFinais = [];
@@ -1075,14 +1101,40 @@ export class MySQLStorage implements IStorage {
     let fotosFinais = [];
     
     try {
-      fotosOriginais = row.fotosOriginais ? JSON.parse(row.fotosOriginais) : [];
+      if (row.fotosOriginais) {
+        const fotosStr = String(row.fotosOriginais);
+        // Tentar JSON primeiro
+        if (fotosStr.startsWith('[')) {
+          fotosOriginais = JSON.parse(fotosStr);
+        } else if (fotosStr.startsWith('data:image/')) {
+          // Se for uma única foto base64, converter para array
+          fotosOriginais = [fotosStr];
+        } else {
+          fotosOriginais = [];
+        }
+      } else {
+        fotosOriginais = [];
+      }
     } catch (error) {
       console.log('Erro ao fazer parse das fotos originais:', error);
       fotosOriginais = [];
     }
     
     try {
-      fotosFinais = row.fotosFinais ? JSON.parse(row.fotosFinais) : [];
+      if (row.fotosFinais) {
+        const fotosStr = String(row.fotosFinais);
+        // Tentar JSON primeiro
+        if (fotosStr.startsWith('[')) {
+          fotosFinais = JSON.parse(fotosStr);
+        } else if (fotosStr.startsWith('data:image/')) {
+          // Se for uma única foto base64, converter para array
+          fotosFinais = [fotosStr];
+        } else {
+          fotosFinais = [];
+        }
+      } else {
+        fotosFinais = [];
+      }
     } catch (error) {
       console.log('Erro ao fazer parse das fotos finais:', error);
       fotosFinais = [];
