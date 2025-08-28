@@ -1033,16 +1033,35 @@ export class MySQLStorage implements IStorage {
 
   async getAllInstallations(): Promise<Installation[]> {
     const [rows] = await pool.execute('SELECT * FROM instalacoes') as [RowDataPacket[], any];
-    return rows.map(row => ({
-      ...row,
-      fotosOriginais: JSON.parse(row.fotosOriginais || '[]'),
-      fotosFinais: JSON.parse(row.fotosFinais || '[]')
-    })) as Installation[];
+    return rows.map(row => {
+      let fotosOriginais = [];
+      let fotosFinais = [];
+      
+      try {
+        fotosOriginais = row.fotosOriginais ? JSON.parse(row.fotosOriginais) : [];
+      } catch (error) {
+        console.log('Erro ao fazer parse das fotos originais:', error);
+        fotosOriginais = [];
+      }
+      
+      try {
+        fotosFinais = row.fotosFinais ? JSON.parse(row.fotosFinais) : [];
+      } catch (error) {
+        console.log('Erro ao fazer parse das fotos finais:', error);
+        fotosFinais = [];
+      }
+      
+      return {
+        ...row,
+        fotosOriginais,
+        fotosFinais
+      };
+    }) as Installation[];
   }
 
   async getInstallationByStoreId(loja_id: string): Promise<Installation | null> {
     const [rows] = await pool.execute(
-      'SELECT * FROM instalacoes WHERE loja_id = ? LIMIT 1',
+      'SELECT * FROM instalacoes WHERE loja_id = ? ORDER BY createdAt DESC LIMIT 1',
       [loja_id]
     ) as [RowDataPacket[], any];
     
@@ -1051,10 +1070,28 @@ export class MySQLStorage implements IStorage {
     }
     
     const row = rows[0];
+    
+    let fotosOriginais = [];
+    let fotosFinais = [];
+    
+    try {
+      fotosOriginais = row.fotosOriginais ? JSON.parse(row.fotosOriginais) : [];
+    } catch (error) {
+      console.log('Erro ao fazer parse das fotos originais:', error);
+      fotosOriginais = [];
+    }
+    
+    try {
+      fotosFinais = row.fotosFinais ? JSON.parse(row.fotosFinais) : [];
+    } catch (error) {
+      console.log('Erro ao fazer parse das fotos finais:', error);
+      fotosFinais = [];
+    }
+    
     return {
       ...row,
-      fotosOriginais: JSON.parse(row.fotosOriginais || '[]'),
-      fotosFinais: JSON.parse(row.fotosFinais || '[]')
+      fotosOriginais,
+      fotosFinais
     } as Installation;
   }
 

@@ -441,13 +441,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar instalação existente por loja_id
+  app.get("/api/installations/store/:loja_id", async (req, res) => {
+    try {
+      const { loja_id } = req.params;
+      const installation = await storage.getInstallationByStoreId(loja_id);
+      res.json(installation);
+    } catch (error) {
+      console.error("Erro ao buscar instalação por loja:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   app.post("/api/installations", async (req, res) => {
     try {
       const installationData = insertInstallationSchema.parse(req.body);
-      const installation = await storage.createInstallation(installationData);
+      
+      // Verificar se já existe instalação para esta loja
+      const existingInstallation = await storage.getInstallationByStoreId(installationData.loja_id);
+      
+      let installation;
+      if (existingInstallation) {
+        // Atualizar instalação existente
+        installation = await storage.updateInstallation(existingInstallation.id, installationData);
+        console.log(`Instalação atualizada para loja ${installationData.loja_id}`);
+      } else {
+        // Criar nova instalação
+        installation = await storage.createInstallation(installationData);
+        console.log(`Nova instalação criada para loja ${installationData.loja_id}`);
+      }
+      
       res.status(201).json(installation);
     } catch (error) {
-      console.error("Erro ao criar instalação:", error);
+      console.error("Erro ao criar/atualizar instalação:", error);
       res.status(400).json({ error: "Dados da instalação inválidos" });
     }
   });

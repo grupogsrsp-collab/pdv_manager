@@ -489,6 +489,11 @@ export class MemStorage implements IStorage {
     return installations.find(installation => installation.loja_id === loja_id) || null;
   }
 
+  async getInstallationByStoreId(loja_id: string): Promise<Installation | null> {
+    const installations = Array.from(this.installations.values());
+    return installations.find(installation => installation.loja_id === loja_id) || null;
+  }
+
   async createInstallation(installation: InsertInstallation): Promise<Installation> {
     const id = randomUUID();
     const newInstallation: Installation = {
@@ -498,6 +503,20 @@ export class MemStorage implements IStorage {
     };
     this.installations.set(id, newInstallation);
     return newInstallation;
+  }
+
+  async updateInstallation(id: string, installation: InsertInstallation): Promise<Installation> {
+    const existing = this.installations.get(id);
+    if (!existing) {
+      throw new Error('Instalação não encontrada');
+    }
+    
+    const updated: Installation = {
+      ...existing,
+      ...installation,
+    };
+    this.installations.set(id, updated);
+    return updated;
   }
 
   async updateInstallation(id: string, installation: InsertInstallation): Promise<Installation> {
