@@ -18,7 +18,7 @@ export default function AdminSuppliers() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState<"name" | "cnpj" | "cpf">("name");
+  const [searchType, setSearchType] = useState<"state" | "cnpj" | "cpf">("state");
   const [formData, setFormData] = useState<Partial<InsertSupplier>>({});
   const [showEmployeesDialog, setShowEmployeesDialog] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
@@ -157,11 +157,12 @@ export default function AdminSuppliers() {
   });
 
   const filteredSuppliers = suppliers.filter((supplier: Supplier) => {
-    if (searchType === "name") {
-      return supplier.nome_fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             supplier.nome_responsavel.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!searchTerm) return true;
+    
+    if (searchType === "state") {
+      return supplier.estado?.toLowerCase().includes(searchTerm.toLowerCase());
     } else if (searchType === "cnpj") {
-      return supplier.cnpj.includes(searchTerm);
+      return supplier.cnpj?.includes(searchTerm);
     } else if (searchType === "cpf") {
       return supplier.cpf?.includes(searchTerm);
     }
@@ -352,7 +353,7 @@ export default function AdminSuppliers() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder={`Buscar por ${searchType === 'name' ? 'nome' : searchType === 'cnpj' ? 'CNPJ' : 'CPF'}...`}
+            placeholder={`Buscar por ${searchType === 'state' ? 'estado' : searchType === 'cnpj' ? 'CNPJ' : 'CPF'}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -361,11 +362,11 @@ export default function AdminSuppliers() {
         </div>
         <div className="flex gap-2">
           <Button
-            variant={searchType === 'name' ? 'default' : 'outline'}
+            variant={searchType === 'state' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => { setSearchType('name'); setSearchTerm(''); }}
+            onClick={() => { setSearchType('state'); setSearchTerm(''); }}
           >
-            Nome
+            Estado
           </Button>
           <Button
             variant={searchType === 'cnpj' ? 'default' : 'outline'}
