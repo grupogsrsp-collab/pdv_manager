@@ -235,7 +235,10 @@ export default function InstallationChecklist() {
         {/* Photo Upload Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Fotos da Instalação</CardTitle>
+            <CardTitle>Fotos Originais da Loja</CardTitle>
+            <p className="text-sm text-gray-600 mt-2">
+              Instalador, fotografe a loja antes de iniciar a instalação
+            </p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
