@@ -438,6 +438,12 @@ export class MySQLStorage implements IStorage {
   async deleteSupplier(id: number): Promise<void> {
     // Primeiro, excluir registros relacionados que dependem deste fornecedor
     try {
+      // Primeiro, verificar se a coluna aceita NULL e modificar se necessário
+      await pool.execute(`
+        ALTER TABLE instalacoes 
+        MODIFY COLUMN fornecedor_id INT NULL
+      `);
+      
       // Excluir funcionários do fornecedor
       await pool.execute('DELETE FROM funcionarios_fornecedores WHERE fornecedor_id = ?', [id]);
       
