@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -20,6 +20,8 @@ export default function InstallationChecklist() {
   const [installationDate, setInstallationDate] = useState("");
   const [originalPhotos, setOriginalPhotos] = useState<File[]>([]);
   const [postInstallationPhotos, setPostInstallationPhotos] = useState<File[]>([]);
+  const [originalPhotosBase64, setOriginalPhotosBase64] = useState<string[]>([]);
+  const [postInstallationPhotosBase64, setPostInstallationPhotosBase64] = useState<string[]>([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [photoJustification, setPhotoJustification] = useState("");
@@ -31,6 +33,7 @@ export default function InstallationChecklist() {
     address: string;
     mapScreenshot?: string;
   } | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Fetch kits data
   const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
@@ -44,11 +47,55 @@ export default function InstallationChecklist() {
   const supplier: Supplier | null = supplierData ? JSON.parse(supplierData) : null;
   const store: Store | null = storeData ? JSON.parse(storeData) : null;
 
+  // Fetch existing installation data for this store
+  const { data: existingInstallation, isLoading: installationLoading } = useQuery({
+    queryKey: ["/api/installations/store", store?.codigo_loja],
+    enabled: !!store?.codigo_loja,
+  });
+
   // Redirect if no access
   if (!supplier || !store) {
     setLocation("/supplier-access");
     return null;
   }
+
+  // Load existing installation data when available
+  useEffect(() => {
+    if (existingInstallation && kits.length > 0) {
+      console.log("Carregando dados da instalação existente:", existingInstallation);
+      setIsEditMode(true);
+      setResponsibleName(existingInstallation.responsible || "");
+      setInstallationDate(existingInstallation.installationDate || "");
+      setPhotoJustification(existingInstallation.justificativaFotos || "");
+      
+      // Carregar fotos originais existentes
+      if (existingInstallation.fotosOriginais && existingInstallation.fotosOriginais.length > 0) {
+        setOriginalPhotosBase64(existingInstallation.fotosOriginais);
+        // Não criamos File objects das fotos base64 para economizar memória
+      }
+      
+      // Carregar fotos finais existentes
+      if (existingInstallation.fotosFinais && existingInstallation.fotosFinais.length > 0) {
+        setPostInstallationPhotosBase64(existingInstallation.fotosFinais);
+      }
+      
+      // Se há fotos faltando, mostrar campo de justificativa
+      const totalExpectedPhotos = kits.length * 2; // originais + finais
+      const totalExistingPhotos = (existingInstallation.fotosOriginais?.length || 0) + (existingInstallation.fotosFinais?.length || 0);
+      if (totalExistingPhotos < totalExpectedPhotos) {
+        setShowJustificationField(true);
+      }
+      
+      // Carregar dados de geolocalização se existirem
+      if (existingInstallation.latitude && existingInstallation.longitude) {
+        setLocationData({
+          latitude: existingInstallation.latitude,
+          longitude: existingInstallation.longitude,
+          address: existingInstallation.endereco_geolocalizacao || `${existingInstallation.latitude.toFixed(6)}, ${existingInstallation.longitude.toFixed(6)}`
+        });
+      }
+    }
+  }, [existingInstallation, kits]);
 
   // Função para capturar geolocalização (forma simplificada)
   const captureGeolocation = async (): Promise<{latitude: number, longitude: number, address: string}> => {
@@ -105,10 +152,13 @@ export default function InstallationChecklist() {
         setIsCapturingLocation(false);
       }
       
-      // Convert original photos to compressed base64 strings for storage
+      // Combinar fotos existentes (base64) com novas fotos (File objects)
       const originalPhotoUrls: string[] = [];
-      for (const photo of originalPhotos) {
-        if (photo) {
+      
+      // Adicionar fotos existentes que não foram removidas
+      for (let i = 0; i < Math.max(originalPhotos.length, originalPhotosBase64.length); i++) {
+        if (originalPhotos[i]) {
+          // Nova foto File object - converter para base64
           const compressedBase64 = await new Promise<string>((resolve) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -141,16 +191,22 @@ export default function InstallationChecklist() {
             reader.onload = () => {
               img.src = reader.result as string;
             };
-            reader.readAsDataURL(photo);
+            reader.readAsDataURL(originalPhotos[i]);
           });
           originalPhotoUrls.push(compressedBase64);
+        } else if (originalPhotosBase64[i]) {
+          // Foto existente em base64 - manter
+          originalPhotoUrls.push(originalPhotosBase64[i]);
         }
       }
 
-      // Convert post-installation photos to compressed base64 strings for storage
+      // Combinar fotos finais existentes (base64) com novas fotos (File objects)
       const postInstallationPhotoUrls: string[] = [];
-      for (const photo of postInstallationPhotos) {
-        if (photo) {
+      
+      // Adicionar fotos finais existentes que não foram removidas
+      for (let i = 0; i < Math.max(postInstallationPhotos.length, postInstallationPhotosBase64.length); i++) {
+        if (postInstallationPhotos[i]) {
+          // Nova foto File object - converter para base64
           const compressedBase64 = await new Promise<string>((resolve) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -183,9 +239,12 @@ export default function InstallationChecklist() {
             reader.onload = () => {
               img.src = reader.result as string;
             };
-            reader.readAsDataURL(photo);
+            reader.readAsDataURL(postInstallationPhotos[i]);
           });
           postInstallationPhotoUrls.push(compressedBase64);
+        } else if (postInstallationPhotosBase64[i]) {
+          // Foto existente em base64 - manter
+          postInstallationPhotoUrls.push(postInstallationPhotosBase64[i]);
         }
       }
 
@@ -413,10 +472,13 @@ export default function InstallationChecklist() {
                     key={kit.id}
                     className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
-                    {originalPhotos[index] ? (
+                    {(originalPhotos[index] || originalPhotosBase64[index]) ? (
                       <div className="relative w-full h-full">
                         <img
-                          src={URL.createObjectURL(originalPhotos[index])}
+                          src={originalPhotos[index] 
+                            ? URL.createObjectURL(originalPhotos[index]) 
+                            : originalPhotosBase64[index]
+                          }
                           alt={`Foto original - ${kit.nome_peca}`}
                           className="w-full h-full object-cover rounded-lg"
                         />
@@ -424,10 +486,23 @@ export default function InstallationChecklist() {
                           variant="destructive"
                           size="sm"
                           className="absolute top-2 right-2"
-                          onClick={() => handleOriginalPhotoUpload(index, null)}
+                          onClick={() => {
+                            handleOriginalPhotoUpload(index, null);
+                            // Remover também da lista base64
+                            setOriginalPhotosBase64(prev => {
+                              const newPhotos = [...prev];
+                              newPhotos[index] = "";
+                              return newPhotos;
+                            });
+                          }}
                         >
                           ×
                         </Button>
+                        {originalPhotosBase64[index] && !originalPhotos[index] && (
+                          <div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                            Foto Existente
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
@@ -477,10 +552,13 @@ export default function InstallationChecklist() {
                     key={kit.id}
                     className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
-                    {postInstallationPhotos[index] ? (
+                    {(postInstallationPhotos[index] || postInstallationPhotosBase64[index]) ? (
                       <div className="relative w-full h-full">
                         <img
-                          src={URL.createObjectURL(postInstallationPhotos[index])}
+                          src={postInstallationPhotos[index] 
+                            ? URL.createObjectURL(postInstallationPhotos[index]) 
+                            : postInstallationPhotosBase64[index]
+                          }
                           alt={`${kit.nome_peca}`}
                           className="w-full h-full object-cover rounded-lg"
                         />
@@ -488,10 +566,23 @@ export default function InstallationChecklist() {
                           variant="destructive"
                           size="sm"
                           className="absolute top-2 right-2"
-                          onClick={() => handlePostInstallationPhotoUpload(index, null)}
+                          onClick={() => {
+                            handlePostInstallationPhotoUpload(index, null);
+                            // Remover também da lista base64
+                            setPostInstallationPhotosBase64(prev => {
+                              const newPhotos = [...prev];
+                              newPhotos[index] = "";
+                              return newPhotos;
+                            });
+                          }}
                         >
                           ×
                         </Button>
+                        {postInstallationPhotosBase64[index] && !postInstallationPhotos[index] && (
+                          <div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                            Foto Existente
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
