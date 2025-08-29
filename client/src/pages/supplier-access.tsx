@@ -11,8 +11,8 @@ import { type Supplier, type Store as StoreType } from "@shared/mysql-schema";
 
 export default function SupplierAccess() {
   const [, setLocation] = useLocation();
-  const [cnpj, setCnpj] = useState("");
-  const [searchedCnpj, setSearchedCnpj] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchedTerm, setSearchedTerm] = useState("");
 
   const [filters, setFilters] = useState({
     cep: "",
@@ -24,15 +24,15 @@ export default function SupplierAccess() {
   const { toast } = useToast();
 
   const { data: supplier, isLoading, error } = useQuery<Supplier>({
-    queryKey: ["/api/suppliers/cnpj", searchedCnpj],
+    queryKey: ["/api/suppliers/search", searchedTerm],
     queryFn: async () => {
-      const response = await fetch(`/api/suppliers/cnpj/${encodeURIComponent(searchedCnpj)}`);
+      const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(searchedTerm)}`);
       if (!response.ok) {
         throw new Error('Supplier not found');
       }
       return response.json();
     },
-    enabled: !!searchedCnpj,
+    enabled: !!searchedTerm,
   });
 
   const { data: stores = [], isLoading: storesLoading } = useQuery<StoreType[]>({
@@ -47,11 +47,96 @@ export default function SupplierAccess() {
     enabled: !!supplier, // Only search stores after supplier is found
   });
 
-  const handleSearch = () => {
-    if (cnpj.trim()) {
-      // Limpar formatação do CNPJ antes de buscar
-      const cleanCnpj = cnpj.trim().replace(/[.\-\/\s]/g, '');
-      setSearchedCnpj(cleanCnpj);
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, digite seu Nome, CPF ou CNPJ.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setError(false);
+
+    try {
+      const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(searchTerm)}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        setSupplier(result.data);
+        // Armazenar no localStorage incluindo informação do tipo
+        localStorage.setItem("supplier_access", JSON.stringify({...result.data, searchType: result.type}));
+        
+        toast({
+          title: "Sucesso!",
+          description: `${result.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} encontrado com sucesso.`,
+        });
+        
+        // Buscar rotas associadas
+        await fetchAssociatedRoutes(result.data, result.type);
+      } else {
+        setError(true);
+        setSupplier(null);
+      }
+    } catch (error) {
+      console.error("Erro na busca:", error);
+      setError(true);
+      setSupplier(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAssociatedRoutes = async (userData: any, userType: string) => {
+    try {
+      let routeEndpoint = '';
+      if (userType === 'supplier') {
+        routeEndpoint = `/api/routes/supplier/${userData.id}`;
+      } else if (userType === 'employee') {
+        routeEndpoint = `/api/routes/employee/${userData.id}`;
+      }
+      
+      const routeResponse = await fetch(routeEndpoint);
+      if (routeResponse.ok) {
+        const routes = await routeResponse.json();
+        // Filtrar lojas baseadas nas rotas
+        await filterStoresByRoutes(routes);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar rotas associadas:', error);
+    }
+  };
+
+  const filterStoresByRoutes = async (routes: any[]) => {
+    try {
+      const storeIds = routes.flatMap(route => route.lojas.map((loja: any) => loja.id));
+      if (storeIds.length > 0) {
+        const storeResponse = await fetch(`/api/stores/by-ids`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ storeIds })
+        });
+        
+        if (storeResponse.ok) {
+          const associatedStores = await storeResponse.json();
+          // Atualizar para mostrar apenas as lojas das rotas
+          setSearchedTerm('route-filtered');
+        }
+      } else {
+        // Se não há rotas, não mostrar lojas
+        setSearchedTerm('');
+        toast({
+          title: "Sem rotas associadas",
+          description: "Este fornecedor/funcionário não possui rotas ativas.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao filtrar lojas por rotas:', error);
     }
   };
 
@@ -88,10 +173,7 @@ export default function SupplierAccess() {
       .slice(0, 18);
   };
 
-  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCnpj(e.target.value);
-    setCnpj(formatted);
-  };
+  // Função removida - não precisa mais formatar CNPJ
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -102,13 +184,13 @@ export default function SupplierAccess() {
               <Store className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Acesso do Fornecedor</h1>
-            <p className="text-gray-600 mt-2">Digite o CNPJ da sua empresa para acessar</p>
+            <p className="text-gray-600 mt-2">Digite seu Nome, CPF ou CNPJ para acessar</p>
           </div>
 
           {/* Search Section */}
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Buscar Fornecedor por CNPJ</CardTitle>
+              <CardTitle>Digite Seu Nome, CPF ou CNPJ</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex space-x-4">
@@ -117,11 +199,11 @@ export default function SupplierAccess() {
                     CNPJ
                   </Label>
                   <Input
-                    id="cnpj"
+                    id="search-term"
                     type="text"
-                    placeholder="00.000.000/0000-00"
-                    value={cnpj}
-                    onChange={handleCnpjChange}
+                    placeholder="Digite seu Nome, CPF ou CNPJ"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     maxLength={18}
                   />
                 </div>

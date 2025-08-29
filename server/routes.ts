@@ -210,6 +210,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para estatísticas das rotas
+  app.get('/api/routes/stats', async (req, res) => {
+    try {
+      const stats = await storage.getRouteStats();
+      res.json(stats);
+    } catch (error) {
+      console.log('Erro ao buscar estatísticas das rotas:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
   // Criar item de rota
   app.post('/api/routes/:id/items', async (req, res) => {
     try {
@@ -348,6 +359,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Erro na busca do fornecedor por CNPJ:", error);
       res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Endpoint para buscar fornecedor/funcionário por Nome, CPF ou CNPJ
+  app.get('/api/suppliers/search', async (req, res) => {
+    const query = req.query.q as string;
+    
+    try {
+      const result = await storage.searchSupplierOrEmployee(query);
+      if (result) {
+        res.json(result);
+      } else {
+        res.status(404).json({ error: 'Fornecedor ou funcionário não encontrado' });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar fornecedor/funcionário:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Endpoint para buscar rotas por fornecedor
+  app.get('/api/routes/supplier/:supplierId', async (req, res) => {
+    const supplierId = parseInt(req.params.supplierId);
+    
+    try {
+      const routes = await storage.getRoutesBySupplier(supplierId);
+      res.json(routes);
+    } catch (error) {
+      console.error('Erro ao buscar rotas do fornecedor:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Endpoint para buscar rotas por funcionário
+  app.get('/api/routes/employee/:employeeId', async (req, res) => {
+    const employeeId = parseInt(req.params.employeeId);
+    
+    try {
+      const routes = await storage.getRoutesByEmployee(employeeId);
+      res.json(routes);
+    } catch (error) {
+      console.error('Erro ao buscar rotas do funcionário:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Endpoint para buscar lojas por IDs
+  app.post('/api/stores/by-ids', async (req, res) => {
+    const { storeIds } = req.body;
+    
+    try {
+      const stores = await storage.getStoresByIds(storeIds);
+      res.json(stores);
+    } catch (error) {
+      console.error('Erro ao buscar lojas por IDs:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
 

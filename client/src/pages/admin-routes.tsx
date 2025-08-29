@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Search, MapPin, Users, Building2, Trash2, Edit3, Calendar, Clock, Eye, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, Search, MapPin, Users, Building2, Trash2, Edit3, Calendar, Clock, Eye, CheckCircle2, BarChart3, Activity, CheckCircle, XCircle } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -65,10 +65,17 @@ interface RouteItem {
 
 export default function AdminRoutes() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [routeToDelete, setRouteToDelete] = useState<Route | null>(null);
+  const [routeToEdit, setRouteToEdit] = useState<Route | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
   const [storeFilters, setStoreFilters] = useState({ codigo_loja: "", cidade: "", uf: "", nome_loja: "" });
+  
+  // Estados para edição
+  const [editRouteForm, setEditRouteForm] = useState({ nome: '', status: '', data_prevista: '', observacoes: '' });
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<SupplierEmployee[]>([]);
@@ -120,6 +127,11 @@ export default function AdminRoutes() {
     enabled: !!selectedSupplier?.id,
   });
 
+  // Query para buscar estatísticas das rotas
+  const { data: routeStats } = useQuery({
+    queryKey: ['/api/routes/stats'],
+  });
+
   // Query para buscar itens da rota selecionada
   const { data: routeItems } = useQuery<RouteItem[]>({
     queryKey: ['/api/routes', selectedRoute?.id, 'items'],
@@ -166,6 +178,56 @@ export default function AdminRoutes() {
       toast({
         title: "Erro",
         description: "Erro ao finalizar a rota.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para editar rota
+  const editRouteMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/routes/${routeToEdit?.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
+      setShowEditDialog(false);
+      setRouteToEdit(null);
+      toast({
+        title: "Sucesso",
+        description: "Rota editada com sucesso!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao editar a rota.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation com confirmação para deletar
+  const confirmDeleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/routes/${id}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
+      setShowDeleteDialog(false);
+      setRouteToDelete(null);
+      toast({
+        title: "Sucesso",
+        description: "Rota excluída com sucesso!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir a rota.",
         variant: "destructive",
       });
     },
@@ -649,7 +711,14 @@ export default function AdminRoutes() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // TODO: Implementar edição
+                              setRouteToEdit(route);
+                              setEditRouteForm({
+                                nome: route.nome,
+                                status: route.status,
+                                data_prevista: route.data_prevista ? new Date(route.data_prevista).toISOString().split('T')[0] : '',
+                                observacoes: route.observacoes || ''
+                              });
+                              setShowEditDialog(true);
                             }}
                           >
                             <Edit3 className="h-4 w-4 mr-1" />
@@ -660,7 +729,8 @@ export default function AdminRoutes() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteRouteMutation.mutate(route.id);
+                              setRouteToDelete(route);
+                              setShowDeleteDialog(true);
                             }}
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
@@ -690,13 +760,61 @@ export default function AdminRoutes() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Building2 className="h-5 w-5 mr-2" />
-                  {selectedRoute ? 'Detalhes da Rota' : 'Selecione uma Rota'}
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  Resumo Geral
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {selectedRoute ? (
+                {routeStats ? (
                   <div className="space-y-4">
+                    {/* Mini Dashboard */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckCircle className="h-8 w-8 text-green-600 mr-3" />
+                          <div>
+                            <div className="text-2xl font-bold text-green-700">{routeStats.rotasFinalizadas}</div>
+                            <div className="text-sm text-green-600">Rotas Finalizadas</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                          <Activity className="h-8 w-8 text-blue-600 mr-3" />
+                          <div>
+                            <div className="text-2xl font-bold text-blue-700">{routeStats.rotasAtivas}</div>
+                            <div className="text-sm text-blue-600">Rotas Ativas</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-emerald-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckCircle className="h-8 w-8 text-emerald-600 mr-3" />
+                          <div>
+                            <div className="text-2xl font-bold text-emerald-700">{routeStats.lojasFinalizadas}</div>
+                            <div className="text-sm text-emerald-600">Lojas Finalizadas</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-red-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                          <XCircle className="h-8 w-8 text-red-600 mr-3" />
+                          <div>
+                            <div className="text-2xl font-bold text-red-700">{routeStats.lojasNaoFinalizadas}</div>
+                            <div className="text-sm text-red-600">Lojas Não Finalizadas</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">Carregando estatísticas...</p>
+                  </div>
+                )}
+                {selectedRoute && (
+                  <div className="space-y-4 mt-6 pt-6 border-t">
                     <div>
                       <h3 className="font-medium mb-2">{selectedRoute.nome}</h3>
                       {getStatusBadge(selectedRoute.status)}
@@ -737,16 +855,88 @@ export default function AdminRoutes() {
                       )}
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Selecione uma rota para ver os detalhes</p>
-                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Dialog de Edição */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Rota</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Nome da Rota</label>
+                <Input
+                  value={editRouteForm.nome}
+                  onChange={(e) => setEditRouteForm({...editRouteForm, nome: e.target.value})}
+                  placeholder="Nome da rota"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Status</label>
+                <Select value={editRouteForm.status} onValueChange={(value) => setEditRouteForm({...editRouteForm, status: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ativa">Ativa</SelectItem>
+                    <SelectItem value="inativa">Inativa</SelectItem>
+                    <SelectItem value="finalizada">Finalizada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Data Prevista</label>
+                <Input
+                  type="date"
+                  value={editRouteForm.data_prevista}
+                  onChange={(e) => setEditRouteForm({...editRouteForm, data_prevista: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Observações</label>
+                <Textarea
+                  value={editRouteForm.observacoes}
+                  onChange={(e) => setEditRouteForm({...editRouteForm, observacoes: e.target.value})}
+                  placeholder="Observações sobre a rota"
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancelar</Button>
+                <Button onClick={() => editRouteMutation.mutate(editRouteForm)} disabled={editRouteMutation.isPending}>
+                  Salvar Alterações
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Confirmação de Exclusão */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar Exclusão</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p>Tem certeza que deseja excluir a rota "{routeToDelete?.nome}"?</p>
+              <p className="text-sm text-red-600">Esta ação não pode ser desfeita.</p>
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancelar</Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => routeToDelete && confirmDeleteMutation.mutate(routeToDelete.id)}
+                  disabled={confirmDeleteMutation.isPending}
+                >
+                  Excluir
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

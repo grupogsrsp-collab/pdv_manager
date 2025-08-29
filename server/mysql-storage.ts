@@ -566,6 +566,170 @@ export class MySQLStorage implements IStorage {
     await pool.execute('UPDATE rotas SET status = ? WHERE id = ?', ['finalizada', id]);
   }
 
+  async getRouteStats(): Promise<any> {
+    // Total de rotas finalizadas
+    const [finalizadasRows] = await pool.execute(
+      `SELECT COUNT(*) as total FROM rotas WHERE status = 'finalizada'`
+    ) as [RowDataPacket[], any];
+    
+    // Total de rotas ativas
+    const [ativasRows] = await pool.execute(
+      `SELECT COUNT(*) as total FROM rotas WHERE status = 'ativa'`
+    ) as [RowDataPacket[], any];
+    
+    // Total de lojas finalizadas (com instalação finalizada)
+    const [lojasFinalizadasRows] = await pool.execute(
+      `SELECT COUNT(DISTINCT inst.loja_id) as total 
+       FROM instalacoes inst 
+       WHERE inst.finalizada = 1`
+    ) as [RowDataPacket[], any];
+    
+    // Total de lojas não finalizadas (lojas que estão em rotas mas não têm instalação finalizada)
+    const [lojasNaoFinalizadasRows] = await pool.execute(
+      `SELECT COUNT(DISTINCT ri.loja_id) as total
+       FROM rota_itens ri
+       LEFT JOIN instalacoes inst ON ri.loja_id = inst.loja_id AND inst.finalizada = 1
+       WHERE inst.loja_id IS NULL`
+    ) as [RowDataPacket[], any];
+    
+    return {
+      rotasFinalizadas: finalizadasRows[0].total,
+      rotasAtivas: ativasRows[0].total,
+      lojasFinalizadas: lojasFinalizadasRows[0].total,
+      lojasNaoFinalizadas: lojasNaoFinalizadasRows[0].total
+    };
+  }
+
+  async searchSupplierOrEmployee(query: string): Promise<any> {
+    // Primeiro, tentar buscar por fornecedor
+    try {
+      // Buscar por CNPJ (removendo formatação)
+      const cleanQuery = query.replace(/[.\-\/\s]/g, '');
+      const supplier = await this.getSupplierByCnpj(cleanQuery);
+      if (supplier) {
+        return { type: 'supplier', data: supplier };
+      }
+    } catch (error) {
+      // Continue para buscar por nome
+    }
+
+    // Buscar por nome do fornecedor
+    try {
+      const [supplierRows] = await pool.execute(
+        `SELECT * FROM fornecedores WHERE nome_fornecedor LIKE ? OR nome_responsavel LIKE ?`,
+        [`%${query}%`, `%${query}%`]
+      ) as [RowDataPacket[], any];
+      
+      if (supplierRows.length > 0) {
+        return { type: 'supplier', data: supplierRows[0] };
+      }
+    } catch (error) {
+      console.error('Erro ao buscar fornecedor por nome:', error);
+    }
+
+    // Buscar por funcionário (CPF ou nome)
+    try {
+      const [employeeRows] = await pool.execute(
+        `SELECT fe.*, f.nome_fornecedor 
+         FROM funcionarios_fornecedores fe 
+         JOIN fornecedores f ON fe.fornecedor_id = f.id 
+         WHERE fe.nome_funcionario LIKE ? OR fe.cpf = ?`,
+        [`%${query}%`, query]
+      ) as [RowDataPacket[], any];
+      
+      if (employeeRows.length > 0) {
+        return { type: 'employee', data: employeeRows[0] };
+      }
+    } catch (error) {
+      console.error('Erro ao buscar funcionário:', error);
+    }
+
+    return null;
+  }
+
+  async getRoutesBySupplier(supplierId: number): Promise<any[]> {
+    try {
+      const [routeRows] = await pool.execute(
+        `SELECT r.*, ri.loja_id, l.nome_loja, l.cidade, l.uf 
+         FROM rotas r 
+         LEFT JOIN rota_itens ri ON r.id = ri.rota_id 
+         LEFT JOIN lojas l ON ri.loja_id = l.codigo_loja 
+         WHERE r.fornecedor_id = ? AND r.status = 'ativa'
+         ORDER BY r.id, ri.ordem_visita`,
+        [supplierId]
+      ) as [RowDataPacket[], any];
+      
+      // Agrupar rotas com suas lojas
+      const routesMap = new Map();
+      routeRows.forEach(row => {
+        if (!routesMap.has(row.id)) {
+          routesMap.set(row.id, {
+            id: row.id,
+            nome: row.nome,
+            status: row.status,
+            data_criacao: row.data_criacao,
+            data_prevista: row.data_prevista,
+            observacoes: row.observacoes,
+            lojas: []
+          });
+        }
+        
+        if (row.loja_id) {
+          routesMap.get(row.id).lojas.push({
+            id: row.loja_id,
+            nome_loja: row.nome_loja,
+            cidade: row.cidade,
+            uf: row.uf
+          });
+        }
+      });
+      
+      return Array.from(routesMap.values());
+    } catch (error) {
+      console.error('Erro ao buscar rotas do fornecedor:', error);
+      throw error;
+    }
+  }
+
+  async getRoutesByEmployee(employeeId: number): Promise<any[]> {
+    try {
+      // Primeiro buscar o fornecedor_id do funcionário
+      const [employeeRows] = await pool.execute(
+        `SELECT fornecedor_id FROM funcionarios_fornecedores WHERE id = ?`,
+        [employeeId]
+      ) as [RowDataPacket[], any];
+      
+      if (employeeRows.length === 0) {
+        return [];
+      }
+      
+      const supplierId = employeeRows[0].fornecedor_id;
+      return await this.getRoutesBySupplier(supplierId);
+    } catch (error) {
+      console.error('Erro ao buscar rotas do funcionário:', error);
+      throw error;
+    }
+  }
+
+  async getStoresByIds(storeIds: string[]): Promise<any[]> {
+    try {
+      if (storeIds.length === 0) {
+        return [];
+      }
+      
+      const placeholders = storeIds.map(() => '?').join(',');
+      const [storeRows] = await pool.execute(
+        `SELECT * FROM lojas WHERE codigo_loja IN (${placeholders})`,
+        storeIds
+      ) as [RowDataPacket[], any];
+      
+      return storeRows;
+    } catch (error) {
+      console.error('Erro ao buscar lojas por IDs:', error);
+      throw error;
+    }
+  }
+
   async createRouteItem(item: InsertRouteItem): Promise<RouteItem> {
     const [result] = await pool.execute(
       `INSERT INTO rota_itens (rota_id, loja_id, ordem_visita, status, data_prevista, data_execucao, observacoes, tempo_estimado)
