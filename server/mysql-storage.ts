@@ -601,47 +601,90 @@ export class MySQLStorage implements IStorage {
   }
 
   async searchSupplierOrEmployee(query: string): Promise<any> {
-    // Primeiro, tentar buscar por fornecedor
-    try {
-      // Buscar por CNPJ (removendo formatação)
-      const cleanQuery = query.replace(/[.\-\/\s]/g, '');
-      const supplier = await this.getSupplierByCnpj(cleanQuery);
-      if (supplier) {
-        return { type: 'supplier', data: supplier };
-      }
-    } catch (error) {
-      // Continue para buscar por nome
-    }
-
-    // Buscar por nome do fornecedor
-    try {
-      const [supplierRows] = await pool.execute(
-        `SELECT * FROM fornecedores WHERE nome_fornecedor LIKE ? OR nome_responsavel LIKE ?`,
-        [`%${query}%`, `%${query}%`]
-      ) as [RowDataPacket[], any];
+    const trimmedQuery = query.trim();
+    
+    // Determinar se o input é numérico (CNPJ/CPF) ou texto (nome)
+    const isNumeric = /^[\d.\-\/\s]+$/.test(trimmedQuery);
+    
+    if (isNumeric) {
+      // Input parece ser CNPJ ou CPF - buscar primeiro por documentos
       
-      if (supplierRows.length > 0) {
-        return { type: 'supplier', data: supplierRows[0] };
+      // Buscar por CNPJ
+      try {
+        const cleanQuery = trimmedQuery.replace(/[.\-\/\s]/g, '');
+        if (cleanQuery.length >= 11) { // CNPJ tem 14 dígitos, CPF tem 11
+          const supplier = await this.getSupplierByCnpj(cleanQuery);
+          if (supplier) {
+            return { type: 'supplier', data: supplier };
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar fornecedor por CNPJ:', error);
       }
-    } catch (error) {
-      console.error('Erro ao buscar fornecedor por nome:', error);
-    }
-
-    // Buscar por funcionário (CPF ou nome)
-    try {
-      const [employeeRows] = await pool.execute(
-        `SELECT fe.*, f.nome_fornecedor 
-         FROM funcionarios_fornecedores fe 
-         JOIN fornecedores f ON fe.fornecedor_id = f.id 
-         WHERE fe.nome_funcionario LIKE ? OR fe.cpf = ?`,
-        [`%${query}%`, query]
-      ) as [RowDataPacket[], any];
       
-      if (employeeRows.length > 0) {
-        return { type: 'employee', data: employeeRows[0] };
+      // Buscar por CPF no fornecedor
+      try {
+        const cleanQuery = trimmedQuery.replace(/[.\-\s]/g, '');
+        if (cleanQuery.length === 11) { // CPF tem 11 dígitos
+          const supplier = await this.getSupplierByCpf(cleanQuery);
+          if (supplier) {
+            return { type: 'supplier', data: supplier };
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar fornecedor por CPF:', error);
       }
-    } catch (error) {
-      console.error('Erro ao buscar funcionário:', error);
+      
+      // Buscar funcionário por CPF
+      try {
+        const cleanQuery = trimmedQuery.replace(/[.\-\s]/g, '');
+        const [employeeRows] = await pool.execute(
+          `SELECT fe.*, f.nome_fornecedor 
+           FROM funcionarios_fornecedores fe 
+           JOIN fornecedores f ON fe.fornecedor_id = f.id 
+           WHERE REPLACE(REPLACE(fe.cpf, '.', ''), '-', '') = ?`,
+          [cleanQuery]
+        ) as [RowDataPacket[], any];
+        
+        if (employeeRows.length > 0) {
+          return { type: 'employee', data: employeeRows[0] };
+        }
+      } catch (error) {
+        console.error('Erro ao buscar funcionário por CPF:', error);
+      }
+    } else {
+      // Input é texto - buscar por nomes
+      
+      // Buscar por nome do fornecedor
+      try {
+        const [supplierRows] = await pool.execute(
+          `SELECT * FROM fornecedores WHERE nome_fornecedor LIKE ? OR nome_responsavel LIKE ?`,
+          [`%${trimmedQuery}%`, `%${trimmedQuery}%`]
+        ) as [RowDataPacket[], any];
+        
+        if (supplierRows.length > 0) {
+          return { type: 'supplier', data: supplierRows[0] };
+        }
+      } catch (error) {
+        console.error('Erro ao buscar fornecedor por nome:', error);
+      }
+      
+      // Buscar funcionário por nome
+      try {
+        const [employeeRows] = await pool.execute(
+          `SELECT fe.*, f.nome_fornecedor 
+           FROM funcionarios_fornecedores fe 
+           JOIN fornecedores f ON fe.fornecedor_id = f.id 
+           WHERE fe.nome_funcionario LIKE ?`,
+          [`%${trimmedQuery}%`]
+        ) as [RowDataPacket[], any];
+        
+        if (employeeRows.length > 0) {
+          return { type: 'employee', data: employeeRows[0] };
+        }
+      } catch (error) {
+        console.error('Erro ao buscar funcionário por nome:', error);
+      }
     }
 
     return null;
