@@ -181,6 +181,19 @@ export class MySQLStorage implements IStorage {
       }
       
       console.log('✅ Estrutura da tabela verificada e corrigida!');
+      
+      // Verificar e adicionar coluna finalizada se não existir
+      try {
+        console.log('📝 Verificando se coluna finalizada existe...');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN finalizada BOOLEAN DEFAULT FALSE');
+        console.log('✅ Coluna finalizada adicionada com sucesso!');
+      } catch (error: any) {
+        if (error.code === 'ER_DUP_FIELDNAME') {
+          console.log('ℹ️ Coluna finalizada já existe na tabela instalacoes');
+        } else {
+          console.log('⚠️ Erro ao adicionar coluna finalizada:', error.message);
+        }
+      }
     } catch (error) {
       console.log('Erro ao verificar estrutura da tabela:', error);
     }
@@ -286,6 +299,7 @@ export class MySQLStorage implements IStorage {
           fotosOriginais JSON,
           fotosFinais JSON,
           justificativaFotos TEXT,
+          finalizada BOOLEAN DEFAULT FALSE,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
           FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id)
@@ -1160,6 +1174,7 @@ export class MySQLStorage implements IStorage {
         fotosOriginais = ?, 
         fotosFinais = ?, 
         justificativaFotos = ?,
+        finalizada = ?,
         latitude = ?,
         longitude = ?,
         endereco_geolocalizacao = ?,
@@ -1173,6 +1188,7 @@ export class MySQLStorage implements IStorage {
         fotosOriginaisJson,
         fotosFinaisJson,
         installation.justificativaFotos || null,
+        installation.finalizada || false,
         installation.latitude || null,
         installation.longitude || null,
         installation.endereco_geolocalizacao || null,
@@ -1240,7 +1256,7 @@ export class MySQLStorage implements IStorage {
     
     // Salvar instalação principal
     await pool.execute(
-      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, fotosOriginais, fotosFinais, justificativaFotos, latitude, longitude, endereco_geolocalizacao, mapa_screenshot_url, geolocalizacao_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, fotosOriginais, fotosFinais, justificativaFotos, finalizada, latitude, longitude, endereco_geolocalizacao, mapa_screenshot_url, geolocalizacao_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id, 
         installation.loja_id, 
@@ -1250,6 +1266,7 @@ export class MySQLStorage implements IStorage {
         fotosOriginaisJson, 
         fotosFinaisJson, 
         installation.justificativaFotos || null,
+        installation.finalizada || false,
         installation.latitude || null,
         installation.longitude || null,
         installation.endereco_geolocalizacao || null,

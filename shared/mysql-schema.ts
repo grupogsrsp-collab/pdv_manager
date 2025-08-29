@@ -163,6 +163,7 @@ export interface Installation {
   fotosFinais: string[];
   justificativaFotos?: string;
   createdAt: Date;
+  finalizada: boolean;
   // Campos de geolocalização
   latitude?: number;
   longitude?: number;
@@ -179,6 +180,7 @@ export interface InsertInstallation {
   fotosOriginais?: string[];
   fotosFinais?: string[];
   justificativaFotos?: string;
+  finalizada?: boolean;
   // Campos de geolocalização
   latitude?: number;
   longitude?: number;

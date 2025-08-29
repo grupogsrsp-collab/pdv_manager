@@ -538,7 +538,6 @@ export default function InstallationChecklist() {
                         <input
                           type="file"
                           accept="image/*"
-                          capture="environment"
                           className="hidden"
                           data-testid={`input-foto-original-${kit.id}`}
                           onChange={(e) => {
@@ -618,7 +617,6 @@ export default function InstallationChecklist() {
                         <input
                           type="file"
                           accept="image/*"
-                          capture="environment"
                           className="hidden"
                           data-testid={`input-foto-final-${kit.id}`}
                           onChange={(e) => {

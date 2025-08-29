@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,15 +41,44 @@ export default function StoreDashboard() {
 
   // Extract fotos finais from installation data
   const fotosFinais = storeInfo?.installationStatus?.installation?.fotosFinais || [];
+  
+  // Verificar se loja já foi finalizada
+  useEffect(() => {
+    if (storeInfo?.installationStatus?.installation?.finalizada) {
+      setIsFinalized(true);
+    }
+  }, [storeInfo]);
 
   const handleLogout = () => {
     localStorage.removeItem("store_access");
     setLocation("/store-access");
   };
 
-  const handleFinalize = () => {
-    setIsFinalized(true);
-    setShowSuccessModal(true);
+  const handleFinalize = async () => {
+    if (storeInfo?.installationStatus?.installation) {
+      try {
+        // Marcar instalação como finalizada no backend
+        const response = await fetch('/api/installations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ...storeInfo.installationStatus.installation,
+            finalizada: true
+          })
+        });
+        
+        if (response.ok) {
+          setIsFinalized(true);
+          setShowSuccessModal(true);
+          // Invalidar cache para atualizar dados
+          queryClient.invalidateQueries({ queryKey: ["/api/stores", store.codigo_loja, "complete-info"] });
+        }
+      } catch (error) {
+        console.error('Erro ao finalizar:', error);
+      }
+    }
   };
 
   // Mouse drag handlers for desktop navigation
