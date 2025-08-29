@@ -626,7 +626,7 @@ export class MySQLStorage implements IStorage {
       // Buscar por CPF no fornecedor
       try {
         const cleanQuery = trimmedQuery.replace(/[.\-\s]/g, '');
-        if (cleanQuery.length === 11) { // CPF tem 11 dígitos
+        if (cleanQuery.length >= 10 && cleanQuery.length <= 11) { // CPF pode ter 10 ou 11 dígitos
           const supplier = await this.getSupplierByCpf(cleanQuery);
           if (supplier && !results.find(r => r.type === 'supplier' && r.data.id === supplier.id)) {
             results.push({ type: 'supplier', data: supplier });
@@ -639,17 +639,19 @@ export class MySQLStorage implements IStorage {
       // Buscar funcionário por CPF
       try {
         const cleanQuery = trimmedQuery.replace(/[.\-\s]/g, '');
-        const [employeeRows] = await pool.execute(
-          `SELECT fe.*, f.nome_fornecedor 
-           FROM funcionarios_fornecedores fe 
-           JOIN fornecedores f ON fe.fornecedor_id = f.id 
-           WHERE REPLACE(REPLACE(fe.cpf, '.', ''), '-', '') = ?`,
-          [cleanQuery]
-        ) as [RowDataPacket[], any];
-        
-        employeeRows.forEach(employee => {
-          results.push({ type: 'employee', data: employee });
-        });
+        if (cleanQuery.length >= 3) { // Permitir busca parcial por CPF
+          const [employeeRows] = await pool.execute(
+            `SELECT fe.*, f.nome_fornecedor 
+             FROM funcionarios_fornecedores fe 
+             JOIN fornecedores f ON fe.fornecedor_id = f.id 
+             WHERE REPLACE(REPLACE(REPLACE(fe.cpf, '.', ''), '-', ''), ' ', '') LIKE ?`,
+            [`%${cleanQuery}%`]
+          ) as [RowDataPacket[], any];
+          
+          employeeRows.forEach(employee => {
+            results.push({ type: 'employee', data: employee });
+          });
+        }
       } catch (error) {
         console.error('Erro ao buscar funcionário por CPF:', error);
       }
@@ -1066,10 +1068,20 @@ export class MySQLStorage implements IStorage {
 
   async getSupplierByCpf(cpf: string): Promise<Supplier | undefined> {
     const cleanCpf = cpf.replace(/[.\-\s]/g, '');
-    const [rows] = await pool.execute(
-      'SELECT * FROM fornecedores WHERE REPLACE(REPLACE(cpf, ".", ""), "-", "") = ?',
+    
+    // Primeiro tenta busca exata
+    let [rows] = await pool.execute(
+      'SELECT * FROM fornecedores WHERE REPLACE(REPLACE(REPLACE(cpf, ".", ""), "-", ""), " ", "") = ?',
       [cleanCpf]
     ) as [RowDataPacket[], any];
+    
+    // Se não encontrou e tem pelo menos 3 dígitos, tenta busca parcial
+    if (rows.length === 0 && cleanCpf.length >= 3) {
+      [rows] = await pool.execute(
+        'SELECT * FROM fornecedores WHERE REPLACE(REPLACE(REPLACE(cpf, ".", ""), "-", ""), " ", "") LIKE ?',
+        [`%${cleanCpf}%`]
+      ) as [RowDataPacket[], any];
+    }
     
     return rows[0] as Supplier | undefined;
   }

@@ -63,10 +63,16 @@ export default function SupplierAccess() {
     setSupplierResult(suggestion);
     setSearchTerm(suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario);
     setShowSuggestions(false);
+    setSearchSuggestions([]);
     // Armazenar no localStorage
     localStorage.setItem("supplier_access", JSON.stringify({...suggestion.data, searchType: suggestion.type}));
     // Buscar lojas das rotas
     fetchRouteStores(suggestion.data, suggestion.type);
+    // Mostrar toast de sucesso apenas aqui
+    toast({
+      title: "Sucesso!",
+      description: `${suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} selecionado com sucesso.`,
+    });
   };
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +86,11 @@ export default function SupplierAccess() {
   
   const handleInputBlur = () => {
     // Delay para permitir clique na sugestão
-    setTimeout(() => setShowSuggestions(false), 300);
+    setTimeout(() => {
+      if (!supplierResult) {
+        setShowSuggestions(false);
+      }
+    }, 300);
   };
   
   const handleInputFocus = () => {
@@ -134,15 +144,7 @@ export default function SupplierAccess() {
   };
 
 
-  // Mostrar toast de sucesso quando encontrar
-  React.useEffect(() => {
-    if (supplierData && !error) {
-      toast({
-        title: "Sucesso!",
-        description: `${supplierData.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} encontrado com sucesso.`,
-      });
-    }
-  }, [supplierData, error]);
+  // Removido o toast automático - agora é mostrado apenas na seleção
   
   const handleSelectStore = (store: StoreType) => {
     // Store both supplier and store data
@@ -361,16 +363,6 @@ export default function SupplierAccess() {
             </Button>
           </div>
 
-          {/* Demo data info */}
-          <Card className="mt-6 bg-gray-50">
-            <CardContent className="pt-6">
-              <h4 className="font-medium text-gray-900 mb-2">CNPJs para Teste:</h4>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p>• <strong>12.345.678/0001-90</strong> - SuperTech Supplies</p>
-                <p>• <strong>98.765.432/0001-10</strong> - ABC Ferramentas</p>
-              </div>
-            </CardContent>
-          </Card>
         </CardContent>
       </Card>
     </div>
