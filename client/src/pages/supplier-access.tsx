@@ -208,7 +208,7 @@ export default function SupplierAccess() {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleSearch} disabled={isLoading || !cnpj.trim()}>
+                  <Button onClick={handleSearch} disabled={isLoading || !searchTerm.trim()}>
                     <Search className="h-4 w-4 mr-2" />
                     Buscar
                   </Button>

@@ -885,7 +885,7 @@ export default function AdminRoutes() {
                   <SelectContent>
                     <SelectItem value="ativa">Ativa</SelectItem>
                     <SelectItem value="inativa">Inativa</SelectItem>
-                    <SelectItem value="finalizada">Finalizada</SelectItem>
+                    <SelectItem value="concluida">Concluída</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

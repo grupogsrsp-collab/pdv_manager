@@ -126,6 +126,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para estatísticas das rotas - DEVE VIR ANTES das rotas parametrizadas
+  app.get('/api/routes/stats', async (req, res) => {
+    try {
+      const stats = await storage.getRouteStats();
+      res.json(stats);
+    } catch (error) {
+      console.log('Erro ao buscar estatísticas das rotas:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
   // Listar rotas
   app.get('/api/routes', async (req, res) => {
     try {
@@ -210,16 +221,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint para estatísticas das rotas
-  app.get('/api/routes/stats', async (req, res) => {
-    try {
-      const stats = await storage.getRouteStats();
-      res.json(stats);
-    } catch (error) {
-      console.log('Erro ao buscar estatísticas das rotas:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  });
 
   // Criar item de rota
   app.post('/api/routes/:id/items', async (req, res) => {
