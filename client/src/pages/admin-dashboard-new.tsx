@@ -17,7 +17,8 @@ import {
   Activity,
   AlertTriangle,
   Clock,
-  Check
+  Check,
+  MapPin
 } from "lucide-react";
 import DashboardCharts from "@/components/charts/dashboard-charts";
 import { Link } from "wouter";
@@ -148,7 +149,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Management Navigation Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 lg:gap-6 mb-8">
           <Link href="/admin/suppliers">
             <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
               <CardContent className="p-6">
@@ -204,6 +205,21 @@ export default function AdminDashboard() {
                   <p className="text-sm text-gray-600 mb-1">Gerenciar</p>
                   <p className="font-semibold text-gray-900">Kits</p>
                   <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-indigo-600 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link href="/admin/routes">
+            <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="p-4 bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <MapPin className="h-8 w-8 text-white" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-1">Gerenciar</p>
+                  <p className="font-semibold text-gray-900">Rotas</p>
+                  <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-teal-600 transition-colors" />
                 </div>
               </CardContent>
             </Card>
