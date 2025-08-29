@@ -60,19 +60,28 @@ export default function SupplierAccess() {
   const supplier = supplierResult?.data;
   
   const handleSelectSuggestion = (suggestion: any) => {
-    setSupplierResult(suggestion);
-    setSearchTerm(suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario);
+    // Primeiro esconder sugestões para evitar problemas mobile
     setShowSuggestions(false);
     setSearchSuggestions([]);
+    
+    // Atualizar estado com dados selecionados
+    setSupplierResult(suggestion);
+    setSearchTerm(suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario);
+    
     // Armazenar no localStorage
     localStorage.setItem("supplier_access", JSON.stringify({...suggestion.data, searchType: suggestion.type}));
-    // Buscar lojas das rotas
-    fetchRouteStores(suggestion.data, suggestion.type);
-    // Mostrar toast de sucesso apenas aqui
-    toast({
-      title: "Sucesso!",
-      description: `${suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} selecionado com sucesso.`,
-    });
+    
+    // Usar setTimeout para evitar conflitos de estado
+    setTimeout(() => {
+      // Buscar lojas das rotas
+      fetchRouteStores(suggestion.data, suggestion.type);
+      
+      // Mostrar toast de sucesso
+      toast({
+        title: "Sucesso!",
+        description: `${suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} selecionado com sucesso.`,
+      });
+    }, 100);
   };
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,10 +96,8 @@ export default function SupplierAccess() {
   const handleInputBlur = () => {
     // Delay para permitir clique na sugestão
     setTimeout(() => {
-      if (!supplierResult) {
-        setShowSuggestions(false);
-      }
-    }, 300);
+      setShowSuggestions(false);
+    }, 200);
   };
   
   const handleInputFocus = () => {

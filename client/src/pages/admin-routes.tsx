@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Search, MapPin, Users, Building2, Trash2, Edit3, Calendar, Clock, Eye, CheckCircle2, BarChart3, Activity, CheckCircle, XCircle } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface Supplier {
   id: number;
@@ -64,6 +65,7 @@ interface RouteItem {
 }
 
 export default function AdminRoutes() {
+  const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -94,11 +96,19 @@ export default function AdminRoutes() {
   });
 
   // Query para buscar fornecedores
-  const { data: suppliers } = useQuery<Supplier[]>({
+  const { data: suppliersRaw } = useQuery({
     queryKey: ['/api/suppliers/search', supplierSearch],
-    queryFn: () => fetch(`/api/suppliers/search?q=${encodeURIComponent(supplierSearch)}`).then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(supplierSearch)}`);
+      if (!response.ok) return [];
+      const results = await response.json();
+      // Filtrar apenas fornecedores do resultado da busca
+      return results.filter((item: any) => item.type === 'supplier').map((item: any) => item.data);
+    },
     enabled: supplierSearch.length >= 2,
   });
+  
+  const suppliers = suppliersRaw as Supplier[] | undefined;
 
   // Query para buscar lojas
   const { data: stores } = useQuery<Store[]>({
@@ -128,7 +138,7 @@ export default function AdminRoutes() {
   });
 
   // Query para buscar estatísticas das rotas
-  const { data: routeStats } = useQuery({
+  const { data: routeStats } = useQuery<{rotasFinalizadas: number, rotasAtivas: number, lojasFinalizadas: number, lojasNaoFinalizadas: number}>({
     queryKey: ['/api/routes/stats'],
   });
 
@@ -164,9 +174,7 @@ export default function AdminRoutes() {
 
   // Mutation para finalizar rota
   const finishRouteMutation = useMutation({
-    mutationFn: (routeId: number) => apiRequest(`/api/routes/${routeId}/finish`, {
-      method: 'PATCH',
-    }),
+    mutationFn: (routeId: number) => apiRequest('PATCH', `/api/routes/${routeId}/finish`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
       toast({
@@ -186,10 +194,7 @@ export default function AdminRoutes() {
   // Mutation para editar rota
   const editRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/routes/${routeToEdit?.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('PUT', `/api/routes/${routeToEdit?.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
