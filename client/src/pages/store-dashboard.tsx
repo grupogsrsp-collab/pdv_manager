@@ -4,12 +4,14 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { type Store, type FotoFinal } from "@shared/mysql-schema";
 import TicketForm from "@/components/forms/ticket-form";
 
 export default function StoreDashboard() {
   const [showTicketForm, setShowTicketForm] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isFinalized, setIsFinalized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -46,7 +48,7 @@ export default function StoreDashboard() {
 
   const handleFinalize = () => {
     setIsFinalized(true);
-    alert("Processo finalizado com sucesso!");
+    setShowSuccessModal(true);
   };
 
   // Mouse drag handlers for desktop navigation
@@ -261,6 +263,26 @@ export default function StoreDashboard() {
           Abrir Chamado
         </Button>
       </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-semibold text-green-600 flex items-center justify-center gap-2">
+              <CheckCircle className="h-6 w-6" />
+              Loja Finalizada com Sucesso!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center pt-4">
+            <Button 
+              onClick={() => setShowSuccessModal(false)}
+              className="bg-green-600 hover:bg-green-700 text-white px-8"
+            >
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Ticket Form Modal */}
       {showTicketForm && (
