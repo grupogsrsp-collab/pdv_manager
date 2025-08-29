@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Search, MapPin, Users, Building2, Trash2, Edit3, Calendar, Clock, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Search, MapPin, Users, Building2, Trash2, Edit3, Calendar, Clock, Eye, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -150,6 +150,27 @@ export default function AdminRoutes() {
     },
   });
 
+  // Mutation para finalizar rota
+  const finishRouteMutation = useMutation({
+    mutationFn: (routeId: number) => apiRequest(`/api/routes/${routeId}/finish`, {
+      method: 'PATCH',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
+      toast({
+        title: "Sucesso",
+        description: "Rota finalizada com sucesso!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao finalizar a rota.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetForm = () => {
     setRouteForm({
       nome: "",
@@ -197,6 +218,7 @@ export default function AdminRoutes() {
       ativa: { variant: "default" as const, text: "Ativa", color: "bg-green-500" },
       inativa: { variant: "secondary" as const, text: "Inativa", color: "bg-gray-500" },
       concluida: { variant: "outline" as const, text: "Concluída", color: "bg-blue-500" },
+      finalizada: { variant: "secondary" as const, text: "Finalizada", color: "bg-gray-500" },
       pendente: { variant: "secondary" as const, text: "Pendente", color: "bg-yellow-500" },
       em_progresso: { variant: "default" as const, text: "Em Progresso", color: "bg-orange-500" },
       concluido: { variant: "outline" as const, text: "Concluído", color: "bg-green-500" },
@@ -608,6 +630,20 @@ export default function AdminRoutes() {
                               Acompanhar
                             </Button>
                           </Link>
+                          {route.status === 'ativa' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                finishRouteMutation.mutate(route.id);
+                              }}
+                              disabled={finishRouteMutation.isPending}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Finalizar Rota
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"

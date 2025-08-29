@@ -562,6 +562,10 @@ export class MySQLStorage implements IStorage {
     await pool.execute('DELETE FROM rotas WHERE id = ?', [id]);
   }
 
+  async finishRoute(id: number): Promise<void> {
+    await pool.execute('UPDATE rotas SET status = ? WHERE id = ?', ['finalizada', id]);
+  }
+
   async createRouteItem(item: InsertRouteItem): Promise<RouteItem> {
     const [result] = await pool.execute(
       `INSERT INTO rota_itens (rota_id, loja_id, ordem_visita, status, data_prevista, data_execucao, observacoes, tempo_estimado)
@@ -698,7 +702,7 @@ export class MySQLStorage implements IStorage {
            ELSE false
          END as tem_chamado_aberto,
          inst.installationDate as data_instalacao,
-         ch.created_at as ultimo_chamado
+         ch.id as tem_chamado
        FROM rota_itens ri
        JOIN lojas l ON ri.loja_id = l.codigo_loja
        LEFT JOIN instalacoes inst ON l.codigo_loja = inst.loja_id AND inst.fornecedor_id = ?

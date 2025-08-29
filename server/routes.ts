@@ -198,6 +198,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Finalizar rota
+  app.patch('/api/routes/:id/finish', async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      await storage.finishRoute(routeId);
+      res.json({ success: true, message: 'Rota finalizada com sucesso' });
+    } catch (error) {
+      console.log('Erro ao finalizar rota:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
   // Criar item de rota
   app.post('/api/routes/:id/items', async (req, res) => {
     try {
