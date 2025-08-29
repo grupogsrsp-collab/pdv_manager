@@ -79,12 +79,14 @@ export default function AdminRoutes() {
   // Query para buscar fornecedores
   const { data: suppliers } = useQuery<Supplier[]>({
     queryKey: ['/api/suppliers/search', supplierSearch],
+    queryFn: () => fetch(`/api/suppliers/search?q=${encodeURIComponent(supplierSearch)}`).then(res => res.json()),
     enabled: supplierSearch.length >= 2,
   });
 
   // Query para buscar lojas
   const { data: stores } = useQuery<Store[]>({
     queryKey: ['/api/stores/search', storeSearch],
+    queryFn: () => fetch(`/api/stores/search?q=${encodeURIComponent(storeSearch)}`).then(res => res.json()),
     enabled: storeSearch.length >= 2,
   });
 
