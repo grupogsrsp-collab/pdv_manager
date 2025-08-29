@@ -27,6 +27,14 @@ interface Store {
   uf: string;
 }
 
+interface SupplierEmployee {
+  id: number;
+  fornecedor_id: number;
+  nome_funcionario: string;
+  cpf?: string;
+  telefone?: string;
+}
+
 interface Route {
   id: number;
   nome: string;
@@ -60,8 +68,10 @@ export default function AdminRoutes() {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
+  const [storeFilters, setStoreFilters] = useState({ codigo_loja: "", cidade: "", uf: "", nome_loja: "" });
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<SupplierEmployee[]>([]);
   const [routeForm, setRouteForm] = useState({
     nome: "",
     observacoes: "",
@@ -90,6 +100,26 @@ export default function AdminRoutes() {
     enabled: storeSearch.length >= 2,
   });
 
+  // Query para buscar lojas com filtros
+  const { data: filteredStores } = useQuery<Store[]>({
+    queryKey: ['/api/stores/filter', storeFilters],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      Object.entries(storeFilters).forEach(([key, value]) => {
+        if (value && value.length >= 2) params.append(key, value);
+      });
+      return fetch(`/api/stores/filter?${params.toString()}`).then(res => res.json());
+    },
+    enabled: Object.values(storeFilters).some(value => value && value.length >= 2),
+  });
+
+  // Query para buscar funcionários do fornecedor selecionado
+  const { data: employees } = useQuery<SupplierEmployee[]>({
+    queryKey: ['/api/suppliers', selectedSupplier?.id, 'employees'],
+    queryFn: () => fetch(`/api/suppliers/${selectedSupplier?.id}/employees`).then(res => res.json()),
+    enabled: !!selectedSupplier?.id,
+  });
+
   // Query para buscar itens da rota selecionada
   const { data: routeItems } = useQuery<RouteItem[]>({
     queryKey: ['/api/routes', selectedRoute?.id, 'items'],
@@ -99,7 +129,8 @@ export default function AdminRoutes() {
   // Mutation para criar rota
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/routes', 'POST', data);
+      const response = await apiRequest('POST', '/api/routes', data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
@@ -111,7 +142,8 @@ export default function AdminRoutes() {
   // Mutation para deletar rota
   const deleteRouteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/routes/${id}`, 'DELETE');
+      const response = await apiRequest('DELETE', `/api/routes/${id}`);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
@@ -127,8 +159,10 @@ export default function AdminRoutes() {
     });
     setSelectedSupplier(null);
     setSelectedStores([]);
+    setSelectedEmployees([]);
     setSupplierSearch("");
     setStoreSearch("");
+    setStoreFilters({ codigo_loja: "", cidade: "", uf: "", nome_loja: "" });
   };
 
   const handleCreateRoute = async () => {
@@ -150,7 +184,7 @@ export default function AdminRoutes() {
     // Criar itens da rota para cada loja selecionada
     for (let i = 0; i < selectedStores.length; i++) {
       const store = selectedStores[i];
-      await apiRequest(`/api/routes/${route.id}/items`, 'POST', {
+      await apiRequest('POST', `/api/routes/${route.id}/items`, {
         loja_id: store.codigo_loja,
         ordem_visita: i + 1,
         status: 'pendente'
@@ -291,6 +325,7 @@ export default function AdminRoutes() {
                             onClick={() => {
                               setSelectedSupplier(supplier);
                               setSupplierSearch(supplier.nome_fornecedor);
+                              setSelectedEmployees([]); // Reset employees when changing supplier
                             }}
                           >
                             <div className="font-medium">{supplier.nome_fornecedor}</div>
@@ -315,44 +350,164 @@ export default function AdminRoutes() {
                     )}
                   </div>
 
+                  {/* Seleção de Funcionários do Fornecedor */}
+                  {selectedSupplier && (
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Funcionário do Fornecedor</h3>
+                      {employees && employees.length > 0 ? (
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-600">Selecione um ou mais funcionários:</div>
+                          <div className="max-h-40 overflow-y-auto space-y-2">
+                            {employees.map(employee => (
+                              <label key={employee.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="mr-3 rounded"
+                                  checked={selectedEmployees.some(e => e.id === employee.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedEmployees(prev => [...prev, employee]);
+                                    } else {
+                                      setSelectedEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+                                    }
+                                  }}
+                                />
+                                <div>
+                                  <div className="font-medium">{employee.nome_funcionario}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {employee.cpf && `CPF: ${employee.cpf}`} {employee.telefone && `• Tel: ${employee.telefone}`}
+                                  </div>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                          
+                          {selectedEmployees.length > 0 && (
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="text-sm font-medium text-blue-800 mb-1">
+                                Funcionários Selecionados ({selectedEmployees.length})
+                              </div>
+                              <div className="space-y-1">
+                                {selectedEmployees.map(emp => (
+                                  <div key={emp.id} className="text-sm text-blue-600">
+                                    • {emp.nome_funcionario}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="text-sm text-yellow-800">Nenhum funcionário cadastrado para este fornecedor.</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Seleção de Lojas */}
                   <div className="space-y-4">
                     <h3 className="font-medium">Associar Lojas</h3>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Buscar loja por código, cidade..."
-                        className="pl-10"
-                        value={storeSearch}
-                        onChange={(e) => setStoreSearch(e.target.value)}
-                      />
+                    
+                    {/* Campos de Busca Separados */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">Código da Loja</label>
+                        <Input
+                          placeholder="Ex: 50117"
+                          value={storeFilters.codigo_loja}
+                          onChange={(e) => setStoreFilters(prev => ({ ...prev, codigo_loja: e.target.value }))}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">Nome da Loja</label>
+                        <Input
+                          placeholder="Ex: HELP!"
+                          value={storeFilters.nome_loja}
+                          onChange={(e) => setStoreFilters(prev => ({ ...prev, nome_loja: e.target.value }))}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">Cidade</label>
+                        <Input
+                          placeholder="Ex: São Paulo"
+                          value={storeFilters.cidade}
+                          onChange={(e) => setStoreFilters(prev => ({ ...prev, cidade: e.target.value }))}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">Estado</label>
+                        <Input
+                          placeholder="Ex: SP"
+                          value={storeFilters.uf}
+                          onChange={(e) => setStoreFilters(prev => ({ ...prev, uf: e.target.value }))}
+                          className="text-sm"
+                        />
+                      </div>
                     </div>
                     
-                    {stores && stores.length > 0 && (
-                      <div className="max-h-32 overflow-y-auto border rounded-lg">
-                        {stores.map(store => (
-                          <div
-                            key={store.id}
-                            className="p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0"
+                    {/* Resultados da Busca com Checkbox */}
+                    {filteredStores && filteredStores.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-gray-700">Resultados da Busca ({filteredStores.length})</div>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
-                              if (!selectedStores.find(s => s.id === store.id)) {
-                                setSelectedStores(prev => [...prev, store]);
-                                setStoreSearch("");
-                              }
+                              const newStores = filteredStores.filter(store => !selectedStores.find(s => s.id === store.id));
+                              setSelectedStores(prev => [...prev, ...newStores]);
                             }}
+                            disabled={filteredStores.every(store => selectedStores.find(s => s.id === store.id))}
+                            className="text-xs"
                           >
-                            <div className="font-medium">{store.nome_loja}</div>
-                            <div className="text-sm text-gray-600">
-                              {store.codigo_loja} • {store.cidade}, {store.uf}
-                            </div>
-                          </div>
-                        ))}
+                            Selecionar Todas
+                          </Button>
+                        </div>
+                        <div className="max-h-40 overflow-y-auto space-y-2">
+                          {filteredStores.map(store => (
+                            <label key={store.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="mr-3 rounded"
+                                checked={selectedStores.some(s => s.id === store.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedStores(prev => [...prev, store]);
+                                  } else {
+                                    setSelectedStores(prev => prev.filter(s => s.id !== store.id));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium">{store.nome_loja}</div>
+                                <div className="text-sm text-gray-600">
+                                  {store.codigo_loja} • {store.cidade}, {store.uf}
+                                </div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
                       </div>
                     )}
                     
+                    {/* Lojas Selecionadas */}
                     {selectedStores.length > 0 && (
                       <div className="space-y-2">
-                        <div className="text-sm font-medium">Lojas Selecionadas ({selectedStores.length})</div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-blue-700">Lojas Selecionadas ({selectedStores.length})</div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedStores([])}
+                            className="text-xs text-red-600 hover:text-red-700"
+                          >
+                            Limpar Todas
+                          </Button>
+                        </div>
                         <div className="max-h-32 overflow-y-auto space-y-2">
                           {selectedStores.map((store, index) => (
                             <div key={store.id} className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg">
@@ -376,6 +531,13 @@ export default function AdminRoutes() {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    )}
+                    
+                    {/* Mensagem quando não há resultados */}
+                    {Object.values(storeFilters).some(value => value && value.length >= 2) && filteredStores && filteredStores.length === 0 && (
+                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                        <div className="text-sm text-gray-600">Nenhuma loja encontrada com os filtros aplicados.</div>
                       </div>
                     )}
                   </div>

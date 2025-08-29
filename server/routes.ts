@@ -264,6 +264,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar funcionários de um fornecedor
+  app.get('/api/suppliers/:id/employees', async (req, res) => {
+    try {
+      const supplierId = parseInt(req.params.id);
+      const employees = await storage.getSupplierEmployees(supplierId);
+      res.json(employees);
+    } catch (error) {
+      console.log('Erro ao buscar funcionários:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Buscar lojas por filtros específicos
+  app.get('/api/stores/filter', async (req, res) => {
+    try {
+      const { codigo_loja, cidade, uf, nome_loja } = req.query;
+      const stores = await storage.filterStores({
+        codigo_loja: codigo_loja as string,
+        cidade: cidade as string, 
+        uf: uf as string,
+        nome_loja: nome_loja as string
+      });
+      res.json(stores);
+    } catch (error) {
+      console.log('Erro ao filtrar lojas:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
   // Suppliers
   app.get("/api/suppliers", async (req, res) => {
     try {

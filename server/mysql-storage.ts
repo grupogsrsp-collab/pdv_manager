@@ -644,6 +644,44 @@ export class MySQLStorage implements IStorage {
     return rows as Store[];
   }
 
+  async filterStores(filters: {
+    codigo_loja?: string;
+    cidade?: string;
+    uf?: string;
+    nome_loja?: string;
+  }): Promise<Store[]> {
+    const conditions = [];
+    const values = [];
+    
+    if (filters.codigo_loja) {
+      conditions.push('codigo_loja LIKE ?');
+      values.push(`%${filters.codigo_loja}%`);
+    }
+    if (filters.cidade) {
+      conditions.push('cidade LIKE ?');
+      values.push(`%${filters.cidade}%`);
+    }
+    if (filters.uf) {
+      conditions.push('uf LIKE ?');
+      values.push(`%${filters.uf.toUpperCase()}%`);
+    }
+    if (filters.nome_loja) {
+      conditions.push('nome_loja LIKE ?');
+      values.push(`%${filters.nome_loja}%`);
+    }
+    
+    if (conditions.length === 0) {
+      return [];
+    }
+    
+    const [rows] = await pool.execute(
+      `SELECT * FROM lojas WHERE ${conditions.join(' AND ')} ORDER BY nome_loja ASC LIMIT 50`,
+      values
+    ) as [RowDataPacket[], any];
+    
+    return rows as Store[];
+  }
+
   // Implementação dos métodos da interface
 
   async getSupplierByCnpj(cnpj: string): Promise<Supplier | undefined> {
