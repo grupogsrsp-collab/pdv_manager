@@ -289,3 +289,75 @@ export const storeFilterSchema = z.object({
   uf: z.string().optional(),
   regiao: z.string().optional(),
 });
+
+// ============ ROTAS DE INSTALAÇÃO ============
+
+// Rotas de Instalação
+export interface Route {
+  id: number;
+  nome: string;
+  fornecedor_id: number;
+  status: 'ativa' | 'inativa' | 'concluida';
+  observacoes?: string | null;
+  data_criacao: string;
+  data_prevista?: string | null;
+  data_execucao?: string | null;
+  created_by: number;
+}
+
+export interface InsertRoute {
+  nome: string;
+  fornecedor_id: number;
+  status?: 'ativa' | 'inativa' | 'concluida';
+  observacoes?: string | null;
+  data_prevista?: string | null;
+  data_execucao?: string | null;
+  created_by: number;
+}
+
+// Itens de Rota
+export interface RouteItem {
+  id: number;
+  rota_id: number;
+  loja_id: string;
+  ordem_visita: number;
+  status: 'pendente' | 'em_progresso' | 'concluido';
+  data_prevista?: string | null;
+  data_execucao?: string | null;
+  observacoes?: string | null;
+  tempo_estimado?: number | null; // em minutos
+  created_at: string;
+}
+
+export interface InsertRouteItem {
+  rota_id: number;
+  loja_id: string;
+  ordem_visita: number;
+  status?: 'pendente' | 'em_progresso' | 'concluido';
+  data_prevista?: string | null;
+  data_execucao?: string | null;
+  observacoes?: string | null;
+  tempo_estimado?: number | null; // em minutos
+}
+
+// Schemas de validação para rotas
+export const insertRouteSchema = z.object({
+  nome: z.string().min(1, "Nome da rota é obrigatório"),
+  fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
+  status: z.enum(['ativa', 'inativa', 'concluida']).default('ativa'),
+  observacoes: z.string().optional(),
+  data_prevista: z.string().optional(),
+  data_execucao: z.string().optional(),
+  created_by: z.number().positive("ID do criador deve ser positivo"),
+});
+
+export const insertRouteItemSchema = z.object({
+  rota_id: z.number().positive("ID da rota deve ser positivo"),
+  loja_id: z.string().min(1, "Código da loja é obrigatório"),
+  ordem_visita: z.number().positive("Ordem de visita deve ser positiva"),
+  status: z.enum(['pendente', 'em_progresso', 'concluido']).default('pendente'),
+  data_prevista: z.string().optional(),
+  data_execucao: z.string().optional(),
+  observacoes: z.string().optional(),
+  tempo_estimado: z.number().positive().optional(),
+});

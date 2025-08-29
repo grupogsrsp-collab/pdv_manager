@@ -17,7 +17,11 @@ import {
   FotoOriginalLoja,
   InsertFotoOriginalLoja, 
   Installation, 
-  InsertInstallation 
+  InsertInstallation,
+  Route,
+  InsertRoute,
+  RouteItem,
+  InsertRouteItem
 } from '../shared/mysql-schema';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
@@ -194,6 +198,9 @@ export class MySQLStorage implements IStorage {
           console.log('⚠️ Erro ao adicionar coluna finalizada:', error.message);
         }
       }
+      
+      // Criar tabelas de rotas
+      await this.createRoutesTables();
     } catch (error) {
       console.log('Erro ao verificar estrutura da tabela:', error);
     }
@@ -392,6 +399,249 @@ export class MySQLStorage implements IStorage {
     } catch (error) {
       console.log('ℹ️ Dados de exemplo já existem ou erro na inserção:', error);
     }
+  }
+
+  private async createRoutesTables(): Promise<void> {
+    try {
+      console.log('📝 Criando tabelas de rotas...');
+      
+      // Criar tabela rotas
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS rotas (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nome VARCHAR(100) NOT NULL,
+          fornecedor_id INT NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'ativa',
+          observacoes TEXT,
+          data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          data_prevista DATE,
+          data_execucao DATE,
+          created_by INT NOT NULL,
+          FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id),
+          INDEX idx_fornecedor_id (fornecedor_id),
+          INDEX idx_status (status)
+        )
+      `);
+      
+      // Criar tabela rota_itens
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS rota_itens (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          rota_id INT NOT NULL,
+          loja_id VARCHAR(20) NOT NULL,
+          ordem_visita INT NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'pendente',
+          data_prevista DATE,
+          data_execucao DATE,
+          observacoes TEXT,
+          tempo_estimado INT, -- em minutos
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (rota_id) REFERENCES rotas(id) ON DELETE CASCADE,
+          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
+          INDEX idx_rota_id (rota_id),
+          INDEX idx_loja_id (loja_id),
+          INDEX idx_status (status)
+        )
+      `);
+      
+      console.log('✅ Tabelas de rotas criadas com sucesso!');
+    } catch (error) {
+      console.log('⚠️ Erro ao criar tabelas de rotas:', error);
+    }
+  }
+
+  // ============ MÉTODOS PARA ROTAS ============
+
+  async createRoute(route: InsertRoute): Promise<Route> {
+    const [result] = await pool.execute(
+      `INSERT INTO rotas (nome, fornecedor_id, status, observacoes, data_prevista, data_execucao, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [route.nome, route.fornecedor_id, route.status || 'ativa', route.observacoes, route.data_prevista, route.data_execucao, route.created_by]
+    ) as [ResultSetHeader, any];
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM rotas WHERE id = ?',
+      [result.insertId]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Route;
+  }
+
+  async getRoutes(fornecedorId?: number): Promise<Route[]> {
+    let query = 'SELECT * FROM rotas';
+    const params = [];
+    
+    if (fornecedorId) {
+      query += ' WHERE fornecedor_id = ?';
+      params.push(fornecedorId);
+    }
+    
+    query += ' ORDER BY data_criacao DESC';
+    
+    const [rows] = await pool.execute(query, params) as [RowDataPacket[], any];
+    return rows as Route[];
+  }
+
+  async getRouteById(id: number): Promise<Route | undefined> {
+    const [rows] = await pool.execute(
+      'SELECT * FROM rotas WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Route | undefined;
+  }
+
+  async updateRoute(id: number, route: Partial<InsertRoute>): Promise<Route> {
+    const fields = [];
+    const values = [];
+    
+    if (route.nome) {
+      fields.push('nome = ?');
+      values.push(route.nome);
+    }
+    if (route.status) {
+      fields.push('status = ?');
+      values.push(route.status);
+    }
+    if (route.observacoes !== undefined) {
+      fields.push('observacoes = ?');
+      values.push(route.observacoes);
+    }
+    if (route.data_prevista !== undefined) {
+      fields.push('data_prevista = ?');
+      values.push(route.data_prevista);
+    }
+    if (route.data_execucao !== undefined) {
+      fields.push('data_execucao = ?');
+      values.push(route.data_execucao);
+    }
+    
+    values.push(id);
+    
+    await pool.execute(
+      `UPDATE rotas SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM rotas WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as Route;
+  }
+
+  async deleteRoute(id: number): Promise<void> {
+    await pool.execute('DELETE FROM rotas WHERE id = ?', [id]);
+  }
+
+  async createRouteItem(item: InsertRouteItem): Promise<RouteItem> {
+    const [result] = await pool.execute(
+      `INSERT INTO rota_itens (rota_id, loja_id, ordem_visita, status, data_prevista, data_execucao, observacoes, tempo_estimado)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [item.rota_id, item.loja_id, item.ordem_visita, item.status || 'pendente', item.data_prevista, item.data_execucao, item.observacoes, item.tempo_estimado]
+    ) as [ResultSetHeader, any];
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM rota_itens WHERE id = ?',
+      [result.insertId]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as RouteItem;
+  }
+
+  async getRouteItems(rotaId: number): Promise<(RouteItem & { loja?: Store })[]> {
+    const [rows] = await pool.execute(
+      `SELECT ri.*, l.nome_loja, l.logradouro, l.cidade, l.uf 
+       FROM rota_itens ri
+       LEFT JOIN lojas l ON ri.loja_id = l.codigo_loja
+       WHERE ri.rota_id = ?
+       ORDER BY ri.ordem_visita ASC`,
+      [rotaId]
+    ) as [RowDataPacket[], any];
+    
+    return rows as (RouteItem & { loja?: Store })[];
+  }
+
+  async updateRouteItem(id: number, item: Partial<InsertRouteItem>): Promise<RouteItem> {
+    const fields = [];
+    const values = [];
+    
+    if (item.ordem_visita) {
+      fields.push('ordem_visita = ?');
+      values.push(item.ordem_visita);
+    }
+    if (item.status) {
+      fields.push('status = ?');
+      values.push(item.status);
+    }
+    if (item.data_prevista !== undefined) {
+      fields.push('data_prevista = ?');
+      values.push(item.data_prevista);
+    }
+    if (item.data_execucao !== undefined) {
+      fields.push('data_execucao = ?');
+      values.push(item.data_execucao);
+    }
+    if (item.observacoes !== undefined) {
+      fields.push('observacoes = ?');
+      values.push(item.observacoes);
+    }
+    if (item.tempo_estimado !== undefined) {
+      fields.push('tempo_estimado = ?');
+      values.push(item.tempo_estimado);
+    }
+    
+    values.push(id);
+    
+    await pool.execute(
+      `UPDATE rota_itens SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM rota_itens WHERE id = ?',
+      [id]
+    ) as [RowDataPacket[], any];
+    
+    return rows[0] as RouteItem;
+  }
+
+  async deleteRouteItem(id: number): Promise<void> {
+    await pool.execute('DELETE FROM rota_itens WHERE id = ?', [id]);
+  }
+
+  async searchSuppliers(query: string): Promise<Supplier[]> {
+    const searchQuery = `%${query}%`;
+    const cleanQuery = query.replace(/[.\-\/\s]/g, '');
+    
+    const [rows] = await pool.execute(
+      `SELECT * FROM fornecedores 
+       WHERE nome_fornecedor LIKE ? 
+          OR REPLACE(REPLACE(REPLACE(cnpj, ".", ""), "/", ""), "-", "") LIKE ?
+          OR REPLACE(REPLACE(cpf, ".", ""), "-", "") LIKE ?
+       ORDER BY nome_fornecedor ASC`,
+      [searchQuery, `%${cleanQuery}%`, `%${cleanQuery}%`]
+    ) as [RowDataPacket[], any];
+    
+    return rows as Supplier[];
+  }
+
+  async searchStores(query: string): Promise<Store[]> {
+    const searchQuery = `%${query}%`;
+    
+    const [rows] = await pool.execute(
+      `SELECT * FROM lojas 
+       WHERE codigo_loja LIKE ? 
+          OR nome_loja LIKE ?
+          OR cidade LIKE ?
+          OR uf LIKE ?
+       ORDER BY nome_loja ASC
+       LIMIT 20`,
+      [searchQuery, searchQuery, searchQuery, searchQuery.toUpperCase()]
+    ) as [RowDataPacket[], any];
+    
+    return rows as Store[];
   }
 
   // Implementação dos métodos da interface
@@ -1347,7 +1597,7 @@ export class MySQLStorage implements IStorage {
       SELECT COUNT(DISTINCT i.loja_id) as count 
       FROM instalacoes i 
       INNER JOIN lojas l ON i.loja_id = l.codigo_loja 
-      WHERE i.photos IS NOT NULL AND i.photos != ''
+      WHERE i.fotosFinais IS NOT NULL AND i.fotosFinais != '' AND i.fotosFinais != '[]'
     `) as [RowDataPacket[], any];
 
     // Kits não usados - contagem total de kits (como exemplo)

@@ -14,7 +14,9 @@ import {
   insertAdminSchema,
   insertInstallationSchema,
   cnpjSearchSchema,
-  storeFilterSchema
+  storeFilterSchema,
+  insertRouteSchema,
+  insertRouteItemSchema
 } from "../shared/mysql-schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -107,6 +109,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Erro na autenticação do fornecedor:", error);
       res.status(400).json({ error: "Erro na busca do fornecedor" });
+    }
+  });
+
+  // ===================== ROTAS =====================
+
+  // Criar nova rota
+  app.post('/api/routes', async (req, res) => {
+    try {
+      const routeData = insertRouteSchema.parse(req.body);
+      const route = await storage.createRoute(routeData);
+      res.json(route);
+    } catch (error: any) {
+      console.log('Erro ao criar rota:', error);
+      res.status(400).json({ error: 'Dados da rota inválidos' });
+    }
+  });
+
+  // Listar rotas
+  app.get('/api/routes', async (req, res) => {
+    try {
+      const fornecedorId = req.query.fornecedor_id ? parseInt(req.query.fornecedor_id as string) : undefined;
+      const routes = await storage.getRoutes(fornecedorId);
+      res.json(routes);
+    } catch (error) {
+      console.log('Erro ao buscar rotas:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Buscar rota por ID com itens
+  app.get('/api/routes/:id', async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const route = await storage.getRouteById(routeId);
+      
+      if (!route) {
+        return res.status(404).json({ error: 'Rota não encontrada' });
+      }
+      
+      const items = await storage.getRouteItems(routeId);
+      res.json({ ...route, items });
+    } catch (error) {
+      console.log('Erro ao buscar rota:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Atualizar rota
+  app.put('/api/routes/:id', async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const routeData = insertRouteSchema.partial().parse(req.body);
+      const route = await storage.updateRoute(routeId, routeData);
+      res.json(route);
+    } catch (error) {
+      console.log('Erro ao atualizar rota:', error);
+      res.status(400).json({ error: 'Dados da rota inválidos' });
+    }
+  });
+
+  // Deletar rota
+  app.delete('/api/routes/:id', async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      await storage.deleteRoute(routeId);
+      res.json({ success: true });
+    } catch (error) {
+      console.log('Erro ao deletar rota:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Criar item de rota
+  app.post('/api/routes/:id/items', async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const itemData = { ...req.body, rota_id: routeId };
+      const validatedItem = insertRouteItemSchema.parse(itemData);
+      const item = await storage.createRouteItem(validatedItem);
+      res.json(item);
+    } catch (error) {
+      console.log('Erro ao adicionar item à rota:', error);
+      res.status(400).json({ error: 'Dados do item inválidos' });
+    }
+  });
+
+  // Listar itens de uma rota
+  app.get('/api/routes/:id/items', async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const items = await storage.getRouteItems(routeId);
+      res.json(items);
+    } catch (error) {
+      console.log('Erro ao buscar itens da rota:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Atualizar item de rota
+  app.put('/api/route-items/:id', async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const itemData = insertRouteItemSchema.partial().parse(req.body);
+      const item = await storage.updateRouteItem(itemId, itemData);
+      res.json(item);
+    } catch (error) {
+      console.log('Erro ao atualizar item da rota:', error);
+      res.status(400).json({ error: 'Dados do item inválidos' });
+    }
+  });
+
+  // Deletar item de rota
+  app.delete('/api/route-items/:id', async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      await storage.deleteRouteItem(itemId);
+      res.json({ success: true });
+    } catch (error) {
+      console.log('Erro ao deletar item da rota:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Buscar fornecedores
+  app.get('/api/suppliers/search', async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.json([]);
+      }
+      
+      const suppliers = await storage.searchSuppliers(query);
+      res.json(suppliers);
+    } catch (error) {
+      console.log('Erro ao buscar fornecedores:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
+  // Buscar lojas
+  app.get('/api/stores/search', async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.json([]);
+      }
+      
+      const stores = await storage.searchStores(query);
+      res.json(stores);
+    } catch (error) {
+      console.log('Erro ao buscar lojas:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
 

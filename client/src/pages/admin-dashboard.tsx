@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle, Plus, Eye, ChevronRight, BarChart3, TrendingUp, Activity, ArrowLeft } from "lucide-react";
+import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle, Plus, Eye, ChevronRight, BarChart3, TrendingUp, Activity, ArrowLeft, MapPin } from "lucide-react";
 import DashboardCharts from "@/components/charts/dashboard-charts";
 import { Link } from "wouter";
 
@@ -189,17 +189,31 @@ export default function AdminDashboard() {
           </Card>
         </Link>
         
-        <Link href="/admin/settings">
-          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+        <Link href="/admin/routes">
+          <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
             <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-purple-500 rounded-lg">
-                  <Settings className="h-6 w-6 text-white" />
+              <div className="flex flex-col items-center text-center">
+                <div className="p-4 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <MapPin className="h-8 w-8 text-white" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm text-gray-600">Configurações</p>
-                  <p className="text-lg font-semibold text-gray-900">Sistema</p>
+                <p className="text-sm text-gray-600 mb-1">Gerenciar</p>
+                <p className="font-semibold text-gray-900">Rotas</p>
+                <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-indigo-600 transition-colors" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link href="/admin/settings">
+          <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Settings className="h-8 w-8 text-white" />
                 </div>
+                <p className="text-sm text-gray-600 mb-1">Configurações</p>
+                <p className="font-semibold text-gray-900">Sistema</p>
+                <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-purple-600 transition-colors" />
               </div>
             </CardContent>
           </Card>
