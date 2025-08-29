@@ -600,8 +600,9 @@ export class MySQLStorage implements IStorage {
     };
   }
 
-  async searchSupplierOrEmployee(query: string): Promise<any> {
+  async searchSupplierOrEmployee(query: string): Promise<any[]> {
     const trimmedQuery = query.trim();
+    const results: any[] = [];
     
     // Determinar se o input é numérico (CNPJ/CPF) ou texto (nome)
     const isNumeric = /^[\d.\-\/\s]+$/.test(trimmedQuery);
@@ -615,7 +616,7 @@ export class MySQLStorage implements IStorage {
         if (cleanQuery.length >= 11) { // CNPJ tem 14 dígitos, CPF tem 11
           const supplier = await this.getSupplierByCnpj(cleanQuery);
           if (supplier) {
-            return { type: 'supplier', data: supplier };
+            results.push({ type: 'supplier', data: supplier });
           }
         }
       } catch (error) {
@@ -627,8 +628,8 @@ export class MySQLStorage implements IStorage {
         const cleanQuery = trimmedQuery.replace(/[.\-\s]/g, '');
         if (cleanQuery.length === 11) { // CPF tem 11 dígitos
           const supplier = await this.getSupplierByCpf(cleanQuery);
-          if (supplier) {
-            return { type: 'supplier', data: supplier };
+          if (supplier && !results.find(r => r.type === 'supplier' && r.data.id === supplier.id)) {
+            results.push({ type: 'supplier', data: supplier });
           }
         }
       } catch (error) {
@@ -646,9 +647,9 @@ export class MySQLStorage implements IStorage {
           [cleanQuery]
         ) as [RowDataPacket[], any];
         
-        if (employeeRows.length > 0) {
-          return { type: 'employee', data: employeeRows[0] };
-        }
+        employeeRows.forEach(employee => {
+          results.push({ type: 'employee', data: employee });
+        });
       } catch (error) {
         console.error('Erro ao buscar funcionário por CPF:', error);
       }
@@ -658,13 +659,13 @@ export class MySQLStorage implements IStorage {
       // Buscar por nome do fornecedor
       try {
         const [supplierRows] = await pool.execute(
-          `SELECT * FROM fornecedores WHERE nome_fornecedor LIKE ? OR nome_responsavel LIKE ?`,
+          `SELECT * FROM fornecedores WHERE nome_fornecedor LIKE ? OR nome_responsavel LIKE ? LIMIT 10`,
           [`%${trimmedQuery}%`, `%${trimmedQuery}%`]
         ) as [RowDataPacket[], any];
         
-        if (supplierRows.length > 0) {
-          return { type: 'supplier', data: supplierRows[0] };
-        }
+        supplierRows.forEach(supplier => {
+          results.push({ type: 'supplier', data: supplier });
+        });
       } catch (error) {
         console.error('Erro ao buscar fornecedor por nome:', error);
       }
@@ -675,19 +676,19 @@ export class MySQLStorage implements IStorage {
           `SELECT fe.*, f.nome_fornecedor 
            FROM funcionarios_fornecedores fe 
            JOIN fornecedores f ON fe.fornecedor_id = f.id 
-           WHERE fe.nome_funcionario LIKE ?`,
+           WHERE fe.nome_funcionario LIKE ? LIMIT 10`,
           [`%${trimmedQuery}%`]
         ) as [RowDataPacket[], any];
         
-        if (employeeRows.length > 0) {
-          return { type: 'employee', data: employeeRows[0] };
-        }
+        employeeRows.forEach(employee => {
+          results.push({ type: 'employee', data: employee });
+        });
       } catch (error) {
         console.error('Erro ao buscar funcionário por nome:', error);
       }
     }
 
-    return null;
+    return results;
   }
 
   async getRoutesBySupplier(supplierId: number): Promise<any[]> {

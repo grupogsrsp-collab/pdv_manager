@@ -354,15 +354,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       if (!query || query.length < 3) {
-        return res.json(null);
+        return res.json([]);
       }
       
-      const result = await storage.searchSupplierOrEmployee(query);
-      if (result) {
-        res.json(result);
-      } else {
-        res.status(404).json({ error: 'Fornecedor ou funcionário não encontrado' });
-      }
+      const results = await storage.searchSupplierOrEmployee(query);
+      res.json(results);
     } catch (error) {
       console.error('Erro ao buscar fornecedor/funcionário:', error);
       res.status(500).json({ error: 'Erro interno do servidor' });

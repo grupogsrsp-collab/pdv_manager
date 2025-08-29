@@ -14,6 +14,8 @@ export default function SupplierAccess() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [supplierResult, setSupplierResult] = useState<any>(null);
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [filters, setFilters] = useState({
     cep: "",
@@ -31,7 +33,12 @@ export default function SupplierAccess() {
         setDebouncedSearchTerm(searchTerm.trim());
       } else {
         setDebouncedSearchTerm("");
-        setSupplierResult(null);
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+        // Só limpa o resultado se não tiver um fornecedor selecionado
+        if (searchTerm.trim().length === 0) {
+          setSupplierResult(null);
+        }
       }
     }, 500);
 
@@ -45,18 +52,45 @@ export default function SupplierAccess() {
       if (!response.ok) {
         throw new Error('Supplier not found');
       }
-      const result = await response.json();
-      setSupplierResult(result);
-      // Armazenar no localStorage
-      localStorage.setItem("supplier_access", JSON.stringify({...result.data, searchType: result.type}));
+      const results = await response.json();
+      setSearchSuggestions(results);
+      setShowSuggestions(results.length > 0);
       
-      return result;
+      return results;
     },
     enabled: !!debouncedSearchTerm && debouncedSearchTerm.length >= 3,
     retry: false,
   });
 
-  const supplier = supplierData?.data;
+  const supplier = supplierResult?.data;
+  
+  const handleSelectSuggestion = (suggestion: any) => {
+    setSupplierResult(suggestion);
+    setSearchTerm(suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario);
+    setShowSuggestions(false);
+    // Armazenar no localStorage
+    localStorage.setItem("supplier_access", JSON.stringify({...suggestion.data, searchType: suggestion.type}));
+  };
+  
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    if (e.target.value.length < 3) {
+      setSupplierResult(null);
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+  
+  const handleInputBlur = () => {
+    // Delay para permitir clique na sugestão
+    setTimeout(() => setShowSuggestions(false), 300);
+  };
+  
+  const handleInputFocus = () => {
+    if (searchSuggestions.length > 0 && !supplierResult) {
+      setShowSuggestions(true);
+    }
+  };
 
   const { data: stores = [], isLoading: storesLoading } = useQuery<StoreType[]>({
     queryKey: ["/api/stores", filters, debouncedSearchTerm],
@@ -229,14 +263,55 @@ export default function SupplierAccess() {
             <CardContent>
               <div className="flex space-x-4">
                 <div className="flex-1">
-                  <Input
-                    id="search-term"
-                    type="text"
-                    placeholder="Digite seu Nome, CPF ou CNPJ (min. 3 caracteres)"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="mt-2"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="search-term"
+                      type="text"
+                      placeholder="Digite seu Nome, CPF ou CNPJ (min. 3 caracteres)"
+                      value={searchTerm}
+                      onChange={handleSearchInputChange}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      className="mt-2"
+                      autoComplete="off"
+                    />
+                    
+                    {/* Lista de Sugestões */}
+                    {showSuggestions && searchSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto touch-manipulation">
+                        {searchSuggestions.map((suggestion, index) => (
+                          <div
+                            key={`${suggestion.type}-${suggestion.data.id}`}
+                            className="px-4 py-3 cursor-pointer hover:bg-gray-100 border-b last:border-b-0"
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900">
+                                  {suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {suggestion.type === 'supplier' ? (
+                                    <>CNPJ: {suggestion.data.cnpj || 'Não informado'}</>
+                                  ) : (
+                                    <>CPF: {suggestion.data.cpf || 'Não informado'} - Empresa: {suggestion.data.nome_fornecedor}</>
+                                  )}
+                                </div>
+                                {suggestion.data.nome_responsavel && suggestion.type === 'supplier' && (
+                                  <div className="text-sm text-gray-500">
+                                    Responsável: {suggestion.data.nome_responsavel}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-end">
                   {isLoading && (
@@ -251,7 +326,7 @@ export default function SupplierAccess() {
           </Card>
 
           {/* Results */}
-          {error && debouncedSearchTerm && (
+          {error && debouncedSearchTerm && searchSuggestions.length === 0 && (
             <Card className="mb-6 border-red-200">
               <CardContent className="pt-6">
                 <div className="text-center text-red-600">
