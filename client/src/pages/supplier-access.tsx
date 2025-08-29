@@ -217,28 +217,25 @@ export default function SupplierAccess() {
               <Store className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Acesso do Fornecedor</h1>
-            <p className="text-gray-600 mt-2">Digite seu Nome, CPF ou CNPJ para acessar</p>
+            <p className="text-gray-600 mt-2">Busque seus dados para acessar o sistema</p>
           </div>
 
           {/* Search Section */}
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Digite Seu Nome, CPF ou CNPJ</CardTitle>
+              <CardTitle>Buscar Dados do Fornecedor</CardTitle>
               <p className="text-sm text-gray-600 mt-1">A busca é feita automaticamente conforme você digita</p>
             </CardHeader>
             <CardContent>
               <div className="flex space-x-4">
                 <div className="flex-1">
-                  <Label htmlFor="cnpj" className="block text-sm font-medium text-gray-700 mb-2">
-                    CNPJ
-                  </Label>
                   <Input
                     id="search-term"
                     type="text"
                     placeholder="Digite seu Nome, CPF ou CNPJ (min. 3 caracteres)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    maxLength={18}
+                    className="mt-2"
                   />
                 </div>
                 <div className="flex items-end">

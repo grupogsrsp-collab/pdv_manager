@@ -273,21 +273,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Buscar fornecedores
-  app.get('/api/suppliers/search', async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query || query.length < 2) {
-        return res.json([]);
-      }
-      
-      const suppliers = await storage.searchSuppliers(query);
-      res.json(suppliers);
-    } catch (error) {
-      console.log('Erro ao buscar fornecedores:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  });
 
   // Buscar lojas
   app.get('/api/stores/search', async (req, res) => {
@@ -368,6 +353,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const query = req.query.q as string;
     
     try {
+      if (!query || query.length < 3) {
+        return res.json(null);
+      }
+      
       const result = await storage.searchSupplierOrEmployee(query);
       if (result) {
         res.json(result);
