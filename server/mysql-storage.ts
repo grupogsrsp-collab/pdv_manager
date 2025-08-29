@@ -660,10 +660,21 @@ export class MySQLStorage implements IStorage {
       
       // Buscar por nome do fornecedor
       try {
-        const [supplierRows] = await pool.execute(
+        // Primeiro tenta busca exata
+        let [supplierRows] = await pool.execute(
           `SELECT * FROM fornecedores WHERE nome_fornecedor LIKE ? OR nome_responsavel LIKE ? LIMIT 10`,
           [`%${trimmedQuery}%`, `%${trimmedQuery}%`]
         ) as [RowDataPacket[], any];
+        
+        // Se não encontrou nada e tem mais de 3 caracteres, tenta busca mais flexível
+        if (supplierRows.length === 0 && trimmedQuery.length > 3) {
+          // Busca caractere por caractere (mais tolerante a erros de digitação)
+          const flexiblePattern = trimmedQuery.split('').join('%');
+          [supplierRows] = await pool.execute(
+            `SELECT * FROM fornecedores WHERE nome_fornecedor LIKE ? OR nome_responsavel LIKE ? LIMIT 10`,
+            [`%${flexiblePattern}%`, `%${flexiblePattern}%`]
+          ) as [RowDataPacket[], any];
+        }
         
         supplierRows.forEach(supplier => {
           results.push({ type: 'supplier', data: supplier });
