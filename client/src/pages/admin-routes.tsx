@@ -74,7 +74,7 @@ export default function AdminRoutes() {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
-  const [storeFilters, setStoreFilters] = useState({ codigo_loja: "", cidade: "", uf: "", nome_loja: "" });
+  const [storeFilters, setStoreFilters] = useState({ cidade: "", bairro: "", uf: "", nome_loja: "" });
   
   // Estados para edição
   const [editRouteForm, setEditRouteForm] = useState({ nome: '', status: '', data_prevista: '', observacoes: '' });
@@ -501,15 +501,6 @@ export default function AdminRoutes() {
                     {/* Campos de Busca Separados */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-gray-600 mb-1 block">Código da Loja</label>
-                        <Input
-                          placeholder="Ex: 50117"
-                          value={storeFilters.codigo_loja}
-                          onChange={(e) => setStoreFilters(prev => ({ ...prev, codigo_loja: e.target.value }))}
-                          className="text-sm"
-                        />
-                      </div>
-                      <div>
                         <label className="text-xs font-medium text-gray-600 mb-1 block">Nome da Loja</label>
                         <Input
                           placeholder="Ex: HELP!"
@@ -524,6 +515,15 @@ export default function AdminRoutes() {
                           placeholder="Ex: São Paulo"
                           value={storeFilters.cidade}
                           onChange={(e) => setStoreFilters(prev => ({ ...prev, cidade: e.target.value }))}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">Bairro</label>
+                        <Input
+                          placeholder="Ex: Vila Olímpia"
+                          value={storeFilters.bairro}
+                          onChange={(e) => setStoreFilters(prev => ({ ...prev, bairro: e.target.value }))}
                           className="text-sm"
                         />
                       </div>
@@ -574,7 +574,7 @@ export default function AdminRoutes() {
                               <div className="flex-1">
                                 <div className="font-medium">{store.nome_loja}</div>
                                 <div className="text-sm text-gray-600">
-                                  {store.codigo_loja} • {store.cidade}, {store.uf}
+                                  {store.logradouro} • {store.cidade}, {store.uf}
                                 </div>
                               </div>
                             </label>
@@ -606,7 +606,7 @@ export default function AdminRoutes() {
                                 </div>
                                 <div>
                                   <div className="font-medium text-blue-800">{store.nome_loja}</div>
-                                  <div className="text-sm text-blue-600">{store.codigo_loja} • {store.cidade}, {store.uf}</div>
+                                  <div className="text-sm text-blue-600">{store.logradouro} • {store.cidade}, {store.uf}</div>
                                 </div>
                               </div>
                               <Button

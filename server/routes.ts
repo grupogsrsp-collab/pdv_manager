@@ -305,10 +305,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Buscar lojas por filtros específicos
   app.get('/api/stores/filter', async (req, res) => {
     try {
-      const { codigo_loja, cidade, uf, nome_loja } = req.query;
+      const { codigo_loja, cidade, bairro, uf, nome_loja } = req.query;
       const stores = await storage.filterStores({
         codigo_loja: codigo_loja as string,
-        cidade: cidade as string, 
+        cidade: cidade as string,
+        bairro: bairro as string,
         uf: uf as string,
         nome_loja: nome_loja as string
       });

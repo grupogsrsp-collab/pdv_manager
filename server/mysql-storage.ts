@@ -999,6 +999,7 @@ export class MySQLStorage implements IStorage {
   async filterStores(filters: {
     codigo_loja?: string;
     cidade?: string;
+    bairro?: string;
     uf?: string;
     nome_loja?: string;
   }): Promise<Store[]> {
@@ -1012,6 +1013,10 @@ export class MySQLStorage implements IStorage {
     if (filters.cidade) {
       conditions.push('cidade LIKE ?');
       values.push(`%${filters.cidade}%`);
+    }
+    if (filters.bairro) {
+      conditions.push('bairro LIKE ?');
+      values.push(`%${filters.bairro}%`);
     }
     if (filters.uf) {
       conditions.push('uf LIKE ?');
