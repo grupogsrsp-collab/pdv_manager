@@ -456,7 +456,15 @@ export class MySQLStorage implements IStorage {
     const [result] = await pool.execute(
       `INSERT INTO rotas (nome, fornecedor_id, status, observacoes, data_prevista, data_execucao, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [route.nome, route.fornecedor_id, route.status || 'ativa', route.observacoes, route.data_prevista, route.data_execucao, route.created_by]
+      [
+        route.nome, 
+        route.fornecedor_id, 
+        route.status || 'ativa', 
+        route.observacoes || null, 
+        route.data_prevista || null, 
+        route.data_execucao || null, 
+        route.created_by
+      ]
     ) as [ResultSetHeader, any];
     
     const [rows] = await pool.execute(
@@ -539,7 +547,16 @@ export class MySQLStorage implements IStorage {
     const [result] = await pool.execute(
       `INSERT INTO rota_itens (rota_id, loja_id, ordem_visita, status, data_prevista, data_execucao, observacoes, tempo_estimado)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [item.rota_id, item.loja_id, item.ordem_visita, item.status || 'pendente', item.data_prevista, item.data_execucao, item.observacoes, item.tempo_estimado]
+      [
+        item.rota_id, 
+        item.loja_id, 
+        item.ordem_visita, 
+        item.status || 'pendente', 
+        item.data_prevista || null, 
+        item.data_execucao || null, 
+        item.observacoes || null, 
+        item.tempo_estimado || null
+      ]
     ) as [ResultSetHeader, any];
     
     const [rows] = await pool.execute(

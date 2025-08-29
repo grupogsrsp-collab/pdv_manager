@@ -345,9 +345,9 @@ export const insertRouteSchema = z.object({
   nome: z.string().min(1, "Nome da rota é obrigatório"),
   fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
   status: z.enum(['ativa', 'inativa', 'concluida']).default('ativa'),
-  observacoes: z.string().optional(),
-  data_prevista: z.string().optional(),
-  data_execucao: z.string().optional(),
+  observacoes: z.string().nullish().transform(val => val || null),
+  data_prevista: z.string().nullish().transform(val => val || null),
+  data_execucao: z.string().nullish().transform(val => val || null),
   created_by: z.number().positive("ID do criador deve ser positivo"),
 });
 
