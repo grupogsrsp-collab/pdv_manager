@@ -156,6 +156,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar detalhes completos da rota com status das lojas
+  app.get('/api/routes/:id/details', async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const routeDetails = await storage.getRouteDetailsWithStatus(routeId);
+      
+      if (!routeDetails) {
+        return res.status(404).json({ error: 'Rota não encontrada' });
+      }
+      
+      res.json(routeDetails);
+    } catch (error) {
+      console.log('Erro ao buscar detalhes da rota:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
   // Atualizar rota
   app.put('/api/routes/:id', async (req, res) => {
     try {

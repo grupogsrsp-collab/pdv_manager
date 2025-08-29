@@ -396,6 +396,10 @@ export class MySQLStorage implements IStorage {
       }
       
       console.log('✅ Dados de exemplo inseridos com sucesso!');
+      
+      // Criar dados de teste para rotas
+      await this.createTestDataForRoutes();
+      
     } catch (error) {
       console.log('ℹ️ Dados de exemplo já existem ou erro na inserção:', error);
     }
@@ -441,6 +445,21 @@ export class MySQLStorage implements IStorage {
           INDEX idx_rota_id (rota_id),
           INDEX idx_loja_id (loja_id),
           INDEX idx_status (status)
+        )
+      `);
+      
+      // Criar tabela rota_funcionarios
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS rota_funcionarios (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          rota_id INT NOT NULL,
+          funcionario_id INT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (rota_id) REFERENCES rotas(id) ON DELETE CASCADE,
+          FOREIGN KEY (funcionario_id) REFERENCES funcionarios_fornecedores(id) ON DELETE CASCADE,
+          UNIQUE KEY unique_rota_funcionario (rota_id, funcionario_id),
+          INDEX idx_rota_id (rota_id),
+          INDEX idx_funcionario_id (funcionario_id)
         )
       `);
       
@@ -626,6 +645,97 @@ export class MySQLStorage implements IStorage {
 
   async deleteRouteItem(id: number): Promise<void> {
     await pool.execute('DELETE FROM rota_itens WHERE id = ?', [id]);
+  }
+
+  // Buscar detalhes completos da rota com status das lojas
+  async getRouteDetailsWithStatus(routeId: number): Promise<any> {
+    // Buscar informações básicas da rota
+    const [routeRows] = await pool.execute(
+      `SELECT r.*, f.nome_fornecedor 
+       FROM rotas r 
+       JOIN fornecedores f ON r.fornecedor_id = f.id 
+       WHERE r.id = ?`,
+      [routeId]
+    ) as [RowDataPacket[], any];
+    
+    if (routeRows.length === 0) {
+      return null;
+    }
+    
+    const route = routeRows[0];
+    
+    // Buscar funcionários da rota
+    const [employeeRows] = await pool.execute(
+      `SELECT rf.funcionario_id, fe.nome_funcionario
+       FROM rota_funcionarios rf
+       JOIN funcionarios_fornecedores fe ON rf.funcionario_id = fe.id
+       WHERE rf.rota_id = ?`,
+      [routeId]
+    ) as [RowDataPacket[], any];
+    
+    const funcionarios = employeeRows.map((emp: any) => emp.nome_funcionario);
+    
+    // Buscar lojas da rota com status
+    const [storeRows] = await pool.execute(
+      `SELECT 
+         l.id,
+         l.codigo_loja,
+         l.nome_loja,
+         l.cidade,
+         l.uf,
+         l.logradouro,
+         l.telefone_loja,
+         l.nome_operador,
+         ri.ordem_visita,
+         -- Verificar se tem instalação finalizada
+         CASE 
+           WHEN inst.finalizada = 1 THEN true
+           ELSE false
+         END as instalacao_finalizada,
+         -- Verificar se tem chamado aberto
+         CASE 
+           WHEN ch.id IS NOT NULL THEN true
+           ELSE false
+         END as tem_chamado_aberto,
+         inst.installationDate as data_instalacao,
+         ch.created_at as ultimo_chamado
+       FROM rota_itens ri
+       JOIN lojas l ON ri.loja_id = l.codigo_loja
+       LEFT JOIN instalacoes inst ON l.codigo_loja = inst.loja_id AND inst.fornecedor_id = ?
+       LEFT JOIN chamados ch ON l.codigo_loja = ch.loja_id AND ch.status = 'aberto'
+       WHERE ri.rota_id = ?
+       ORDER BY ri.ordem_visita`,
+      [route.fornecedor_id, routeId]
+    ) as [RowDataPacket[], any];
+    
+    const lojas = storeRows.map((store: any) => ({
+      id: store.id,
+      codigo_loja: store.codigo_loja,
+      nome_loja: store.nome_loja,
+      cidade: store.cidade,
+      uf: store.uf,
+      logradouro: store.logradouro,
+      telefone_loja: store.telefone_loja,
+      nome_operador: store.nome_operador,
+      instalacao_finalizada: store.instalacao_finalizada,
+      tem_chamado_aberto: store.tem_chamado_aberto,
+      data_instalacao: store.data_instalacao,
+      ultimo_chamado: store.ultimo_chamado,
+      status: store.tem_chamado_aberto ? 'chamado_aberto' : 
+             (store.instalacao_finalizada ? 'finalizada' : 'pendente')
+    }));
+    
+    return {
+      id: route.id,
+      nome: route.nome,
+      status: route.status,
+      data_criacao: route.data_criacao,
+      data_prevista: route.data_prevista,
+      fornecedor_nome: route.nome_fornecedor,
+      observacoes: route.observacoes,
+      funcionarios,
+      lojas
+    };
   }
 
   async searchSuppliers(query: string): Promise<Supplier[]> {
@@ -1751,6 +1861,79 @@ export class MySQLStorage implements IStorage {
     });
     
     return counts;
+  }
+
+  // ============ MÉTODOS PARA ASSOCIAÇÕES DE ROTA ============
+  
+  async createRouteStoreAssociation(routeId: number, storeIds: string[]): Promise<void> {
+    // Primeiro, remover associações existentes
+    await pool.execute('DELETE FROM rota_itens WHERE rota_id = ?', [routeId]);
+    
+    // Criar novas associações
+    for (let i = 0; i < storeIds.length; i++) {
+      await this.createRouteItem({
+        rota_id: routeId,
+        loja_id: storeIds[i],
+        ordem_visita: i + 1
+      });
+    }
+  }
+
+  async createRouteEmployeeAssociation(routeId: number, employeeIds: number[]): Promise<void> {
+    // Primeiro, remover associações existentes
+    await pool.execute('DELETE FROM rota_funcionarios WHERE rota_id = ?', [routeId]);
+    
+    // Criar novas associações
+    for (const employeeId of employeeIds) {
+      await pool.execute(
+        'INSERT INTO rota_funcionarios (rota_id, funcionario_id) VALUES (?, ?)',
+        [routeId, employeeId]
+      );
+    }
+  }
+
+  async createTestDataForRoutes(): Promise<void> {
+    try {
+      console.log('📝 Criando dados de teste para rotas...');
+      
+      // Criar associações da rota 1 com algumas lojas
+      const testStoreIds = ['50117', '50118', '50119'];
+      await this.createRouteStoreAssociation(1, testStoreIds);
+      
+      // Criar associação com funcionário
+      await this.createRouteEmployeeAssociation(1, [1]);
+      
+      // Criar algumas instalações de teste
+      try {
+        await pool.execute(
+          `INSERT IGNORE INTO instalacoes 
+           (loja_id, fornecedor_id, responsible, installationDate, finalizada, createdAt)
+           VALUES 
+           ('50117', 6, 'Joao da sulva', '2025-08-29', 1, NOW()),
+           ('50118', 6, 'Joao da sulva', '2025-08-28', 0, NOW())`,
+          []
+        );
+      } catch (error) {
+        console.log('Instalações já existem ou erro:', error);
+      }
+      
+      // Criar alguns chamados de teste
+      try {
+        await pool.execute(
+          `INSERT IGNORE INTO chamados 
+           (loja_id, descricao, status)
+           VALUES 
+           ('50119', 'Problema na instalação - equipamento com defeito', 'aberto')`,
+          []
+        );
+      } catch (error) {
+        console.log('Chamados já existem ou erro:', error);
+      }
+      
+      console.log('✅ Dados de teste para rotas criados com sucesso!');
+    } catch (error) {
+      console.log('⚠️ Erro ao criar dados de teste para rotas:', error);
+    }
   }
 }
 

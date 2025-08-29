@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Search, MapPin, Users, Building2, Trash2, Edit3, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Plus, Search, MapPin, Users, Building2, Trash2, Edit3, Calendar, Clock, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -598,6 +598,16 @@ export default function AdminRoutes() {
                           )}
                         </div>
                         <div className="flex justify-end mt-3 space-x-2">
+                          <Link href={`/admin/routes/${route.id}/track`}>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Acompanhar
+                            </Button>
+                          </Link>
                           <Button
                             variant="outline"
                             size="sm"

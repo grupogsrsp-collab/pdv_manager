@@ -16,6 +16,7 @@ import AdminStores from "@/pages/admin-stores";
 import AdminTickets from "@/pages/admin-tickets";
 import AdminKits from "@/pages/admin-kits";
 import AdminRoutes from "@/pages/admin-routes";
+import AdminRouteTrack from "@/pages/admin-route-track";
 import AdminSettings from "@/pages/admin-settings";
 import Header from "@/components/layout/header";
 import NotFound from "@/pages/not-found";
@@ -76,6 +77,11 @@ function Router() {
         <Route path="/admin/routes">
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminRoutes />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/routes/:id/track">
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminRouteTrack />
           </ProtectedRoute>
         </Route>
         <Route path="/admin/settings">
