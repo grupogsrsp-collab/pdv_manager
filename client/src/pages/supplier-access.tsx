@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Store } from "lucide-react";
@@ -12,7 +12,8 @@ import { type Supplier, type Store as StoreType } from "@shared/mysql-schema";
 export default function SupplierAccess() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchedTerm, setSearchedTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [supplierResult, setSupplierResult] = useState<any>(null);
 
   const [filters, setFilters] = useState({
     cep: "",
@@ -23,71 +24,133 @@ export default function SupplierAccess() {
   });
   const { toast } = useToast();
 
-  const { data: supplier, isLoading, error } = useQuery<Supplier>({
-    queryKey: ["/api/suppliers/search", searchedTerm],
+  // Debounce da busca - espera 500ms após parar de digitar
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.trim().length >= 3) {
+        setDebouncedSearchTerm(searchTerm.trim());
+      } else {
+        setDebouncedSearchTerm("");
+        setSupplierResult(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const { data: supplierData, isLoading, error } = useQuery({
+    queryKey: ["/api/suppliers/search", debouncedSearchTerm],
     queryFn: async () => {
-      const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(searchedTerm)}`);
+      const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
       if (!response.ok) {
         throw new Error('Supplier not found');
       }
-      return response.json();
+      const result = await response.json();
+      setSupplierResult(result);
+      // Armazenar no localStorage
+      localStorage.setItem("supplier_access", JSON.stringify({...result.data, searchType: result.type}));
+      
+      return result;
     },
-    enabled: !!searchedTerm,
+    enabled: !!debouncedSearchTerm && debouncedSearchTerm.length >= 3,
+    retry: false,
   });
 
+  const supplier = supplierData?.data;
+
   const { data: stores = [], isLoading: storesLoading } = useQuery<StoreType[]>({
-    queryKey: ["/api/stores", filters],
+    queryKey: ["/api/stores", filters, debouncedSearchTerm],
     queryFn: async () => {
-      const response = await fetch('/api/stores');
-      if (!response.ok) {
-        throw new Error('Failed to fetch stores');
+      if (debouncedSearchTerm === 'route-filtered') {
+        // Buscar lojas baseadas nas rotas do fornecedor/funcionário
+        const userData = JSON.parse(localStorage.getItem("supplier_access") || '{}');
+        let routeEndpoint = '';
+        if (userData.searchType === 'supplier') {
+          routeEndpoint = `/api/routes/supplier/${userData.id}`;
+        } else if (userData.searchType === 'employee') {
+          routeEndpoint = `/api/routes/employee/${userData.id}`;
+        }
+        
+        const routeResponse = await fetch(routeEndpoint);
+        if (routeResponse.ok) {
+          const routes = await routeResponse.json();
+          const storeIds = routes.flatMap((route: any) => route.lojas.map((loja: any) => loja.id));
+          
+          if (storeIds.length > 0) {
+            const storeResponse = await fetch(`/api/stores/by-ids`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ storeIds })
+            });
+            
+            if (storeResponse.ok) {
+              let filteredStores = await storeResponse.json();
+              
+              // Aplicar filtros adicionais se especificados
+              if (filters.cep) {
+                filteredStores = filteredStores.filter((store: StoreType) => 
+                  store.cep.includes(filters.cep.replace(/\D/g, ''))
+                );
+              }
+              if (filters.city) {
+                filteredStores = filteredStores.filter((store: StoreType) => 
+                  store.cidade.toLowerCase().includes(filters.city.toLowerCase())
+                );
+              }
+              if (filters.state) {
+                filteredStores = filteredStores.filter((store: StoreType) => 
+                  store.uf.toUpperCase() === filters.state.toUpperCase()
+                );
+              }
+              if (filters.code) {
+                filteredStores = filteredStores.filter((store: StoreType) => 
+                  store.codigo_loja.includes(filters.code)
+                );
+              }
+              if (filters.address) {
+                filteredStores = filteredStores.filter((store: StoreType) => 
+                  store.logradouro.toLowerCase().includes(filters.address.toLowerCase())
+                );
+              }
+              
+              return filteredStores;
+            }
+          }
+        }
+        return [];
+      } else {
+        const params = new URLSearchParams();
+        
+        // Add filters to params
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value && value.trim()) {
+            params.append(key, value.trim());
+          }
+        });
+        
+        const response = await fetch(`/api/stores?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch stores');
+        }
+        return response.json();
       }
-      return response.json();
     },
     enabled: !!supplier, // Only search stores after supplier is found
   });
 
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) {
+  // Mostrar toast de sucesso quando encontrar
+  React.useEffect(() => {
+    if (supplierData && !error) {
       toast({
-        title: "Campo obrigatório",
-        description: "Por favor, digite seu Nome, CPF ou CNPJ.",
-        variant: "destructive",
+        title: "Sucesso!",
+        description: `${supplierData.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} encontrado com sucesso.`,
       });
-      return;
+      // Buscar rotas associadas
+      fetchAssociatedRoutes(supplierData.data, supplierData.type);
     }
-
-    setIsLoading(true);
-    setError(false);
-
-    try {
-      const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(searchTerm)}`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        setSupplier(result.data);
-        // Armazenar no localStorage incluindo informação do tipo
-        localStorage.setItem("supplier_access", JSON.stringify({...result.data, searchType: result.type}));
-        
-        toast({
-          title: "Sucesso!",
-          description: `${result.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} encontrado com sucesso.`,
-        });
-        
-        // Buscar rotas associadas
-        await fetchAssociatedRoutes(result.data, result.type);
-      } else {
-        setError(true);
-        setSupplier(null);
-      }
-    } catch (error) {
-      console.error("Erro na busca:", error);
-      setError(true);
-      setSupplier(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [supplierData, error]);
 
   const fetchAssociatedRoutes = async (userData: any, userType: string) => {
     try {
@@ -102,43 +165,13 @@ export default function SupplierAccess() {
       if (routeResponse.ok) {
         const routes = await routeResponse.json();
         // Filtrar lojas baseadas nas rotas
-        await filterStoresByRoutes(routes);
+        setDebouncedSearchTerm('route-filtered');
       }
     } catch (error) {
       console.error('Erro ao buscar rotas associadas:', error);
     }
   };
 
-  const filterStoresByRoutes = async (routes: any[]) => {
-    try {
-      const storeIds = routes.flatMap(route => route.lojas.map((loja: any) => loja.id));
-      if (storeIds.length > 0) {
-        const storeResponse = await fetch(`/api/stores/by-ids`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ storeIds })
-        });
-        
-        if (storeResponse.ok) {
-          const associatedStores = await storeResponse.json();
-          // Atualizar para mostrar apenas as lojas das rotas
-          setSearchedTerm('route-filtered');
-        }
-      } else {
-        // Se não há rotas, não mostrar lojas
-        setSearchedTerm('');
-        toast({
-          title: "Sem rotas associadas",
-          description: "Este fornecedor/funcionário não possui rotas ativas.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao filtrar lojas por rotas:', error);
-    }
-  };
 
   const handleSelectStore = (store: StoreType) => {
     // Store both supplier and store data
@@ -191,6 +224,7 @@ export default function SupplierAccess() {
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Digite Seu Nome, CPF ou CNPJ</CardTitle>
+              <p className="text-sm text-gray-600 mt-1">A busca é feita automaticamente conforme você digita</p>
             </CardHeader>
             <CardContent>
               <div className="flex space-x-4">
@@ -201,29 +235,41 @@ export default function SupplierAccess() {
                   <Input
                     id="search-term"
                     type="text"
-                    placeholder="Digite seu Nome, CPF ou CNPJ"
+                    placeholder="Digite seu Nome, CPF ou CNPJ (min. 3 caracteres)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     maxLength={18}
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleSearch} disabled={isLoading || !searchTerm.trim()}>
-                    <Search className="h-4 w-4 mr-2" />
-                    Buscar
-                  </Button>
+                  {isLoading && (
+                    <div className="flex items-center text-sm text-gray-500">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Buscando...
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Results */}
-          {error && (
+          {error && debouncedSearchTerm && (
             <Card className="mb-6 border-red-200">
               <CardContent className="pt-6">
                 <div className="text-center text-red-600">
-                  <p>CNPJ não encontrado no sistema.</p>
-                  <p className="text-sm mt-2">Verifique se o CNPJ está correto ou entre em contato com o administrador.</p>
+                  <p>Fornecedor/Funcionário não encontrado no sistema.</p>
+                  <p className="text-sm mt-2">Verifique se os dados estão corretos ou entre em contato com o administrador.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {debouncedSearchTerm && debouncedSearchTerm.length < 3 && searchTerm.length > 0 && (
+            <Card className="mb-6 border-yellow-200">
+              <CardContent className="pt-6">
+                <div className="text-center text-yellow-600">
+                  <p>Digite pelo menos 3 caracteres para iniciar a busca.</p>
                 </div>
               </CardContent>
             </Card>
