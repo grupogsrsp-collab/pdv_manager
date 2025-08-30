@@ -108,14 +108,21 @@ export default function SupplierAccessSafe() {
               console.log('🏪 Lojas na rota:', route.lojas.length);
               
               route.lojas.forEach((loja: any) => {
-                // Evitar duplicatas
-                if (!seenStoreIds.has(loja.id)) {
-                  seenStoreIds.add(loja.id);
+                // Evitar duplicatas usando loja.id como string
+                const lojaIdStr = String(loja.id);
+                if (!seenStoreIds.has(lojaIdStr)) {
+                  seenStoreIds.add(lojaIdStr);
+                  
+                  console.log('📦 Processando loja:', {
+                    id: loja.id,
+                    nome: loja.nome_loja,
+                    cidade: loja.cidade
+                  });
                   
                   // Converter para o formato esperado pelo frontend
                   const store: StoreType = {
-                    id: parseInt(loja.id) || 0,
-                    codigo_loja: loja.id, // loja_id é o código da loja
+                    id: parseInt(lojaIdStr) || 0,
+                    codigo_loja: lojaIdStr, // Manter como string conforme retornado da API
                     nome_loja: loja.nome_loja || 'Nome não informado',
                     cidade: loja.cidade || 'Cidade não informada',
                     uf: loja.uf || '',
@@ -128,6 +135,7 @@ export default function SupplierAccessSafe() {
                   };
                   
                   allStores.push(store);
+                  console.log('✅ Loja adicionada:', store.nome_loja);
                 }
               });
             }
@@ -211,6 +219,10 @@ export default function SupplierAccessSafe() {
       
       setTimeout(() => {
         fetchRouteStoresSafe(suggestion.data, suggestion.type)
+          .catch((error) => {
+            console.error('🚨 [ULTRA-SAFE] Erro ao buscar rotas:', error);
+            setRouteStores([]); // Garantir que não fica em estado inválido
+          })
           .finally(() => {
             setIsProcessingSelection(false);
             console.log('✅ [ULTRA-SAFE] Processo finalizado');
