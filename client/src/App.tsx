@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { auth } from "@/lib/auth";
 import Login from "@/pages/login";
-import SupplierAccess from "@/pages/supplier-access-new";
+import SupplierAccess from "@/pages/supplier-access-simple";
 import StoreAccess from "@/pages/store-access";
 import SupplierDashboard from "@/pages/supplier-dashboard";
 import InstallationChecklist from "@/pages/installation-checklist";
