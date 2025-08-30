@@ -61,13 +61,23 @@ export default function SupplierAccess() {
   
   const handleSelectSuggestion = (suggestion: any) => {
     try {
-      // Primeiro esconder sugestões para evitar problemas mobile
+      // Evitar seleção dupla se já há um fornecedor selecionado
+      if (supplierResult && supplierResult.data.id === suggestion.data.id) {
+        setShowSuggestions(false);
+        setSearchSuggestions([]);
+        return;
+      }
+      
+      // Primeiro esconder sugestões imediatamente
       setShowSuggestions(false);
       setSearchSuggestions([]);
       
       // Atualizar estado com dados selecionados
       setSupplierResult(suggestion);
       setSearchTerm(suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario);
+      
+      // Limpar debounced term para evitar nova busca
+      setDebouncedSearchTerm("");
       
       // Armazenar no localStorage
       localStorage.setItem("supplier_access", JSON.stringify({...suggestion.data, searchType: suggestion.type}));
@@ -91,11 +101,22 @@ export default function SupplierAccess() {
   };
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    if (e.target.value.length < 3) {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (value.length < 3) {
       setSupplierResult(null);
       setSearchSuggestions([]);
       setShowSuggestions(false);
+      setDebouncedSearchTerm("");
+      setRouteStores([]);
+    } else {
+      // Se há um fornecedor selecionado e o usuário está digitando algo diferente, limpa a seleção
+      if (supplierResult && 
+          value !== (supplierResult.type === 'supplier' ? supplierResult.data.nome_fornecedor : supplierResult.data.nome_funcionario)) {
+        setSupplierResult(null);
+        setRouteStores([]);
+      }
     }
   };
   
@@ -107,6 +128,7 @@ export default function SupplierAccess() {
   };
   
   const handleInputFocus = () => {
+    // Só mostra sugestões se não há fornecedor selecionado
     if (searchSuggestions.length > 0 && !supplierResult) {
       setShowSuggestions(true);
     }
@@ -211,8 +233,8 @@ export default function SupplierAccess() {
                       autoComplete="off"
                     />
                     
-                    {/* Lista de Sugestões */}
-                    {showSuggestions && searchSuggestions.length > 0 && (
+                    {/* Lista de Sugestões - só mostra se não há fornecedor selecionado */}
+                    {showSuggestions && searchSuggestions.length > 0 && !supplierResult && (
                       <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto touch-manipulation">
                         {searchSuggestions.map((suggestion, index) => (
                           <div
