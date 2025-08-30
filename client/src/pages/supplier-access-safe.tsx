@@ -11,6 +11,76 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { type Supplier, type Store as StoreType } from "@shared/mysql-schema";
 
+// Componente MOBILE-SAFE para sugestões
+const SuggestionItem = ({ suggestion, isMobile, isProcessing, onSelect }: {
+  suggestion: any;
+  isMobile: boolean;
+  isProcessing: boolean;
+  onSelect: (suggestion: any) => void;
+}) => {
+  const handleInteraction = (e: any) => {
+    if (isProcessing) {
+      console.log('📱 [SUGGESTION-ITEM] Bloqueado - já processando');
+      return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('📱 [SUGGESTION-ITEM] Interação segura ativada');
+    onSelect(suggestion);
+  };
+
+  return (
+    <div
+      className="px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 border-b last:border-b-0 cursor-pointer transition-all duration-200"
+      style={{
+        WebkitTapHighlightColor: 'transparent',
+        userSelect: 'none',
+        touchAction: 'manipulation',
+        pointerEvents: isProcessing ? 'none' : 'auto'
+      }}
+      // Mobile: usar onTouchEnd (mais confiável que onTouchStart)
+      onTouchEnd={isMobile ? handleInteraction : undefined}
+      // Desktop: usar onClick
+      onClick={!isMobile ? handleInteraction : undefined}
+    >
+      <div className="flex items-center gap-4 pointer-events-none">
+        <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg p-3 flex items-center justify-center min-w-[48px]">
+          {suggestion.type === 'supplier' ? <Building className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="font-semibold text-gray-900 text-lg">
+              {suggestion.type === 'supplier' ? 
+                suggestion.data.nome_fornecedor : 
+                suggestion.data.nome_funcionario
+              }
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
+            </Badge>
+          </div>
+          <div className="text-sm text-gray-600 flex items-center gap-1">
+            <FileText className="h-4 w-4" />
+            {suggestion.type === 'supplier' ? (
+              `CNPJ: ${suggestion.data.cnpj || 'Não informado'}`
+            ) : (
+              `CPF: ${suggestion.data.cpf || 'Não informado'} - Empresa: ${suggestion.data.nome_fornecedor || ''}`
+            )}
+          </div>
+          {suggestion.data.nome_responsavel && suggestion.type === 'supplier' && (
+            <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+              <Star className="h-4 w-4" />
+              Responsável: {suggestion.data.nome_responsavel}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Versão à prova de erros para mobile com design moderno
 export default function SupplierAccessSafe() {
   const [, setLocation] = useLocation();
@@ -289,21 +359,29 @@ export default function SupplierAccessSafe() {
         console.warn('🛡️ [ULTRA-SAFE] Erro toast (não crítico):', toastError);
       }
       
-      // Buscar rotas para mobile e desktop - com delay apropriado
-      const delay = isMobileDevice ? 300 : 100;
-      console.log(`⏱️ [ULTRA-SAFE] Aguardando ${delay}ms para buscar rotas...`);
-      
-      setTimeout(() => {
-        fetchRouteStoresSafe(suggestion.data, suggestion.type)
-          .catch((error) => {
-            console.error('🚨 [ULTRA-SAFE] Erro ao buscar rotas:', error);
-            setRouteStores([]); // Garantir que não fica em estado inválido
-          })
-          .finally(() => {
-            setIsProcessingSelection(false);
-            console.log('✅ [ULTRA-SAFE] Processo finalizado');
-          });
-      }, delay);
+      // CORRIGIDO: Para mobile, NÃO buscar rotas automaticamente (fonte do erro)
+      if (isMobileDevice) {
+        console.log('📱 [MOBILE-FIX] Mobile detectado - NÃO buscando rotas automaticamente');
+        setRouteStores([]);
+        setIsProcessingSelection(false);
+        console.log('✅ [MOBILE-FIX] Processo mobile finalizado sem erros');
+      } else {
+        // Desktop: buscar rotas normalmente
+        const delay = 100;
+        console.log(`⏱️ [DESKTOP] Aguardando ${delay}ms para buscar rotas...`);
+        
+        setTimeout(() => {
+          fetchRouteStoresSafe(suggestion.data, suggestion.type)
+            .catch((error) => {
+              console.error('🚨 [DESKTOP] Erro ao buscar rotas:', error);
+              setRouteStores([]);
+            })
+            .finally(() => {
+              setIsProcessingSelection(false);
+              console.log('✅ [DESKTOP] Processo finalizado');
+            });
+        }, delay);
+      }
       
     } catch (error) {
       console.error('🚨 [ULTRA-SAFE] Erro capturado:', error);
@@ -407,61 +485,39 @@ export default function SupplierAccessSafe() {
                 <Search className="absolute left-4 top-4 h-6 w-6 text-gray-400" />
               </div>
 
-              {/* Lista de Sugestões Moderna */}
+              {/* Lista de Sugestões MOBILE-SAFE */}
               {showSuggestions && searchSuggestions.length > 0 && !supplierResult && (
                 <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-80 overflow-y-auto">
                   {searchSuggestions.map((suggestion, index) => (
-                    <div
+                    <SuggestionItem 
                       key={`safe-${suggestion.type}-${suggestion.data.id}-${index}`}
-                      className="px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 border-b last:border-b-0 cursor-pointer transition-all duration-200"
-                      style={{
-                        WebkitTapHighlightColor: 'transparent',
-                        userSelect: 'none',
-                        touchAction: 'manipulation',
-                        pointerEvents: isProcessingSelection ? 'none' : 'auto'
-                      }}
-                      onClick={() => {
-                        try {
-                          console.log('🛡️ [ULTRA-SAFE] Click seguro ativado');
-                          handleSelectSuggestionSafe(suggestion);
-                        } catch (clickError) {
-                          console.error('🚨 [ULTRA-SAFE] Erro no click:', clickError);
+                      suggestion={suggestion}
+                      isMobile={isMobileDevice}
+                      isProcessing={isProcessingSelection}
+                      onSelect={(selectedSuggestion) => {
+                        // Mobile: Processo ultra-simplificado
+                        if (isMobileDevice) {
+                          console.log('📱 [MOBILE-DIRECT] Processo direto para mobile');
+                          setIsProcessingSelection(true);
+                          setShowSuggestions(false);
+                          setSearchSuggestions([]);
+                          setSupplierResult(selectedSuggestion);
+                          
+                          const displayName = selectedSuggestion.type === 'supplier' 
+                            ? (selectedSuggestion.data.nome_fornecedor || 'Fornecedor')
+                            : (selectedSuggestion.data.nome_funcionario || 'Funcionário');
+                          setSearchTerm(displayName);
+                          
+                          // Mobile: NÃO buscar rotas automaticamente
+                          setRouteStores([]);
+                          setIsProcessingSelection(false);
+                          console.log('📱 [MOBILE-DIRECT] Concluído sem busca de rotas');
+                        } else {
+                          // Desktop: processo normal
+                          handleSelectSuggestionSafe(selectedSuggestion);
                         }
                       }}
-                    >
-                      <div className="flex items-center gap-4 pointer-events-none">
-                        <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg p-3 flex items-center justify-center min-w-[48px]">
-                          {suggestion.type === 'supplier' ? <Building className="h-5 w-5" /> : <Users className="h-5 w-5" />}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="font-semibold text-gray-900 text-lg">
-                              {suggestion.type === 'supplier' ? 
-                                suggestion.data.nome_fornecedor : 
-                                suggestion.data.nome_funcionario
-                              }
-                            </div>
-                            <Badge variant="secondary" className="text-xs">
-                              {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-gray-600 flex items-center gap-1">
-                            <FileText className="h-4 w-4" />
-                            {suggestion.type === 'supplier' ? (
-                              `CNPJ: ${suggestion.data.cnpj || 'Não informado'}`
-                            ) : (
-                              `CPF: ${suggestion.data.cpf || 'Não informado'} - Empresa: ${suggestion.data.nome_fornecedor || ''}`
-                            )}
-                          </div>
-                          {suggestion.data.nome_responsavel && suggestion.type === 'supplier' && (
-                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                              <Star className="h-4 w-4" />
-                              Responsável: {suggestion.data.nome_responsavel}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    />
                   ))}
                 </div>
               )}
@@ -551,6 +607,37 @@ export default function SupplierAccessSafe() {
               </div>
 
               <Separator className="my-6" />
+
+              {/* Botão MOBILE-ESPECÍFICO para buscar rotas */}
+              {isMobileDevice && routeStores.length === 0 && !loadingRouteStores && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-6 border border-amber-200">
+                  <div className="text-center space-y-4">
+                    <div className="bg-amber-500 text-white rounded-lg p-3 w-12 h-12 mx-auto flex items-center justify-center">
+                      <MapPin className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-amber-800 mb-2">
+                        Buscar Rotas e Lojas
+                      </h3>
+                      <p className="text-amber-700 text-sm mb-4">
+                        Toque no botão abaixo para carregar as rotas e lojas disponíveis para este {supplierResult.type === 'supplier' ? 'fornecedor' : 'funcionário'}.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        console.log('📱 [MOBILE-BUTTON] Busca manual iniciada');
+                        fetchRouteStoresSafe(supplierResult.data, supplierResult.type);
+                      }}
+                      disabled={loadingRouteStores}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 text-lg"
+                      data-testid="button-search-routes"
+                    >
+                      <MapPin className="h-5 w-5 mr-2" />
+                      Buscar Rotas e Lojas
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 {routeStores.length > 0 ? (
