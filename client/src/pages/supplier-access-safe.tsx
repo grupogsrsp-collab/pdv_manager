@@ -258,17 +258,19 @@ export default function SupplierAccessSafe() {
               seenStoreIds.add(lojaIdStr);
               
               const store: StoreType = {
-                id: parseInt(lojaIdStr) || Math.random() * 1000000, // Fallback para ID único
+                id: parseInt(lojaIdStr) || Math.random() * 1000000,
                 codigo_loja: lojaIdStr,
                 nome_loja: String(loja.nome_loja || 'Nome não informado'),
                 cidade: String(loja.cidade || 'Cidade não informada'),
                 uf: String(loja.uf || ''),
                 logradouro: '',
+                numero: '',
+                complemento: '',
                 bairro: '',
                 cep: '',
+                regiao: '',
                 telefone_loja: '',
-                nome_operador: '',
-                email_operador: ''
+                nome_operador: ''
               };
               
               allStores.push(store);
@@ -644,13 +646,13 @@ export default function SupplierAccessSafe() {
                           .then(routes => {
                             console.log('📦 [MOBILE-SAFE] Dados recebidos:', routes);
                             
-                            // Processamento JSON SIMPLIFICADO (sem loops pesados)
-                            const storesSimplificadas = [];
+                            // Processamento JSON SIMPLIFICADO
+                            const storesSimplificadas: StoreType[] = [];
                             
                             if (routes && Array.isArray(routes)) {
-                              routes.forEach(route => {
+                              routes.forEach((route: any) => {
                                 if (route.lojas && Array.isArray(route.lojas)) {
-                                  route.lojas.forEach(loja => {
+                                  route.lojas.forEach((loja: any) => {
                                     if (loja && loja.id && loja.nome_loja) {
                                       storesSimplificadas.push({
                                         id: loja.id,
@@ -659,11 +661,13 @@ export default function SupplierAccessSafe() {
                                         cidade: loja.cidade || 'N/A',
                                         uf: loja.uf || '',
                                         logradouro: '',
+                                        numero: '',
+                                        complemento: '',
                                         bairro: '',
                                         cep: '',
+                                        regiao: '',
                                         telefone_loja: '',
-                                        nome_operador: '',
-                                        email_operador: ''
+                                        nome_operador: ''
                                       });
                                     }
                                   });
@@ -703,17 +707,26 @@ export default function SupplierAccessSafe() {
                           });
                       };
                       
-                      // Executar processamento após o evento para evitar conflitos
+                      // SOLUÇÃO RADICAL MOBILE: ir direto para instalação sem buscar rotas
                       if (isMobileDevice) {
-                        // Mobile: usar requestIdleCallback se disponível, senão setTimeout
-                        if (window.requestIdleCallback) {
+                        console.log('📱 [MOBILE-RADICAL] Mobile detectado - indo direto para instalação');
+                        setLoadingRouteStores(false);
+                        
+                        // Salvar dados e navegar imediatamente
+                        localStorage.setItem("supplier_access", JSON.stringify({
+                          id: supplierResult.data.id,
+                          nome_fornecedor: supplierResult.data.nome_fornecedor || '',
+                          searchType: supplierResult.type
+                        }));
+                        
+                        setLocation("/installation-checklist");
+                      } else {
+                        // Desktop: usar processamento normal
+                        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
                           requestIdleCallback(processoSeparado);
                         } else {
                           setTimeout(processoSeparado, 50);
                         }
-                      } else {
-                        // Desktop: processar imediatamente
-                        processoSeparado();
                       }
                     }}
                     disabled={loadingRouteStores}
