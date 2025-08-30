@@ -131,24 +131,27 @@ export default function SupplierAccess() {
       
       console.log('🚀 Iniciando busca de lojas...');
       
-      // Para mobile, usar processo mais simples sem buscar lojas automaticamente
-      if (isMobileDevice) {
-        console.log('📱 Modo mobile - finalizando sem buscar lojas');
-        setIsProcessingSelection(false);
-      } else {
-        // Desktop: buscar lojas normalmente
-        setTimeout(async () => {
-          try {
-            await fetchRouteStores(suggestion.data, suggestion.type);
-            console.log('✅ Busca de lojas concluída');
-          } catch (error) {
-            console.error('❌ Erro ao buscar lojas:', error);
-          } finally {
-            setIsProcessingSelection(false);
-            console.log('🏁 Processamento finalizado');
-          }
-        }, 100);
-      }
+      // Buscar lojas para mobile e desktop, com delay diferenciado
+      const delay = isMobileDevice ? 300 : 100;
+      console.log(`⏱️ Aguardando ${delay}ms antes de buscar lojas...`);
+      
+      setTimeout(async () => {
+        try {
+          console.log('📍 Iniciando fetchRouteStores...');
+          await fetchRouteStores(suggestion.data, suggestion.type);
+          console.log('✅ Busca de lojas concluída com sucesso');
+        } catch (error) {
+          console.error('❌ Erro ao buscar lojas:', error);
+          // Em caso de erro, não bloquear a interface
+          toast({
+            title: "Aviso",
+            description: "Não foi possível carregar as rotas automaticamente.",
+          });
+        } finally {
+          setIsProcessingSelection(false);
+          console.log('🏁 Processamento finalizado');
+        }
+      }, delay);
       
     } catch (error) {
       console.error('❌ Erro crítico na seleção:', error);
