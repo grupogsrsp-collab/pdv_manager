@@ -156,15 +156,46 @@ router.post("/api/stores/search", async (req, res) => {
   }
 });
 
+// Rota de teste para debug
+router.get("/api/stores/debug", async (req, res) => {
+  try {
+    const allStores = await storage.getAllStores();
+    res.json({
+      totalStores: allStores.length,
+      firstStore: allStores[0] || null,
+      query: req.query
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET version for query parameters
 router.get("/api/stores/search", async (req, res) => {
   try {
+    console.log("🔍 === BUSCA DE LOJAS DEBUG ===");
+    console.log("Query params:", req.query);
+    
+    // Se não há filtros, retornar todas as lojas
+    if (Object.keys(req.query).length === 0) {
+      console.log("🚀 Sem filtros - retornando todas as lojas");
+      const allStores = await storage.getAllStores();
+      console.log("🏪 Total de lojas encontradas:", allStores.length);
+      return res.json(allStores.slice(0, 20));
+    }
+    
+    // Aplicar filtros
+    console.log("📝 Aplicando filtros...");
     const filters = storeFilterSchema.parse(req.query);
+    console.log("✅ Filtros válidos:", JSON.stringify(filters, null, 2));
+    
     const stores = await storage.getStoresByFilters(filters);
+    console.log("📊 Lojas encontradas com filtros:", stores.length);
+    
     res.json(stores);
   } catch (error) {
-    console.error("Erro ao buscar lojas:", error);
-    res.status(400).json({ error: "Erro na busca de lojas" });
+    console.error("❌ Erro na busca:", error);
+    res.status(400).json({ error: "Erro na busca de lojas", details: error.message });
   }
 });
 

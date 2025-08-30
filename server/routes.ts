@@ -274,21 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Buscar lojas
-  app.get('/api/stores/search', async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query || query.length < 2) {
-        return res.json([]);
-      }
-      
-      const stores = await storage.searchStores(query);
-      res.json(stores);
-    } catch (error) {
-      console.log('Erro ao buscar lojas:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  });
+  // Endpoint removido - conflitava com o endpoint de filtros abaixo
 
   // Buscar funcionários de um fornecedor
   app.get('/api/suppliers/:id/employees', async (req, res) => {
@@ -483,28 +469,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store search with GET method and query parameters
   app.get("/api/stores/search", async (req, res) => {
     try {
+      console.log("🔍 === BUSCA DE LOJAS ===");
+      console.log("Parâmetros recebidos:", req.query);
+      
+      // Se não há filtros, retornar algumas lojas como exemplo
+      if (Object.keys(req.query).length === 0) {
+        console.log("🚀 Sem filtros - retornando lojas para teste");
+        const allStores = await storage.getAllStores();
+        console.log("🏪 Total de lojas no banco:", allStores.length);
+        return res.json(allStores.slice(0, 10));
+      }
+      
+      // Mapear parâmetros do frontend para o formato esperado pelo storage
       const filters = {
+        codigo_loja: req.query.codigo_loja as string || "",
+        logradouro: req.query.logradouro as string || "",
+        bairro: req.query.bairro as string || "", 
+        cidade: req.query.cidade as string || "",
+        uf: req.query.uf as string || "",
         cep: req.query.cep as string || "",
+        // Compatibilidade com filtros antigos
+        code: req.query.code as string || "",
         address: req.query.address as string || "",
         state: req.query.state as string || "",
         city: req.query.city as string || "",
-        code: req.query.code as string || "",
       };
       
-      console.log("Filtros de busca recebidos na rota:", filters);
+      console.log("📝 Filtros mapeados:", JSON.stringify(filters, null, 2));
       
       const stores = await storage.getStoresByFilters(filters);
-      
-      console.log("Lojas encontradas:", stores.length);
-      
-      if (stores.length === 0) {
-        return res.status(404).json({ error: "Loja não encontrada" });
-      }
+      console.log("📊 Lojas encontradas:", stores.length);
       
       res.json(stores);
     } catch (error) {
-      console.error("Erro na busca de lojas:", error);
-      res.status(500).json({ error: "Erro na busca de lojas" });
+      console.error("❌ Erro na busca de lojas:", error);
+      res.status(500).json({ error: "Erro na busca de lojas", details: error.message });
     }
   });
 

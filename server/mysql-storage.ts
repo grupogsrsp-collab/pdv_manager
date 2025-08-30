@@ -1222,6 +1222,14 @@ export class MySQLStorage implements IStorage {
     const params: any[] = [];
 
     console.log("Filtros recebidos no storage:", filters);
+    
+    // Se nenhum filtro foi fornecido, retornar todas as lojas
+    const hasFilters = Object.values(filters).some(value => value && value.toString().trim());
+    if (!hasFilters) {
+      console.log("Nenhum filtro fornecido, retornando todas as lojas");
+      const [rows] = await pool.execute('SELECT * FROM lojas LIMIT 50') as [RowDataPacket[], any];
+      return rows as Store[];
+    }
 
     // Mapear filtros do frontend para campos do banco
     if (filters.codigo_loja) {
