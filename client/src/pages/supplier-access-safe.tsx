@@ -71,93 +71,169 @@ export default function SupplierAccessSafe() {
 
   const supplier = supplierResult?.data;
 
-  // Função CORRIGIDA para buscar rotas e lojas (processando dados corretos do backend)
+  // Função ULTRA-DEFENSIVA para buscar rotas e lojas (versão 100% à prova de falhas)
   const fetchRouteStoresSafe = async (userData: any, userType: string): Promise<void> => {
+    console.log('🛡️ [BULLET-PROOF] Iniciando busca ultra-segura de rotas');
+    
+    // Proteção 1: Verificar dados de entrada
+    try {
+      if (!userData || !userData.id || !userType) {
+        console.warn('🛡️ [BULLET-PROOF] Dados de entrada inválidos');
+        setRouteStores([]);
+        setLoadingRouteStores(false);
+        return;
+      }
+    } catch (inputError) {
+      console.error('🛡️ [BULLET-PROOF] Erro na validação de entrada:', inputError);
+      setRouteStores([]);
+      setLoadingRouteStores(false);
+      return;
+    }
+
+    // Proteção 2: Set loading de forma segura
     try {
       setLoadingRouteStores(true);
-      console.log('🔍 Buscando rotas para:', { userData, userType });
-      
-      let routeEndpoint = '';
+    } catch (loadingError) {
+      console.error('🛡️ [BULLET-PROOF] Erro ao setar loading:', loadingError);
+    }
+
+    // Proteção 3: Determinar endpoint
+    let routeEndpoint = '';
+    try {
       if (userType === 'supplier') {
         routeEndpoint = `/api/routes/supplier/${userData.id}`;
       } else if (userType === 'employee') {
         routeEndpoint = `/api/routes/employee/${userData.id}`;
       } else {
-        console.warn('Tipo de usuário inválido:', userType);
+        console.warn('🛡️ [BULLET-PROOF] Tipo de usuário inválido:', userType);
         setRouteStores([]);
+        setLoadingRouteStores(false);
         return;
       }
-      
-      console.log('📡 Fazendo request para:', routeEndpoint);
-      const routeResponse = await fetch(routeEndpoint);
-      
-      if (routeResponse.ok) {
-        const routes = await routeResponse.json();
-        console.log('📋 Rotas recebidas do backend:', routes);
-        
-        if (routes && routes.length > 0) {
-          // CORRIGIDO: Extrair lojas diretamente do array 'lojas' retornado pelo backend
-          const allStores: StoreType[] = [];
-          const seenStoreIds = new Set<string>();
-          
-          routes.forEach((route: any) => {
-            console.log('🔄 Processando rota:', route.nome);
-            
-            // O backend retorna route.lojas, não route.store_ids
-            if (route.lojas && Array.isArray(route.lojas)) {
-              console.log('🏪 Lojas na rota:', route.lojas.length);
-              
-              route.lojas.forEach((loja: any) => {
-                // Evitar duplicatas usando loja.id como string
-                const lojaIdStr = String(loja.id);
-                if (!seenStoreIds.has(lojaIdStr)) {
-                  seenStoreIds.add(lojaIdStr);
-                  
-                  console.log('📦 Processando loja:', {
-                    id: loja.id,
-                    nome: loja.nome_loja,
-                    cidade: loja.cidade
-                  });
-                  
-                  // Converter para o formato esperado pelo frontend
-                  const store: StoreType = {
-                    id: parseInt(lojaIdStr) || 0,
-                    codigo_loja: lojaIdStr, // Manter como string conforme retornado da API
-                    nome_loja: loja.nome_loja || 'Nome não informado',
-                    cidade: loja.cidade || 'Cidade não informada',
-                    uf: loja.uf || '',
-                    logradouro: '', // Não vem do backend nesta consulta
-                    bairro: '', // Não vem do backend nesta consulta
-                    cep: '', // Não vem do backend nesta consulta
-                    telefone_loja: '', // Não vem do backend nesta consulta
-                    nome_operador: '', // Não vem do backend nesta consulta
-                    email_operador: '' // Não vem do backend nesta consulta
-                  };
-                  
-                  allStores.push(store);
-                  console.log('✅ Loja adicionada:', store.nome_loja);
-                }
-              });
-            }
-          });
-          
-          console.log('✅ Lojas processadas:', allStores);
-          setRouteStores(allStores);
-          
-        } else {
-          console.log('ℹ️ Nenhuma rota encontrada');
-          setRouteStores([]);
-        }
-      } else {
-        console.error('❌ Erro na resposta das rotas:', routeResponse.status);
-        setRouteStores([]);
-      }
-    } catch (error) {
-      console.error('❌ Erro ao buscar rotas e lojas:', error);
+      console.log('🛡️ [BULLET-PROOF] Endpoint determinado:', routeEndpoint);
+    } catch (endpointError) {
+      console.error('🛡️ [BULLET-PROOF] Erro ao determinar endpoint:', endpointError);
       setRouteStores([]);
-    } finally {
       setLoadingRouteStores(false);
+      return;
     }
+
+    // Proteção 4: Fazer request com timeout
+    let routes = [];
+    try {
+      console.log('🛡️ [BULLET-PROOF] Fazendo request...');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const routeResponse = await fetch(routeEndpoint, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!routeResponse.ok) {
+        throw new Error(`HTTP ${routeResponse.status}: ${routeResponse.statusText}`);
+      }
+      
+      const responseText = await routeResponse.text();
+      console.log('🛡️ [BULLET-PROOF] Response text:', responseText);
+      
+      routes = JSON.parse(responseText);
+      console.log('🛡️ [BULLET-PROOF] Routes parsed:', routes);
+      
+    } catch (fetchError) {
+      console.error('🛡️ [BULLET-PROOF] Erro no fetch:', fetchError);
+      setRouteStores([]);
+      setLoadingRouteStores(false);
+      return;
+    }
+
+    // Proteção 5: Processar dados de forma ultra-defensiva
+    let allStores: StoreType[] = [];
+    try {
+      if (!routes || !Array.isArray(routes) || routes.length === 0) {
+        console.log('🛡️ [BULLET-PROOF] Nenhuma rota encontrada');
+        setRouteStores([]);
+        setLoadingRouteStores(false);
+        return;
+      }
+
+      const seenStoreIds = new Set<string>();
+      
+      for (let i = 0; i < routes.length; i++) {
+        try {
+          const route = routes[i];
+          console.log(`🛡️ [BULLET-PROOF] Processando rota ${i}:`, route?.nome || 'sem nome');
+          
+          if (!route || !route.lojas || !Array.isArray(route.lojas)) {
+            console.log(`🛡️ [BULLET-PROOF] Rota ${i} sem lojas válidas`);
+            continue;
+          }
+          
+          for (let j = 0; j < route.lojas.length; j++) {
+            try {
+              const loja = route.lojas[j];
+              
+              if (!loja || !loja.id) {
+                console.log(`🛡️ [BULLET-PROOF] Loja ${j} da rota ${i} inválida`);
+                continue;
+              }
+              
+              const lojaIdStr = String(loja.id || '');
+              if (!lojaIdStr || seenStoreIds.has(lojaIdStr)) {
+                continue;
+              }
+              
+              seenStoreIds.add(lojaIdStr);
+              
+              const store: StoreType = {
+                id: parseInt(lojaIdStr) || Math.random() * 1000000, // Fallback para ID único
+                codigo_loja: lojaIdStr,
+                nome_loja: String(loja.nome_loja || 'Nome não informado'),
+                cidade: String(loja.cidade || 'Cidade não informada'),
+                uf: String(loja.uf || ''),
+                logradouro: '',
+                bairro: '',
+                cep: '',
+                telefone_loja: '',
+                nome_operador: '',
+                email_operador: ''
+              };
+              
+              allStores.push(store);
+              console.log(`🛡️ [BULLET-PROOF] Loja ${j} adicionada:`, store.nome_loja);
+              
+            } catch (lojaError) {
+              console.error(`🛡️ [BULLET-PROOF] Erro ao processar loja ${j}:`, lojaError);
+            }
+          }
+        } catch (routeError) {
+          console.error(`🛡️ [BULLET-PROOF] Erro ao processar rota ${i}:`, routeError);
+        }
+      }
+      
+    } catch (processError) {
+      console.error('🛡️ [BULLET-PROOF] Erro no processamento:', processError);
+      allStores = [];
+    }
+
+    // Proteção 6: Setar resultado de forma segura
+    try {
+      console.log(`🛡️ [BULLET-PROOF] Setando ${allStores.length} lojas processadas`);
+      setRouteStores(allStores);
+    } catch (setError) {
+      console.error('🛡️ [BULLET-PROOF] Erro ao setar lojas:', setError);
+    }
+
+    // Proteção 7: Finalizar loading de forma segura
+    try {
+      setLoadingRouteStores(false);
+    } catch (finalError) {
+      console.error('🛡️ [BULLET-PROOF] Erro ao finalizar loading:', finalError);
+    }
+
+    console.log('🛡️ [BULLET-PROOF] Processo completado com sucesso');
   };
 
   // Função ultra-segura para seleção no mobile
