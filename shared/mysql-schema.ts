@@ -152,6 +152,27 @@ export interface InsertFotoOriginalLoja {
   kit_id: number;
 }
 
+// Interface para as 4 fotos específicas da loja
+export interface FotoLojaEspecifica {
+  id: number;
+  loja_id: string;
+  id_instalacao?: number;
+  url_foto_frente_loja?: string;
+  url_foto_interna_loja?: string;
+  url_foto_interna_lado_direito?: string;
+  url_foto_interna_lado_esquerdo?: string;
+  created_at: string;
+}
+
+export interface InsertFotoLojaEspecifica {
+  loja_id: string;
+  id_instalacao?: number;
+  url_foto_frente_loja?: string;
+  url_foto_interna_loja?: string;
+  url_foto_interna_lado_direito?: string;
+  url_foto_interna_lado_esquerdo?: string;
+}
+
 // Instalações (não estava nos campos originais, mas mantendo para compatibilidade)
 export interface Installation {
   id: string;

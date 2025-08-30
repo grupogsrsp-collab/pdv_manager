@@ -1,0 +1,94 @@
+{
+  "role": "expert_developer_instructions",
+  "task_description": "Ajuste funcional e de interface na tela de Checklist de Instalação.",
+  "target_file_path": "/installation-checklist",
+  "context": "Esta tela é usada por técnicos para documentar a instalação de equipamentos em uma loja. É crucial que a captura de imagens seja controlada e que a lógica de validação seja robusta antes do envio.",
+  "requirements": [
+    {
+      "area": "Front-End",
+      "component_id": "Fotos Originais da Loja",
+      "instructions": [
+        {
+          "type": "UI Change",
+          "description": "Reduzir o número de campos de upload de fotos para exatamente 4.",
+          "details": {
+            "field_1": {
+              "label": "Foto da Frente da Loja",
+              "attributes": {
+                "accept": "image/*",
+                "capture": "environment"
+              }
+            },
+            "field_2": {
+              "label": "Foto Interna da Loja",
+              "attributes": {
+                "accept": "image/*",
+                "capture": "environment"
+              }
+            },
+            "field_3": {
+              "label": "Foto Interna Lado Direito",
+              "attributes": {
+                "accept": "image/*",
+                "capture": "environment"
+              }
+            },
+            "field_4": {
+              "label": "Foto Interna Lado Esquerdo",
+              "attributes": {
+                "accept": "image/*",
+                "capture": "environment"
+              }
+            }
+          }
+        },
+        {
+          "type": "Constraint",
+          "description": "O upload de fotos deve ser restrito ao uso direto da câmera do dispositivo móvel (Android e iOS). O acesso à galeria de fotos do usuário deve ser desabilitado.",
+          "implementation_notes": "Para inputs HTML do tipo 'file', utilize o atributo 'capture' (ex: `<input type='file' accept='image/*' capture='environment'>`). A câmera traseira ('environment') é preferível."
+        }
+      ]
+    },
+    {
+      "area": "Back-End & Database",
+      "component_id": "Armazenamento de Fotos",
+      "instructions": [
+        {
+          "type": "Database Schema",
+          "description": "Garantir que as fotos sejam armazenadas corretamente no banco de dados da Hostinger.",
+          "details": {
+            "database_table": "fotos_originais_loja",
+            "required_columns": [
+              "id_instalacao (chave estrangeira, se aplicável)",
+              "url_foto_frente_loja",
+              "url_foto_interna_loja",
+              "url_foto_interna_lado_direito",
+              "url_foto_interna_lado_esquerdo"
+            ],
+            "action": "Verifique se a tabela 'fotos_originais_loja' e as colunas especificadas existem. Se não existirem, gere e execute o script SQL (ALTER TABLE ou CREATE TABLE) necessário para criá-las. As colunas para as URLs das fotos devem ser do tipo VARCHAR ou TEXT."
+          }
+        }
+      ]
+    },
+    {
+      "area": "Logic & User Experience (UX)",
+      "component_id": "Validação de Finalização",
+      "instructions": [
+        {
+          "type": "Conditional Logic",
+          "trigger_element_id": "instalação finalizada",
+          "trigger_event": "onClick",
+          "description": "O campo 'Justificar Ausência de Foto' deve ter sua visibilidade controlada dinamicamente.",
+          "rules": [
+            "1. Por padrão, o campo 'Justificar Ausência de Foto' deve estar oculto (display: none ou similar).",
+            "2. Quando o usuário clicar no botão 'instalação finalizada', execute uma função de validação.",
+            "3. A função deve verificar se algum dos quatro campos de foto está vazio.",
+            "4. Se um ou mais campos de foto estiverem vazios, exiba o campo 'Justificar Ausência de Foto' e impeça o envio do formulário.",
+            "5. Se todos os quatro campos de foto estiverem preenchidos, prossiga com o envio normal do formulário."
+          ]
+        }
+      ]
+    }
+  ],
+  "expected_outcome": "A tela '/installation-checklist' deve refletir as mudanças na interface, forçar o uso da câmera para upload, interagir corretamente com a estrutura do banco de dados e aplicar a lógica de validação de campos vazios ao finalizar a checklist."
+}

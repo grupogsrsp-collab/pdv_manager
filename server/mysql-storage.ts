@@ -295,6 +295,20 @@ export class MySQLStorage implements IStorage {
           kit_id INT NOT NULL,
           FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
           FOREIGN KEY (kit_id) REFERENCES kits(id)
+        )`,
+        
+        // Tabela para as 4 fotos específicas da loja
+        `CREATE TABLE IF NOT EXISTS fotos_loja_especificas (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          loja_id VARCHAR(20) NOT NULL,
+          id_instalacao INT,
+          url_foto_frente_loja VARCHAR(500),
+          url_foto_interna_loja VARCHAR(500),
+          url_foto_interna_lado_direito VARCHAR(500),
+          url_foto_interna_lado_esquerdo VARCHAR(500),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (loja_id) REFERENCES lojas(codigo_loja),
+          UNIQUE KEY unique_loja_instalacao (loja_id, id_instalacao)
         )`, 
         
         `CREATE TABLE IF NOT EXISTS instalacoes (

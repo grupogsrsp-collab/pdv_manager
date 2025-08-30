@@ -9,7 +9,7 @@ import SupplierAccess from "@/pages/supplier-access-simple";
 import StoreAccess from "@/pages/store-access";
 import StoreSearch from "@/pages/store-search-ultra-simple";
 import SupplierDashboard from "@/pages/supplier-dashboard";
-import InstallationChecklist from "@/pages/installation-checklist";
+import InstallationChecklist from "@/pages/installation-checklist-new";
 import StoreDashboard from "@/pages/store-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard-new";
 import AdminSuppliers from "@/pages/admin-suppliers";
