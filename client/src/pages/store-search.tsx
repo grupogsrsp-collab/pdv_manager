@@ -26,8 +26,8 @@ export default function StoreSearch() {
   const [searchResults, setSearchResults] = useState<StoreType[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Função para buscar lojas
-  const searchStores = async () => {
+  // Função para buscar lojas - SIMPLIFICADA PARA MOBILE
+  const searchStores = () => {
     // Verificar se pelo menos um campo foi preenchido
     const hasFilter = Object.values(searchFilters).some(value => value.trim() !== "");
     
@@ -43,28 +43,36 @@ export default function StoreSearch() {
     setSearching(true);
     setHasSearched(true);
     
-    try {
-      // Preparar filtros para envio
-      const filters: any = {};
-      
-      if (searchFilters.codigo_loja) filters.codigo_loja = searchFilters.codigo_loja;
-      if (searchFilters.rua) filters.logradouro = searchFilters.rua;
-      if (searchFilters.bairro) filters.bairro = searchFilters.bairro;
-      if (searchFilters.municipio) filters.cidade = searchFilters.municipio;
-      if (searchFilters.estado) filters.uf = searchFilters.estado;
-      
-      // Usar POST para enviar os filtros
-      const response = await fetch('/api/stores/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(filters)
-      });
-      
-      if (response.ok) {
-        const stores = await response.json();
+    // Preparar filtros de forma simples
+    const params = new URLSearchParams();
+    
+    if (searchFilters.codigo_loja.trim()) {
+      params.append('codigo_loja', searchFilters.codigo_loja.trim());
+    }
+    if (searchFilters.rua.trim()) {
+      params.append('logradouro', searchFilters.rua.trim());
+    }
+    if (searchFilters.bairro.trim()) {
+      params.append('bairro', searchFilters.bairro.trim());
+    }
+    if (searchFilters.municipio.trim()) {
+      params.append('cidade', searchFilters.municipio.trim());
+    }
+    if (searchFilters.estado.trim()) {
+      params.append('uf', searchFilters.estado.trim());
+    }
+    
+    // Fazer a busca usando GET para simplificar
+    fetch(`/api/stores/search?${params.toString()}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Erro na busca");
+        }
+        return response.json();
+      })
+      .then(stores => {
         setSearchResults(stores);
+        setSearching(false);
         
         if (stores.length === 0) {
           toast({
@@ -78,20 +86,17 @@ export default function StoreSearch() {
             description: `${stores.length} loja(s) encontrada(s)`,
           });
         }
-      } else {
-        throw new Error("Erro na busca");
-      }
-    } catch (error) {
-      console.error('Erro ao buscar lojas:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao buscar lojas. Tente novamente.",
-        variant: "destructive"
+      })
+      .catch(error => {
+        console.error('Erro ao buscar lojas:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao buscar lojas. Tente novamente.",
+          variant: "destructive"
+        });
+        setSearchResults([]);
+        setSearching(false);
       });
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
   };
 
   // Função para limpar filtros
