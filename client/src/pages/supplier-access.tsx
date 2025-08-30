@@ -60,52 +60,106 @@ export default function SupplierAccess() {
 
   const supplier = supplierResult?.data;
   
+  // Detectar se é mobile de forma mais robusta
+  const isMobileDevice = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent) ||
+           window.innerWidth <= 768 ||
+           ('ontouchstart' in window);
+  }, []);
+
   const handleSelectSuggestion = React.useCallback((suggestionId: string, suggestionType: string) => {
-    if (isProcessingSelection) return;
+    console.log('🔍 Iniciando seleção:', { suggestionId, suggestionType, isMobile: isMobileDevice });
     
-    const suggestion = searchSuggestions.find(s => 
-      s.data.id.toString() === suggestionId && s.type === suggestionType
-    );
-    
-    if (!suggestion) return;
-    
-    setIsProcessingSelection(true);
-    setShowSuggestions(false);
-    setSearchSuggestions([]);
-    setDebouncedSearchTerm("");
+    if (isProcessingSelection) {
+      console.log('⚠️ Já processando seleção, ignorando');
+      return;
+    }
     
     try {
-      setSupplierResult(suggestion);
-      setSearchTerm(
-        suggestion.type === 'supplier' 
-          ? suggestion.data.nome_fornecedor 
-          : suggestion.data.nome_funcionario
+      const suggestion = searchSuggestions.find(s => 
+        s.data.id.toString() === suggestionId && s.type === suggestionType
       );
       
+      if (!suggestion) {
+        console.log('❌ Sugestão não encontrada');
+        return;
+      }
+      
+      console.log('✅ Sugestão encontrada:', suggestion.data.nome_fornecedor || suggestion.data.nome_funcionario);
+      
+      setIsProcessingSelection(true);
+      
+      // Limpar estados de busca imediatamente
+      setShowSuggestions(false);
+      setSearchSuggestions([]);
+      setDebouncedSearchTerm("");
+      
+      // Atualizar resultado
+      setSupplierResult(suggestion);
+      const displayName = suggestion.type === 'supplier' 
+        ? suggestion.data.nome_fornecedor 
+        : suggestion.data.nome_funcionario;
+      setSearchTerm(displayName);
+      
+      console.log('💾 Salvando no localStorage...');
+      
+      // Salvar no localStorage de forma mais segura
       const storageData = {
-        ...suggestion.data,
+        id: suggestion.data.id,
+        nome_fornecedor: suggestion.data.nome_fornecedor || '',
+        nome_funcionario: suggestion.data.nome_funcionario || '',
+        cnpj: suggestion.data.cnpj || '',
+        cpf: suggestion.data.cpf || '',
+        telefone: suggestion.data.telefone || '',
+        endereco: suggestion.data.endereco || '',
         searchType: suggestion.type
       };
       
-      localStorage.setItem("supplier_access", JSON.stringify(storageData));
+      try {
+        localStorage.setItem("supplier_access", JSON.stringify(storageData));
+        console.log('✅ Dados salvos no localStorage');
+      } catch (storageError) {
+        console.error('❌ Erro ao salvar no localStorage:', storageError);
+      }
       
+      // Toast de sucesso
       toast({
         title: "Sucesso!",
         description: `${suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} selecionado.`,
       });
       
-      fetchRouteStores(suggestion.data, suggestion.type)
-        .finally(() => setIsProcessingSelection(false));
-        
+      console.log('🚀 Iniciando busca de lojas...');
+      
+      // Para mobile, usar processo mais simples sem buscar lojas automaticamente
+      if (isMobileDevice) {
+        console.log('📱 Modo mobile - finalizando sem buscar lojas');
+        setIsProcessingSelection(false);
+      } else {
+        // Desktop: buscar lojas normalmente
+        setTimeout(async () => {
+          try {
+            await fetchRouteStores(suggestion.data, suggestion.type);
+            console.log('✅ Busca de lojas concluída');
+          } catch (error) {
+            console.error('❌ Erro ao buscar lojas:', error);
+          } finally {
+            setIsProcessingSelection(false);
+            console.log('🏁 Processamento finalizado');
+          }
+        }, 100);
+      }
+      
     } catch (error) {
+      console.error('❌ Erro crítico na seleção:', error);
       setIsProcessingSelection(false);
       toast({
         title: "Erro",
-        description: "Erro ao processar seleção.",
+        description: "Falha ao processar seleção. Tente novamente.",
         variant: "destructive"
       });
     }
-  }, [searchSuggestions, isProcessingSelection, toast]);
+  }, [searchSuggestions, isProcessingSelection, isMobileDevice, toast]);
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -252,44 +306,62 @@ export default function SupplierAccess() {
                       autoComplete="off"
                     />
                     
-                    {/* Lista simplificada para mobile */}
+                    {/* Lista de sugestões com tratamento específico para mobile */}
                     {showSuggestions && searchSuggestions.length > 0 && !supplierResult && (
                       <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                        {searchSuggestions.map((suggestion, index) => (
-                          <button
-                            key={`${suggestion.type}-${suggestion.data.id}`}
-                            type="button"
-                            className="w-full px-4 py-3 text-left hover:bg-gray-100 border-b last:border-b-0 focus:bg-gray-100 focus:outline-none"
-                            onClick={() => handleSelectSuggestion(suggestion.data.id.toString(), suggestion.type)}
-                            disabled={isProcessingSelection}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900">
-                                  {suggestion.type === 'supplier' ? 
-                                    suggestion.data.nome_fornecedor : 
-                                    suggestion.data.nome_funcionario
-                                  }
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  {suggestion.type === 'supplier' ? (
-                                    `CNPJ: ${suggestion.data.cnpj || 'Não informado'}`
-                                  ) : (
-                                    `CPF: ${suggestion.data.cpf || 'Não informado'} - Empresa: ${suggestion.data.nome_fornecedor || ''}`
+                        {searchSuggestions.map((suggestion, index) => {
+                          const suggestionId = suggestion.data.id.toString();
+                          const suggestionType = suggestion.type;
+                          
+                          return (
+                            <div
+                              key={`suggestion-${suggestionId}-${suggestionType}-${index}`}
+                              className="px-4 py-3 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 active:bg-gray-200"
+                              style={{
+                                WebkitTapHighlightColor: 'rgba(0, 0, 0, 0.1)',
+                                userSelect: 'none',
+                                WebkitUserSelect: 'none'
+                              }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                console.log('🖱️ Mouse down - desktop');
+                                handleSelectSuggestion(suggestionId, suggestionType);
+                              }}
+                              onTouchStart={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('📱 Touch start - mobile');
+                                handleSelectSuggestion(suggestionId, suggestionType);
+                              }}
+                            >
+                              <div className="flex justify-between items-start pointer-events-none">
+                                <div className="flex-1">
+                                  <div className="font-semibold text-gray-900">
+                                    {suggestion.type === 'supplier' ? 
+                                      suggestion.data.nome_fornecedor : 
+                                      suggestion.data.nome_funcionario
+                                    }
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    {suggestion.type === 'supplier' ? (
+                                      `CNPJ: ${suggestion.data.cnpj || 'Não informado'}`
+                                    ) : (
+                                      `CPF: ${suggestion.data.cpf || 'Não informado'} - Empresa: ${suggestion.data.nome_fornecedor || ''}`
+                                    )}
+                                  </div>
+                                  {suggestion.data.nome_responsavel && suggestion.type === 'supplier' && (
+                                    <div className="text-sm text-gray-500">
+                                      Responsável: {suggestion.data.nome_responsavel}
+                                    </div>
                                   )}
                                 </div>
-                                {suggestion.data.nome_responsavel && suggestion.type === 'supplier' && (
-                                  <div className="text-sm text-gray-500">
-                                    Responsável: {suggestion.data.nome_responsavel}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
+                                <div className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                  {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
+                                </div>
                               </div>
                             </div>
-                          </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
