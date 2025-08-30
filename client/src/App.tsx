@@ -7,7 +7,7 @@ import { auth } from "@/lib/auth";
 import Login from "@/pages/login";
 import SupplierAccess from "@/pages/supplier-access-simple";
 import StoreAccess from "@/pages/store-access";
-import StoreSearch from "@/pages/store-search";
+import StoreSearch from "@/pages/store-search-ultra-simple";
 import SupplierDashboard from "@/pages/supplier-dashboard";
 import InstallationChecklist from "@/pages/installation-checklist";
 import StoreDashboard from "@/pages/store-dashboard";

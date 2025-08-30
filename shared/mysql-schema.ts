@@ -284,9 +284,11 @@ export const cpfSearchSchema = z.object({
 // Schema para filtros de loja
 export const storeFilterSchema = z.object({
   codigo_loja: z.string().optional(),
-  cep: z.string().optional(),
+  logradouro: z.string().optional(),
+  bairro: z.string().optional(),
   cidade: z.string().optional(),
   uf: z.string().optional(),
+  cep: z.string().optional(),
   regiao: z.string().optional(),
 });
 
