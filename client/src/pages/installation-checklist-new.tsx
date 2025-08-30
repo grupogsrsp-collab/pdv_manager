@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, CheckCircle, MapPin, Navigation } from "lucide-react";
-import TicketForm from "@/components/forms/ticket-form";
+import { Camera, CheckCircle } from "lucide-react";
 import SuccessModal from "@/components/modals/success-modal";
 import { useToast } from "@/hooks/use-toast";
 import { type Store, type Supplier, type Kit } from "@shared/mysql-schema";
@@ -57,17 +56,9 @@ export default function InstallationChecklistNew() {
   const [fotosFinais, setFotosFinais] = useState<File[]>([]);
   const [fotosFinaisBase64, setFotosFinaisBase64] = useState<string[]>([]);
   
-  const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [photoJustification, setPhotoJustification] = useState("");
   const [showJustificationField, setShowJustificationField] = useState(false);
-  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
-  const [locationData, setLocationData] = useState<{
-    latitude: number;
-    longitude: number;
-    address: string;
-    mapScreenshot?: string;
-  } | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
   // Get data from localStorage
@@ -131,15 +122,6 @@ export default function InstallationChecklistNew() {
       if (fotosFaltando > 0) {
         setShowJustificationField(true);
       }
-      
-      // Carregar dados de geolocalização se existirem
-      if (existingInstallation.latitude && existingInstallation.longitude) {
-        setLocationData({
-          latitude: existingInstallation.latitude,
-          longitude: existingInstallation.longitude,
-          address: existingInstallation.endereco_geolocalizacao || `${existingInstallation.latitude.toFixed(6)}, ${existingInstallation.longitude.toFixed(6)}`
-        });
-      }
     }
   }, [existingInstallation, kits]);
 
@@ -163,36 +145,6 @@ export default function InstallationChecklistNew() {
     return faltando;
   };
 
-  // Função para capturar geolocalização
-  const captureGeolocation = async (): Promise<{latitude: number, longitude: number, address: string}> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocalização não suportada"));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-          
-          resolve({
-            latitude,
-            longitude,
-            address
-          });
-        },
-        () => {
-          reject(new Error("Erro ao obter localização"));
-        },
-        {
-          enableHighAccuracy: false,
-          timeout: 5000,
-          maximumAge: 300000
-        }
-      );
-    });
-  };
 
   // Função para converter File para base64 comprimido
   const convertFileToBase64 = (file: File): Promise<string> => {
@@ -231,26 +183,7 @@ export default function InstallationChecklistNew() {
 
   const finalizeMutation = useMutation({
     mutationFn: async () => {
-      setIsCapturingLocation(true);
-      
-      // Tentar capturar geolocalização
-      let geoData = null;
       try {
-        geoData = await Promise.race([
-          captureGeolocation(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 8000)
-          )
-        ]) as {latitude: number, longitude: number, address: string};
-        
-        setLocationData(geoData);
-        console.log("Localização capturada:", geoData);
-      } catch (error) {
-        console.log("Geolocalização não disponível, continuando sem localização");
-        geoData = null;
-      } finally {
-        setIsCapturingLocation(false);
-      }
       
       // Converter novas fotos para base64
       const fotosConvertidas: string[] = [];
@@ -293,38 +226,40 @@ export default function InstallationChecklistNew() {
         }
       }
 
-      const installationData = {
-        loja_id: store.codigo_loja,
-        fornecedor_id: supplier.id,
-        responsible: responsibleName,
-        installationDate: installationDate,
-        fotosOriginais: fotosConvertidas.filter(Boolean) || [], // Garantir array vazio ao invés de null
-        fotosFinais: fotosFinaisConvertidas.filter(Boolean) || [], // Garantir array vazio ao invés de null
-        justificativaFotos: photoJustification || undefined,
-        latitude: geoData?.latitude,
-        longitude: geoData?.longitude,
-        endereco_geolocalizacao: geoData?.address,
-        mapa_screenshot_url: geoData && 'mapScreenshot' in geoData ? geoData.mapScreenshot : undefined,
-        geolocalizacao_timestamp: geoData ? new Date().toISOString() : undefined,
-      };
+        const installationData = {
+          loja_id: store.codigo_loja,
+          fornecedor_id: supplier.id,
+          responsible: responsibleName,
+          installationDate: installationDate,
+          fotosOriginais: fotosConvertidas.filter(Boolean) || [],
+          fotosFinais: fotosFinaisConvertidas.filter(Boolean) || [],
+          justificativaFotos: photoJustification || undefined
+        };
 
-      const response = await fetch("/api/installations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(installationData),
-      });
+        const response = await fetch("/api/installations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(installationData),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao finalizar instalação");
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Erro ao finalizar instalação");
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Erro ao finalizar instalação:", error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
-      setShowSuccessModal(true);
+      // Pequeno delay para garantir que o DOM esteja estável
+      setTimeout(() => {
+        setShowSuccessModal(true);
+      }, 100);
       queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
     },
     onError: () => {
@@ -412,9 +347,12 @@ export default function InstallationChecklistNew() {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    localStorage.removeItem("supplier_access");
-    localStorage.removeItem("selected_store");
-    setLocation("/supplier-access");
+    // Delay para garantir que o modal feche antes de navegar
+    setTimeout(() => {
+      localStorage.removeItem("supplier_access");
+      localStorage.removeItem("selected_store");
+      setLocation("/supplier-access");
+    }, 200);
   };
 
   const handleLogout = () => {
@@ -692,53 +630,20 @@ export default function InstallationChecklistNew() {
           </Card>
         )}
 
-        {/* Geolocalização */}
-        {locationData && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Localização Capturada
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Latitude: {locationData.latitude.toFixed(6)}<br/>
-                Longitude: {locationData.longitude.toFixed(6)}<br/>
-                Endereço: {locationData.address}
-              </p>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Ticket Form */}
-        {showTicketForm && (
-          <TicketForm
-            onClose={() => setShowTicketForm(false)}
-          />
-        )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button
-            onClick={() => setShowTicketForm(true)}
-            variant="outline"
-            className="flex-1"
-            data-testid="button-open-ticket"
-          >
-            Abrir Chamado
-          </Button>
-          
+        <div className="flex justify-center">
           <Button
             onClick={handleFinalize}
-            disabled={finalizeMutation.isPending || isCapturingLocation}
-            className="flex-1 bg-green-600 hover:bg-green-700"
+            disabled={finalizeMutation.isPending}
+            className="bg-green-600 hover:bg-green-700 px-8 py-3"
             data-testid="button-finalize"
           >
             {finalizeMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                {isCapturingLocation ? "Capturando localização..." : "Finalizando..."}
+                Finalizando...
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -750,12 +655,14 @@ export default function InstallationChecklistNew() {
         </div>
 
         {/* Success Modal */}
-        <SuccessModal
-          open={showSuccessModal}
-          onClose={handleSuccessModalClose}
-          title="Instalação Finalizada!"
-          message="A instalação foi registrada com sucesso. Obrigado!"
-        />
+        {showSuccessModal && (
+          <SuccessModal
+            open={showSuccessModal}
+            onClose={handleSuccessModalClose}
+            title="Instalação Finalizada!"
+            message="A instalação foi registrada com sucesso. Obrigado!"
+          />
+        )}
       </div>
     </div>
   );
