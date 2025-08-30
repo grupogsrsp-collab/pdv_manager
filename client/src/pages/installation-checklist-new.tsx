@@ -11,7 +11,7 @@ import { Camera, CheckCircle, MapPin, Navigation } from "lucide-react";
 import TicketForm from "@/components/forms/ticket-form";
 import SuccessModal from "@/components/modals/success-modal";
 import { useToast } from "@/hooks/use-toast";
-import { type Store, type Supplier } from "@shared/mysql-schema";
+import { type Store, type Supplier, type Kit } from "@shared/mysql-schema";
 
 // Tipos específicos para as 4 fotos da loja
 interface FotoLojaEspecifica {
@@ -53,6 +53,10 @@ export default function InstallationChecklistNew() {
   // Estados para fotos já salvas (URLs base64)
   const [fotosOriginaisBase64, setFotosOriginaisBase64] = useState<FotoLojaEspecifica>({});
   
+  // Estados para fotos finais dos kits
+  const [fotosFinais, setFotosFinais] = useState<File[]>([]);
+  const [fotosFinaisBase64, setFotosFinaisBase64] = useState<string[]>([]);
+  
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [photoJustification, setPhotoJustification] = useState("");
@@ -72,6 +76,11 @@ export default function InstallationChecklistNew() {
   
   const supplier: Supplier | null = supplierData ? JSON.parse(supplierData) : null;
   const store: Store | null = storeData ? JSON.parse(storeData) : null;
+
+  // Fetch kits data
+  const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
+    queryKey: ["/api/kits"],
+  });
 
   // Fetch existing installation data for this store
   const { data: existingInstallation, isLoading: installationLoading } = useQuery<Installation | null>({
@@ -106,6 +115,17 @@ export default function InstallationChecklistNew() {
         setFotosOriginaisBase64(fotosExistentes);
       }
       
+      // Carregar fotos finais existentes
+      if (existingInstallation.fotosFinais && Array.isArray(existingInstallation.fotosFinais) && kits.length > 0) {
+        const finalPhotosArray = new Array(kits.length).fill("");
+        existingInstallation.fotosFinais.forEach((photo, index) => {
+          if (index < kits.length && photo && photo.trim() !== "") {
+            finalPhotosArray[index] = photo;
+          }
+        });
+        setFotosFinaisBase64(finalPhotosArray);
+      }
+      
       // Se há fotos faltando, mostrar campo de justificativa
       const fotosFaltando = contarFotosFaltando();
       if (fotosFaltando > 0) {
@@ -126,10 +146,20 @@ export default function InstallationChecklistNew() {
   // Função para contar fotos faltando
   const contarFotosFaltando = (): number => {
     let faltando = 0;
+    
+    // Contar fotos originais faltando
     if (!fotosOriginais.frente_loja && !fotosOriginaisBase64.url_foto_frente_loja) faltando++;
     if (!fotosOriginais.interna_loja && !fotosOriginaisBase64.url_foto_interna_loja) faltando++;
     if (!fotosOriginais.interna_lado_direito && !fotosOriginaisBase64.url_foto_interna_lado_direito) faltando++;
     if (!fotosOriginais.interna_lado_esquerdo && !fotosOriginaisBase64.url_foto_interna_lado_esquerdo) faltando++;
+    
+    // Contar fotos finais dos kits faltando
+    for (let i = 0; i < kits.length; i++) {
+      if (!fotosFinais[i] && !fotosFinaisBase64[i]) {
+        faltando++;
+      }
+    }
+    
     return faltando;
   };
 
@@ -253,13 +283,23 @@ export default function InstallationChecklistNew() {
         fotosConvertidas[3] = fotosOriginaisBase64.url_foto_interna_lado_esquerdo;
       }
 
+      // Converter fotos finais dos kits
+      const fotosFinaisConvertidas: string[] = [];
+      for (let i = 0; i < kits.length; i++) {
+        if (fotosFinais[i]) {
+          fotosFinaisConvertidas[i] = await convertFileToBase64(fotosFinais[i]);
+        } else if (fotosFinaisBase64[i]) {
+          fotosFinaisConvertidas[i] = fotosFinaisBase64[i];
+        }
+      }
+
       const installationData = {
         loja_id: store.codigo_loja,
         fornecedor_id: supplier.id,
         responsible: responsibleName,
         installationDate: installationDate,
         fotosOriginais: fotosConvertidas,
-        fotosFinais: [], // Manter vazio por enquanto
+        fotosFinais: fotosFinaisConvertidas,
         justificativaFotos: photoJustification || undefined,
         latitude: geoData?.latitude,
         longitude: geoData?.longitude,
@@ -309,6 +349,27 @@ export default function InstallationChecklistNew() {
         ...prev,
         [campo]: undefined
       }));
+    }
+  };
+
+  const handleFotoFinalUpload = (index: number, file: File | null) => {
+    setFotosFinais(prev => {
+      const newPhotos = [...prev];
+      if (file) {
+        newPhotos[index] = file;
+      } else {
+        newPhotos.splice(index, 1);
+      }
+      return newPhotos;
+    });
+    
+    // Se removeu uma foto, limpar também a base64
+    if (!file) {
+      setFotosFinaisBase64(prev => {
+        const newPhotos = [...prev];
+        newPhotos[index] = "";
+        return newPhotos;
+      });
     }
   };
 
@@ -537,6 +598,76 @@ export default function InstallationChecklistNew() {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Fotos Finais dos Kits */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Fotos Após Instalação</CardTitle>
+            <p className="text-sm text-gray-600 mt-2">
+              Instalador, fotografe todos os itens instalados
+            </p>
+          </CardHeader>
+          <CardContent>
+            {kitsLoading ? (
+              <div className="text-center py-4">Carregando kits...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {kits.map((kit, index) => (
+                  <div
+                    key={kit.id}
+                    className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    {(fotosFinais[index] || fotosFinaisBase64[index]) ? (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={fotosFinais[index] 
+                            ? URL.createObjectURL(fotosFinais[index]) 
+                            : fotosFinaisBase64[index]
+                          }
+                          alt={`Foto final - ${kit.nome_peca}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() => handleFotoFinalUpload(index, null)}
+                          data-testid={`button-remove-final-${kit.id}`}
+                        >
+                          ×
+                        </Button>
+                        {fotosFinaisBase64[index] && !fotosFinais[index] && (
+                          <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
+                            ✓ Salva
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
+                        <Camera className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-700 font-medium mb-1">{kit.nome_peca}</span>
+                        <span className="text-xs text-gray-500">{kit.descricao}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          data-testid={`input-foto-final-${kit.id}`}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFotoFinalUpload(index, file);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
