@@ -71,7 +71,7 @@ export default function SupplierAccessSafe() {
 
   const supplier = supplierResult?.data;
 
-  // Função CORRIGIDA para buscar rotas e lojas
+  // Função CORRIGIDA para buscar rotas e lojas (processando dados corretos do backend)
   const fetchRouteStoresSafe = async (userData: any, userType: string): Promise<void> => {
     try {
       setLoadingRouteStores(true);
@@ -93,44 +93,49 @@ export default function SupplierAccessSafe() {
       
       if (routeResponse.ok) {
         const routes = await routeResponse.json();
-        console.log('📋 Rotas recebidas:', routes);
+        console.log('📋 Rotas recebidas do backend:', routes);
         
         if (routes && routes.length > 0) {
-          // Extrair store_ids de forma mais robusta
-          const allStoreIds: number[] = [];
+          // CORRIGIDO: Extrair lojas diretamente do array 'lojas' retornado pelo backend
+          const allStores: StoreType[] = [];
+          const seenStoreIds = new Set<string>();
           
           routes.forEach((route: any) => {
-            if (route.store_ids && Array.isArray(route.store_ids)) {
-              route.store_ids.forEach((id: any) => {
-                const storeId = typeof id === 'string' ? parseInt(id, 10) : id;
-                if (!isNaN(storeId) && !allStoreIds.includes(storeId)) {
-                  allStoreIds.push(storeId);
+            console.log('🔄 Processando rota:', route.nome);
+            
+            // O backend retorna route.lojas, não route.store_ids
+            if (route.lojas && Array.isArray(route.lojas)) {
+              console.log('🏪 Lojas na rota:', route.lojas.length);
+              
+              route.lojas.forEach((loja: any) => {
+                // Evitar duplicatas
+                if (!seenStoreIds.has(loja.id)) {
+                  seenStoreIds.add(loja.id);
+                  
+                  // Converter para o formato esperado pelo frontend
+                  const store: StoreType = {
+                    id: parseInt(loja.id) || 0,
+                    codigo_loja: loja.id, // loja_id é o código da loja
+                    nome_loja: loja.nome_loja || 'Nome não informado',
+                    cidade: loja.cidade || 'Cidade não informada',
+                    uf: loja.uf || '',
+                    logradouro: '', // Não vem do backend nesta consulta
+                    bairro: '', // Não vem do backend nesta consulta
+                    cep: '', // Não vem do backend nesta consulta
+                    telefone_loja: '', // Não vem do backend nesta consulta
+                    nome_operador: '', // Não vem do backend nesta consulta
+                    email_operador: '' // Não vem do backend nesta consulta
+                  };
+                  
+                  allStores.push(store);
                 }
               });
             }
           });
           
-          console.log('🏪 IDs das lojas extraídos:', allStoreIds);
+          console.log('✅ Lojas processadas:', allStores);
+          setRouteStores(allStores);
           
-          if (allStoreIds.length > 0) {
-            const storeResponse = await fetch('/api/stores/by-ids', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storeIds: allStoreIds })
-            });
-            
-            if (storeResponse.ok) {
-              const stores = await storeResponse.json();
-              console.log('🏬 Lojas recebidas:', stores);
-              setRouteStores(stores || []);
-            } else {
-              console.error('❌ Erro na resposta das lojas:', storeResponse.status);
-              setRouteStores([]);
-            }
-          } else {
-            console.log('ℹ️ Nenhuma loja encontrada nas rotas');
-            setRouteStores([]);
-          }
         } else {
           console.log('ℹ️ Nenhuma rota encontrada');
           setRouteStores([]);
