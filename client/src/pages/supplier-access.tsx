@@ -60,69 +60,80 @@ export default function SupplierAccess() {
 
   const supplier = supplierResult?.data;
   
-  const handleSelectSuggestion = (suggestion: any, event?: any) => {
+  // Detectar se é dispositivo móvel
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  const handleSelectSuggestion = (suggestion: any) => {
     // Prevenir processamento duplo
     if (isProcessingSelection) {
-      console.log('Já processando seleção, ignorando');
       return;
     }
 
     try {
       setIsProcessingSelection(true);
       
-      // Prevenir eventos padrão para evitar conflitos
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      console.log('Selecionando sugestão:', suggestion?.data?.nome_fornecedor || suggestion?.data?.nome_funcionario);
       
-      console.log('Selecionando sugestão:', suggestion);
-      
-      // Evitar seleção dupla se já há um fornecedor selecionado
-      if (supplierResult && supplierResult.data.id === suggestion.data.id) {
-        console.log('Fornecedor já selecionado, ignorando');
+      // Evitar seleção dupla
+      if (supplierResult && supplierResult.data?.id === suggestion?.data?.id) {
         setShowSuggestions(false);
-        setSearchSuggestions([]);
         setIsProcessingSelection(false);
         return;
       }
       
-      // Primeiro esconder sugestões imediatamente
+      // Esconder sugestões e limpar busca
       setShowSuggestions(false);
       setSearchSuggestions([]);
-      
-      // Atualizar estado com dados selecionados
-      setSupplierResult(suggestion);
-      setSearchTerm(suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario);
-      
-      // Limpar debounced term para evitar nova busca
       setDebouncedSearchTerm("");
       
-      // Armazenar no localStorage
+      // Criar dados seguros para armazenar
+      const safeData = {
+        id: suggestion?.data?.id,
+        nome_fornecedor: suggestion?.data?.nome_fornecedor || '',
+        nome_funcionario: suggestion?.data?.nome_funcionario || '',
+        cnpj: suggestion?.data?.cnpj || '',
+        cpf: suggestion?.data?.cpf || '',
+        telefone: suggestion?.data?.telefone || '',
+        endereco: suggestion?.data?.endereco || '',
+        searchType: suggestion?.type || 'supplier'
+      };
+      
+      // Atualizar estados
+      setSupplierResult(suggestion);
+      setSearchTerm(suggestion?.type === 'supplier' ? safeData.nome_fornecedor : safeData.nome_funcionario);
+      
+      // Armazenar no localStorage de forma segura
       try {
-        localStorage.setItem("supplier_access", JSON.stringify({...suggestion.data, searchType: suggestion.type}));
+        const dataToStore = JSON.stringify(safeData);
+        localStorage.setItem("supplier_access", dataToStore);
       } catch (storageError) {
-        console.warn('Erro ao salvar no localStorage:', storageError);
+        console.warn('Erro ao salvar dados:', storageError);
       }
       
-      // Mostrar toast de sucesso imediatamente
+      // Toast de sucesso
       toast({
         title: "Sucesso!",
-        description: `${suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} selecionado com sucesso.`,
+        description: `${suggestion?.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} selecionado.`,
       });
       
-      // Buscar lojas das rotas com delay
-      setTimeout(() => {
-        fetchRouteStores(suggestion.data, suggestion.type)
-          .finally(() => setIsProcessingSelection(false));
-      }, 100);
+      // Buscar lojas com delay maior para mobile
+      const delay = isMobile ? 300 : 100;
+      setTimeout(async () => {
+        try {
+          await fetchRouteStores(suggestion?.data, suggestion?.type);
+        } catch (error) {
+          console.error('Erro ao buscar lojas:', error);
+        } finally {
+          setIsProcessingSelection(false);
+        }
+      }, delay);
       
     } catch (error) {
-      console.error('Erro ao selecionar sugestão:', error);
+      console.error('Erro geral na seleção:', error);
       setIsProcessingSelection(false);
       toast({
         title: "Erro",
-        description: "Erro ao selecionar fornecedor. Tente novamente.",
+        description: "Erro ao selecionar. Tente novamente.",
         variant: "destructive"
       });
     }
@@ -280,46 +291,56 @@ export default function SupplierAccess() {
                     {/* Lista de Sugestões - só mostra se não há fornecedor selecionado */}
                     {showSuggestions && searchSuggestions.length > 0 && !supplierResult && (
                       <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto touch-manipulation">
-                        {searchSuggestions.map((suggestion, index) => (
-                          <div
-                            key={`${suggestion.type}-${suggestion.data.id}`}
-                            className="px-4 py-3 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 active:bg-gray-200 select-none"
-                            onClick={(e) => handleSelectSuggestion(suggestion, e)}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleSelectSuggestion(suggestion, e);
-                            }}
-                            style={{ 
-                              WebkitTapHighlightColor: 'transparent',
-                              WebkitUserSelect: 'none',
-                              userSelect: 'none'
-                            }}
-                          >
+                        {searchSuggestions.map((suggestion, index) => {
+                          const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                          
+                          return (
+                            <div
+                              key={`${suggestion.type}-${suggestion.data.id}-${index}`}
+                              className="px-4 py-3 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 active:bg-gray-200 select-none"
+                              {...(isMobileDevice ? {
+                                onTouchStart: (e) => {
+                                  e.preventDefault();
+                                  handleSelectSuggestion(suggestion);
+                                }
+                              } : {
+                                onClick: () => handleSelectSuggestion(suggestion)
+                              })}
+                              style={{ 
+                                WebkitTapHighlightColor: 'transparent',
+                                WebkitUserSelect: 'none',
+                                userSelect: 'none',
+                                touchAction: 'manipulation'
+                              }}
+                            >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
                                 <div className="font-semibold text-gray-900">
-                                  {suggestion.type === 'supplier' ? suggestion.data.nome_fornecedor : suggestion.data.nome_funcionario}
+                                  {suggestion?.type === 'supplier' ? 
+                                    (suggestion?.data?.nome_fornecedor || 'Nome não disponível') : 
+                                    (suggestion?.data?.nome_funcionario || 'Nome não disponível')
+                                  }
                                 </div>
                                 <div className="text-sm text-gray-600">
-                                  {suggestion.type === 'supplier' ? (
-                                    <>CNPJ: {suggestion.data.cnpj || 'Não informado'}</>
+                                  {suggestion?.type === 'supplier' ? (
+                                    <>CNPJ: {suggestion?.data?.cnpj || 'Não informado'}</>
                                   ) : (
-                                    <>CPF: {suggestion.data.cpf || 'Não informado'} - Empresa: {suggestion.data.nome_fornecedor}</>
+                                    <>CPF: {suggestion?.data?.cpf || 'Não informado'} - Empresa: {suggestion?.data?.nome_fornecedor || ''}</>
                                   )}
                                 </div>
-                                {suggestion.data.nome_responsavel && suggestion.type === 'supplier' && (
+                                {suggestion?.data?.nome_responsavel && suggestion?.type === 'supplier' && (
                                   <div className="text-sm text-gray-500">
                                     Responsável: {suggestion.data.nome_responsavel}
                                   </div>
                                 )}
                               </div>
                               <div className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
+                                {suggestion?.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
                               </div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
