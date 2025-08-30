@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, CheckCircle } from "lucide-react";
-import SuccessModal from "@/components/modals/success-modal";
 import { useToast } from "@/hooks/use-toast";
 import { type Store, type Supplier, type Kit } from "@shared/mysql-schema";
 
@@ -256,10 +255,10 @@ export default function InstallationChecklistNew() {
       }
     },
     onSuccess: () => {
-      // Pequeno delay para garantir que o DOM esteja estável
-      setTimeout(() => {
+      // Garantir que o estado seja atualizado de forma segura
+      requestAnimationFrame(() => {
         setShowSuccessModal(true);
-      }, 100);
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
     },
     onError: () => {
@@ -347,12 +346,12 @@ export default function InstallationChecklistNew() {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    // Delay para garantir que o modal feche antes de navegar
-    setTimeout(() => {
+    // Usar requestAnimationFrame para navegação suave
+    requestAnimationFrame(() => {
       localStorage.removeItem("supplier_access");
       localStorage.removeItem("selected_store");
       setLocation("/supplier-access");
-    }, 200);
+    });
   };
 
   const handleLogout = () => {
@@ -654,14 +653,28 @@ export default function InstallationChecklistNew() {
           </Button>
         </div>
 
-        {/* Success Modal */}
+        {/* Success Modal - Independente */}
         {showSuccessModal && (
-          <SuccessModal
-            open={showSuccessModal}
-            onClose={handleSuccessModalClose}
-            title="Instalação Finalizada!"
-            message="A instalação foi registrada com sucesso. Obrigado!"
-          />
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div className="bg-white rounded-lg p-6 max-w-sm mx-4 text-center shadow-lg">
+              <div className="mb-4">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500 mb-4">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Instalação Finalizada!</h3>
+                <p className="text-sm text-gray-600 mb-4">A instalação foi registrada com sucesso. Obrigado!</p>
+                <Button 
+                  onClick={handleSuccessModalClose}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                >
+                  OK
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
