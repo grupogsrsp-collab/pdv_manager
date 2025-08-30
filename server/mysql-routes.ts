@@ -156,6 +156,18 @@ router.post("/api/stores/search", async (req, res) => {
   }
 });
 
+// GET version for query parameters
+router.get("/api/stores/search", async (req, res) => {
+  try {
+    const filters = storeFilterSchema.parse(req.query);
+    const stores = await storage.getStoresByFilters(filters);
+    res.json(stores);
+  } catch (error) {
+    console.error("Erro ao buscar lojas:", error);
+    res.status(400).json({ error: "Erro na busca de lojas" });
+  }
+});
+
 router.get("/api/stores", async (req, res) => {
   try {
     const stores = await storage.getAllStores();
