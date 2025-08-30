@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Store } from "lucide-react";
+import { Search, Store, CalendarDays, MapPin, Users, Building, Phone, Mail, FileText, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { type Supplier, type Store as StoreType } from "@shared/mysql-schema";
 
-// Versão à prova de erros para mobile
+// Versão à prova de erros para mobile com design moderno
 export default function SupplierAccessSafe() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,6 +70,82 @@ export default function SupplierAccessSafe() {
 
   const supplier = supplierResult?.data;
 
+  // Função CORRIGIDA para buscar rotas e lojas
+  const fetchRouteStoresSafe = async (userData: any, userType: string): Promise<void> => {
+    try {
+      setLoadingRouteStores(true);
+      console.log('🔍 Buscando rotas para:', { userData, userType });
+      
+      let routeEndpoint = '';
+      if (userType === 'supplier') {
+        routeEndpoint = `/api/routes/supplier/${userData.id}`;
+      } else if (userType === 'employee') {
+        routeEndpoint = `/api/routes/employee/${userData.id}`;
+      } else {
+        console.warn('Tipo de usuário inválido:', userType);
+        setRouteStores([]);
+        return;
+      }
+      
+      console.log('📡 Fazendo request para:', routeEndpoint);
+      const routeResponse = await fetch(routeEndpoint);
+      
+      if (routeResponse.ok) {
+        const routes = await routeResponse.json();
+        console.log('📋 Rotas recebidas:', routes);
+        
+        if (routes && routes.length > 0) {
+          // Extrair store_ids de forma mais robusta
+          const allStoreIds: number[] = [];
+          
+          routes.forEach((route: any) => {
+            if (route.store_ids && Array.isArray(route.store_ids)) {
+              route.store_ids.forEach((id: any) => {
+                const storeId = typeof id === 'string' ? parseInt(id, 10) : id;
+                if (!isNaN(storeId) && !allStoreIds.includes(storeId)) {
+                  allStoreIds.push(storeId);
+                }
+              });
+            }
+          });
+          
+          console.log('🏪 IDs das lojas extraídos:', allStoreIds);
+          
+          if (allStoreIds.length > 0) {
+            const storeResponse = await fetch('/api/stores/by-ids', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storeIds: allStoreIds })
+            });
+            
+            if (storeResponse.ok) {
+              const stores = await storeResponse.json();
+              console.log('🏬 Lojas recebidas:', stores);
+              setRouteStores(stores || []);
+            } else {
+              console.error('❌ Erro na resposta das lojas:', storeResponse.status);
+              setRouteStores([]);
+            }
+          } else {
+            console.log('ℹ️ Nenhuma loja encontrada nas rotas');
+            setRouteStores([]);
+          }
+        } else {
+          console.log('ℹ️ Nenhuma rota encontrada');
+          setRouteStores([]);
+        }
+      } else {
+        console.error('❌ Erro na resposta das rotas:', routeResponse.status);
+        setRouteStores([]);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar rotas e lojas:', error);
+      setRouteStores([]);
+    } finally {
+      setLoadingRouteStores(false);
+    }
+  };
+
   // Função ultra-segura para seleção no mobile
   const handleSelectSuggestionSafe = React.useCallback((suggestion: any) => {
     console.log('🛡️ [ULTRA-SAFE] Iniciando seleção protegida');
@@ -121,23 +199,17 @@ export default function SupplierAccessSafe() {
         console.warn('🛡️ [ULTRA-SAFE] Erro toast (não crítico):', toastError);
       }
       
-      // Para mobile: NÃO buscar lojas automaticamente (causa dos erros)
-      if (isMobileDevice) {
-        console.log('📱 [ULTRA-SAFE] Mobile - processo simplificado');
-        setTimeout(() => {
-          setIsProcessingSelection(false);
-          console.log('✅ [ULTRA-SAFE] Mobile finalizado');
-        }, 200);
-      } else {
-        // Desktop pode buscar lojas
-        setTimeout(() => {
-          fetchRouteStoresSafe(suggestion.data, suggestion.type)
-            .finally(() => {
-              setIsProcessingSelection(false);
-              console.log('✅ [ULTRA-SAFE] Desktop finalizado');
-            });
-        }, 100);
-      }
+      // Buscar rotas para mobile e desktop - com delay apropriado
+      const delay = isMobileDevice ? 300 : 100;
+      console.log(`⏱️ [ULTRA-SAFE] Aguardando ${delay}ms para buscar rotas...`);
+      
+      setTimeout(() => {
+        fetchRouteStoresSafe(suggestion.data, suggestion.type)
+          .finally(() => {
+            setIsProcessingSelection(false);
+            console.log('✅ [ULTRA-SAFE] Processo finalizado');
+          });
+      }, delay);
       
     } catch (error) {
       console.error('🚨 [ULTRA-SAFE] Erro capturado:', error);
@@ -154,53 +226,6 @@ export default function SupplierAccessSafe() {
       }
     }
   }, [isProcessingSelection, isMobileDevice, toast]);
-
-  // Função segura para buscar lojas (só para desktop)
-  const fetchRouteStoresSafe = async (userData: any, userType: string): Promise<void> => {
-    try {
-      setLoadingRouteStores(true);
-      
-      let routeEndpoint = '';
-      if (userType === 'supplier') {
-        routeEndpoint = `/api/routes/supplier/${userData.id}`;
-      } else if (userType === 'employee') {
-        routeEndpoint = `/api/routes/employee/${userData.id}`;
-      } else {
-        setRouteStores([]);
-        return;
-      }
-      
-      const routeResponse = await fetch(routeEndpoint);
-      if (routeResponse.ok) {
-        const routes = await routeResponse.json();
-        
-        if (routes && routes.length > 0) {
-          const allStoreIds = routes.flatMap((route: any) => route.store_ids || []);
-          const uniqueStoreIds = Array.from(new Set(allStoreIds));
-          
-          if (uniqueStoreIds.length > 0) {
-            const storeResponse = await fetch('/api/stores/by-ids', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storeIds: uniqueStoreIds })
-            });
-            
-            if (storeResponse.ok) {
-              const stores = await storeResponse.json();
-              setRouteStores(stores || []);
-            }
-          }
-        } else {
-          setRouteStores([]);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao buscar lojas:', error);
-      setRouteStores([]);
-    } finally {
-      setLoadingRouteStores(false);
-    }
-  };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -232,49 +257,67 @@ export default function SupplierAccessSafe() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Cabeçalho */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso do Fornecedor</h1>
-          <p className="text-gray-600">
-            Busque por fornecedor ou funcionário para acessar as rotas e informações
-          </p>
+        {/* Cabeçalho Moderno */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
+              <Users className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Acesso do Fornecedor</h1>
+              <p className="text-blue-100">
+                Portal de acesso para fornecedores e funcionários
+              </p>
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <p className="text-sm text-blue-100">
+              🔍 Busque por nome, CNPJ ou CPF • 📋 Acesse rotas e informações • 📱 Compatível com mobile
+            </p>
+          </div>
         </div>
 
-        {/* Campo de Busca ULTRA-SEGURO */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Buscar Dados do Fornecedor
+        {/* Campo de Busca Moderno */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-gray-800">
+              <div className="bg-blue-500 text-white rounded-lg p-2">
+                <Search className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xl">Buscar Fornecedor</span>
+                <p className="text-sm font-normal text-gray-600 mt-1">
+                  Digite pelo menos 3 caracteres para buscar
+                </p>
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="relative">
-              <Label htmlFor="supplier-search" className="text-sm font-medium text-gray-700 mb-2 block">
-                Digite o nome, CNPJ ou CPF (mínimo 3 caracteres)
-              </Label>
-              <Input
-                id="supplier-search"
-                type="text"
-                placeholder="Ex: João Silva, 12.345.678/0001-90, 123.456.789-00"
-                value={searchTerm}
-                onChange={handleSearchInputChange}
-                onBlur={handleInputBlur}
-                onFocus={handleInputFocus}
-                className="w-full pr-10"
-                data-testid="input-supplier-search"
-              />
-              <Search className="absolute right-3 top-8 h-4 w-4 text-gray-400" />
+              <div className="relative">
+                <Input
+                  id="supplier-search"
+                  type="text"
+                  placeholder="Ex: João Silva, 12.345.678/0001-90, 123.456.789-00"
+                  value={searchTerm}
+                  onChange={handleSearchInputChange}
+                  onBlur={handleInputBlur}
+                  onFocus={handleInputFocus}
+                  className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-blue-500 rounded-xl shadow-sm transition-all duration-200"
+                  data-testid="input-supplier-search"
+                />
+                <Search className="absolute left-4 top-4 h-6 w-6 text-gray-400" />
+              </div>
 
-              {/* Lista de Sugestões ULTRA-SEGURA */}
+              {/* Lista de Sugestões Moderna */}
               {showSuggestions && searchSuggestions.length > 0 && !supplierResult && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-80 overflow-y-auto">
                   {searchSuggestions.map((suggestion, index) => (
                     <div
                       key={`safe-${suggestion.type}-${suggestion.data.id}-${index}`}
-                      className="px-4 py-3 hover:bg-gray-100 border-b last:border-b-0 cursor-pointer"
+                      className="px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 border-b last:border-b-0 cursor-pointer transition-all duration-200"
                       style={{
                         WebkitTapHighlightColor: 'transparent',
                         userSelect: 'none',
@@ -290,15 +333,24 @@ export default function SupplierAccessSafe() {
                         }
                       }}
                     >
-                      <div className="flex justify-between items-start pointer-events-none">
+                      <div className="flex items-center gap-4 pointer-events-none">
+                        <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg p-3 flex items-center justify-center min-w-[48px]">
+                          {suggestion.type === 'supplier' ? <Building className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                        </div>
                         <div className="flex-1">
-                          <div className="font-semibold text-gray-900">
-                            {suggestion.type === 'supplier' ? 
-                              suggestion.data.nome_fornecedor : 
-                              suggestion.data.nome_funcionario
-                            }
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="font-semibold text-gray-900 text-lg">
+                              {suggestion.type === 'supplier' ? 
+                                suggestion.data.nome_fornecedor : 
+                                suggestion.data.nome_funcionario
+                              }
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
+                            </Badge>
                           </div>
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-gray-600 flex items-center gap-1">
+                            <FileText className="h-4 w-4" />
                             {suggestion.type === 'supplier' ? (
                               `CNPJ: ${suggestion.data.cnpj || 'Não informado'}`
                             ) : (
@@ -306,13 +358,11 @@ export default function SupplierAccessSafe() {
                             )}
                           </div>
                           {suggestion.data.nome_responsavel && suggestion.type === 'supplier' && (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                              <Star className="h-4 w-4" />
                               Responsável: {suggestion.data.nome_responsavel}
                             </div>
                           )}
-                        </div>
-                        <div className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                          {suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'}
                         </div>
                       </div>
                     </div>
@@ -322,65 +372,97 @@ export default function SupplierAccessSafe() {
             </div>
 
             {isLoading && (
-              <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                Buscando...
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <div>
+                    <p className="text-blue-800 font-medium">Buscando...</p>
+                    <p className="text-blue-600 text-sm">Localizando fornecedores e funcionários</p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Resultado do Fornecedor */}
+        {/* Resultado do Fornecedor - Design Moderno */}
         {supplierResult && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5" />
-                {supplierResult.type === 'supplier' ? 'Fornecedor Selecionado' : 'Funcionário Selecionado'}
+          <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
+              <CardTitle className="flex items-center gap-3 text-gray-800">
+                <div className="bg-green-500 text-white rounded-lg p-2">
+                  {supplierResult.type === 'supplier' ? <Building className="h-6 w-6" /> : <Users className="h-6 w-6" />}
+                </div>
+                <div>
+                  <span className="text-xl">
+                    {supplierResult.type === 'supplier' ? 'Fornecedor Selecionado' : 'Funcionário Selecionado'}
+                  </span>
+                  <p className="text-sm font-normal text-gray-600 mt-1">
+                    Informações e rotas disponíveis
+                  </p>
+                </div>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Nome</p>
-                  <p className="font-semibold">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    <p className="text-sm font-medium text-blue-800">Nome</p>
+                  </div>
+                  <p className="font-semibold text-gray-900">
                     {supplierResult.type === 'supplier' ? 
                       supplierResult.data.nome_fornecedor : 
                       supplierResult.data.nome_funcionario
                     }
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">
-                    {supplierResult.type === 'supplier' ? 'CNPJ' : 'CPF'}
-                  </p>
-                  <p className="font-semibold">
+                
+                <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-5 w-5 text-green-600" />
+                    <p className="text-sm font-medium text-green-800">
+                      {supplierResult.type === 'supplier' ? 'CNPJ' : 'CPF'}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-gray-900">
                     {supplierResult.type === 'supplier' ? 
                       (supplierResult.data.cnpj || 'Não informado') : 
                       (supplierResult.data.cpf || 'Não informado')
                     }
                   </p>
                 </div>
+                
                 {supplierResult.data.telefone && (
-                  <div>
-                    <p className="text-sm text-gray-600">Telefone</p>
-                    <p className="font-semibold">{supplierResult.data.telefone}</p>
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Phone className="h-5 w-5 text-purple-600" />
+                      <p className="text-sm font-medium text-purple-800">Telefone</p>
+                    </div>
+                    <p className="font-semibold text-gray-900">{supplierResult.data.telefone}</p>
                   </div>
                 )}
+                
                 {supplierResult.data.endereco && (
-                  <div>
-                    <p className="text-sm text-gray-600">Endereço</p>
-                    <p className="font-semibold">{supplierResult.data.endereco}</p>
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200 col-span-full">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="h-5 w-5 text-orange-600" />
+                      <p className="text-sm font-medium text-orange-800">Endereço</p>
+                    </div>
+                    <p className="font-semibold text-gray-900">{supplierResult.data.endereco}</p>
                   </div>
                 )}
               </div>
 
-              <div className="mt-6 space-y-4">
+              <Separator className="my-6" />
+
+              <div className="space-y-4">
                 <Button 
                   onClick={() => setLocation("/installation-checklist")}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-lg"
                   data-testid="button-installation-checklist"
                 >
+                  <FileText className="h-5 w-5 mr-2" />
                   Ir para Lista de Instalação
                 </Button>
               </div>
@@ -388,23 +470,42 @@ export default function SupplierAccessSafe() {
           </Card>
         )}
 
-        {/* Lojas das Rotas */}
+        {/* Lojas das Rotas - Design Melhorado */}
         {routeStores.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Lojas das Rotas Associadas</CardTitle>
+          <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
+              <CardTitle className="flex items-center gap-3 text-gray-800">
+                <div className="bg-indigo-500 text-white rounded-lg p-2">
+                  <Store className="h-6 w-6" />
+                </div>
+                <div>
+                  <span className="text-xl">Lojas das Rotas Associadas</span>
+                  <p className="text-sm font-normal text-gray-600 mt-1">
+                    {routeStores.length} loja{routeStores.length !== 1 ? 's' : ''} encontrada{routeStores.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
+            <CardContent className="p-6">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {routeStores.map((store, index) => (
-                  <div key={store.id} className="p-4 border rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold">{store.nome_loja}</h3>
-                        <p className="text-sm text-gray-600">Código: {store.codigo_loja}</p>
-                        <p className="text-sm text-gray-600">
-                          {store.cidade || 'Cidade não informada'}
-                        </p>
+                  <div key={store.id} className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-4 border border-gray-200 hover:shadow-lg transition-all duration-200">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-500 text-white rounded-lg p-2 flex-shrink-0">
+                        <Store className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-lg">{store.nome_loja}</h3>
+                        <div className="space-y-1 mt-2">
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <FileText className="h-4 w-4" />
+                            <span>Código: {store.codigo_loja}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <MapPin className="h-4 w-4" />
+                            <span>{store.cidade || 'Cidade não informada'}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -415,11 +516,14 @@ export default function SupplierAccessSafe() {
         )}
 
         {loadingRouteStores && (
-          <Card>
+          <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
             <CardContent className="p-6">
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                <span>Carregando lojas das rotas...</span>
+              <div className="flex items-center justify-center gap-3 py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div>
+                  <p className="text-blue-800 font-medium">Carregando lojas das rotas...</p>
+                  <p className="text-blue-600 text-sm">Processando informações</p>
+                </div>
               </div>
             </CardContent>
           </Card>
