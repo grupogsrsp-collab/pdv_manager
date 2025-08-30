@@ -18,6 +18,7 @@ export default function SupplierAccess() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [routeStores, setRouteStores] = useState<StoreType[]>([]);
   const [loadingRouteStores, setLoadingRouteStores] = useState(false);
+  const [isProcessingSelection, setIsProcessingSelection] = useState(false);
 
   const { toast } = useToast();
 
@@ -59,12 +60,30 @@ export default function SupplierAccess() {
 
   const supplier = supplierResult?.data;
   
-  const handleSelectSuggestion = (suggestion: any) => {
+  const handleSelectSuggestion = (suggestion: any, event?: any) => {
+    // Prevenir processamento duplo
+    if (isProcessingSelection) {
+      console.log('Já processando seleção, ignorando');
+      return;
+    }
+
     try {
+      setIsProcessingSelection(true);
+      
+      // Prevenir eventos padrão para evitar conflitos
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
+      console.log('Selecionando sugestão:', suggestion);
+      
       // Evitar seleção dupla se já há um fornecedor selecionado
       if (supplierResult && supplierResult.data.id === suggestion.data.id) {
+        console.log('Fornecedor já selecionado, ignorando');
         setShowSuggestions(false);
         setSearchSuggestions([]);
+        setIsProcessingSelection(false);
         return;
       }
       
@@ -80,7 +99,11 @@ export default function SupplierAccess() {
       setDebouncedSearchTerm("");
       
       // Armazenar no localStorage
-      localStorage.setItem("supplier_access", JSON.stringify({...suggestion.data, searchType: suggestion.type}));
+      try {
+        localStorage.setItem("supplier_access", JSON.stringify({...suggestion.data, searchType: suggestion.type}));
+      } catch (storageError) {
+        console.warn('Erro ao salvar no localStorage:', storageError);
+      }
       
       // Mostrar toast de sucesso imediatamente
       toast({
@@ -88,10 +111,15 @@ export default function SupplierAccess() {
         description: `${suggestion.type === 'supplier' ? 'Fornecedor' : 'Funcionário'} selecionado com sucesso.`,
       });
       
-      // Buscar lojas das rotas
-      fetchRouteStores(suggestion.data, suggestion.type);
+      // Buscar lojas das rotas com delay
+      setTimeout(() => {
+        fetchRouteStores(suggestion.data, suggestion.type)
+          .finally(() => setIsProcessingSelection(false));
+      }, 100);
+      
     } catch (error) {
       console.error('Erro ao selecionar sugestão:', error);
+      setIsProcessingSelection(false);
       toast({
         title: "Erro",
         description: "Erro ao selecionar fornecedor. Tente novamente.",
@@ -121,10 +149,12 @@ export default function SupplierAccess() {
   };
   
   const handleInputBlur = () => {
-    // Delay maior para dispositivos móveis
+    // Delay maior para dispositivos móveis para permitir toque nas sugestões
     setTimeout(() => {
-      setShowSuggestions(false);
-    }, 300);
+      if (!supplierResult) {
+        setShowSuggestions(false);
+      }
+    }, 500);
   };
   
   const handleInputFocus = () => {
@@ -134,59 +164,73 @@ export default function SupplierAccess() {
     }
   };
   
-  const fetchRouteStores = async (userData: any, userType: string) => {
+  const fetchRouteStores = async (userData: any, userType: string): Promise<void> => {
     setLoadingRouteStores(true);
-    try {
-      let routeEndpoint = '';
-      if (userType === 'supplier') {
-        routeEndpoint = `/api/routes/supplier/${userData.id}`;
-      } else if (userType === 'employee') {
-        routeEndpoint = `/api/routes/employee/${userData.id}`;
-      } else {
-        console.warn('Tipo de usuário inválido:', userType);
-        setRouteStores([]);
-        return;
-      }
-      
-      const routeResponse = await fetch(routeEndpoint);
-      if (routeResponse.ok) {
-        const routes = await routeResponse.json();
-        const storeIds = routes.flatMap((route: any) => route.lojas?.map((loja: any) => loja.id) || []);
-        
-        if (storeIds.length > 0) {
-          const storeResponse = await fetch(`/api/stores/by-ids`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ storeIds })
-          });
-          
-          if (storeResponse.ok) {
-            const stores = await storeResponse.json();
-            setRouteStores(stores || []);
+    
+    return new Promise<void>((resolve) => {
+      const processRouteStores = async () => {
+        try {
+          let routeEndpoint = '';
+          if (userType === 'supplier') {
+            routeEndpoint = `/api/routes/supplier/${userData.id}`;
+          } else if (userType === 'employee') {
+            routeEndpoint = `/api/routes/employee/${userData.id}`;
           } else {
-            console.error('Erro na resposta ao buscar lojas:', storeResponse.status);
+            console.warn('Tipo de usuário inválido:', userType);
+            setRouteStores([]);
+            setLoadingRouteStores(false);
+            resolve();
+            return;
+          }
+          
+          console.log('Buscando rotas em:', routeEndpoint);
+          
+          const routeResponse = await fetch(routeEndpoint);
+          if (routeResponse.ok) {
+            const routes = await routeResponse.json();
+            console.log('Rotas encontradas:', routes);
+            
+            const storeIds = routes.flatMap((route: any) => route.lojas?.map((loja: any) => loja.id) || []);
+            
+            if (storeIds.length > 0) {
+              console.log('IDs das lojas:', storeIds);
+              
+              const storeResponse = await fetch(`/api/stores/by-ids`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ storeIds })
+              });
+              
+              if (storeResponse.ok) {
+                const stores = await storeResponse.json();
+                console.log('Lojas encontradas:', stores);
+                setRouteStores(stores || []);
+              } else {
+                console.error('Erro na resposta ao buscar lojas:', storeResponse.status);
+                setRouteStores([]);
+              }
+            } else {
+              console.log('Nenhuma loja encontrada nas rotas');
+              setRouteStores([]);
+            }
+          } else {
+            console.error('Erro na resposta das rotas:', routeResponse.status);
             setRouteStores([]);
           }
-        } else {
+        } catch (error) {
+          console.error('Erro ao buscar lojas das rotas:', error);
           setRouteStores([]);
+        } finally {
+          setLoadingRouteStores(false);
+          resolve();
         }
-      } else {
-        console.error('Erro na resposta das rotas:', routeResponse.status);
-        setRouteStores([]);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar lojas das rotas:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar lojas. Tente novamente.",
-        variant: "destructive"
-      });
-      setRouteStores([]);
-    } finally {
-      setLoadingRouteStores(false);
-    }
+      };
+      
+      // Executar com pequeno delay
+      setTimeout(processRouteStores, 50);
+    });
   };
 
 
@@ -239,10 +283,18 @@ export default function SupplierAccess() {
                         {searchSuggestions.map((suggestion, index) => (
                           <div
                             key={`${suggestion.type}-${suggestion.data.id}`}
-                            className="px-4 py-3 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 active:bg-gray-200"
-                            onClick={() => handleSelectSuggestion(suggestion)}
-                            onTouchStart={() => handleSelectSuggestion(suggestion)}
-                            style={{ WebkitTapHighlightColor: 'transparent' }}
+                            className="px-4 py-3 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 active:bg-gray-200 select-none"
+                            onClick={(e) => handleSelectSuggestion(suggestion, e)}
+                            onTouchEnd={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleSelectSuggestion(suggestion, e);
+                            }}
+                            style={{ 
+                              WebkitTapHighlightColor: 'transparent',
+                              WebkitUserSelect: 'none',
+                              userSelect: 'none'
+                            }}
                           >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
