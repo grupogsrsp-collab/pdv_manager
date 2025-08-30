@@ -623,51 +623,97 @@ export default function SupplierAccessSafe() {
                     </p>
                   </div>
                   <Button 
-                    onClick={async () => {
-                      console.log('🔄 [ÚNICO-BOTÃO] Iniciando busca MOBILE-SAFE');
+                    onClick={() => {
+                      console.log('🔄 [MOBILE-SAFE] Clique registrado - iniciando busca sem processamento');
                       
                       setLoadingRouteStores(true);
                       
-                      try {
-                        // Buscar rotas de forma ultra-simplificada
-                        await fetchRouteStoresSafe(supplierResult.data, supplierResult.type);
+                      // SOLUÇÃO: Mover processamento pesado para fora do evento usando requestIdleCallback ou timeout
+                      const processoSeparado = () => {
+                        console.log('⚡ [MOBILE-SAFE] Executando processamento separado do evento');
                         
-                        // Aguardar um pouco para garantir que os dados foram processados
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        const endpoint = supplierResult.type === 'supplier' 
+                          ? `/api/routes/supplier/${supplierResult.data.id}`
+                          : `/api/routes/employee/${supplierResult.data.id}`;
                         
-                        console.log('🔍 [ÚNICO-BOTÃO] Verificando lojas encontradas:', routeStores.length);
-                        
-                        // Se não encontrou lojas após a busca, ir para instalação geral
-                        if (routeStores.length === 0) {
-                          console.log('🔄 [ÚNICO-BOTÃO] Nenhuma loja encontrada, indo para instalação geral');
-                          
-                          localStorage.setItem("supplier_access", JSON.stringify({
-                            id: supplierResult.data.id,
-                            nome_fornecedor: supplierResult.data.nome_fornecedor || '',
-                            searchType: supplierResult.type
-                          }));
-                          
-                          setLocation("/installation-checklist");
+                        fetch(endpoint)
+                          .then(response => {
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            return response.json();
+                          })
+                          .then(routes => {
+                            console.log('📦 [MOBILE-SAFE] Dados recebidos:', routes);
+                            
+                            // Processamento JSON SIMPLIFICADO (sem loops pesados)
+                            const storesSimplificadas = [];
+                            
+                            if (routes && Array.isArray(routes)) {
+                              routes.forEach(route => {
+                                if (route.lojas && Array.isArray(route.lojas)) {
+                                  route.lojas.forEach(loja => {
+                                    if (loja && loja.id && loja.nome_loja) {
+                                      storesSimplificadas.push({
+                                        id: loja.id,
+                                        codigo_loja: String(loja.id),
+                                        nome_loja: loja.nome_loja,
+                                        cidade: loja.cidade || 'N/A',
+                                        uf: loja.uf || '',
+                                        logradouro: '',
+                                        bairro: '',
+                                        cep: '',
+                                        telefone_loja: '',
+                                        nome_operador: '',
+                                        email_operador: ''
+                                      });
+                                    }
+                                  });
+                                }
+                              });
+                            }
+                            
+                            console.log('✅ [MOBILE-SAFE] Lojas processadas:', storesSimplificadas.length);
+                            
+                            // Atualizar estado
+                            setRouteStores(storesSimplificadas);
+                            
+                            // Se não encontrou lojas, ir para instalação geral
+                            if (storesSimplificadas.length === 0) {
+                              console.log('🔄 [MOBILE-SAFE] Indo para instalação geral');
+                              localStorage.setItem("supplier_access", JSON.stringify({
+                                id: supplierResult.data.id,
+                                nome_fornecedor: supplierResult.data.nome_fornecedor || '',
+                                searchType: supplierResult.type
+                              }));
+                              setLocation("/installation-checklist");
+                            }
+                          })
+                          .catch(error => {
+                            console.error('❌ [MOBILE-SAFE] Erro na busca:', error);
+                            
+                            // Fallback: ir direto para instalação geral
+                            localStorage.setItem("supplier_access", JSON.stringify({
+                              id: supplierResult.data.id,
+                              nome_fornecedor: supplierResult.data.nome_fornecedor || '',
+                              searchType: supplierResult.type
+                            }));
+                            setLocation("/installation-checklist");
+                          })
+                          .finally(() => {
+                            setLoadingRouteStores(false);
+                          });
+                      };
+                      
+                      // Executar processamento após o evento para evitar conflitos
+                      if (isMobileDevice) {
+                        // Mobile: usar requestIdleCallback se disponível, senão setTimeout
+                        if (window.requestIdleCallback) {
+                          requestIdleCallback(processoSeparado);
                         } else {
-                          console.log('✅ [ÚNICO-BOTÃO] Lojas encontradas, exibindo para seleção');
+                          setTimeout(processoSeparado, 50);
                         }
-                        
-                      } catch (error) {
-                        console.error('❌ [ÚNICO-BOTÃO] Erro na busca:', error);
-                        
-                        // Em caso de erro, ir direto para instalação geral
-                        console.log('🔄 [ÚNICO-BOTÃO] Erro capturado, indo para instalação geral');
-                        
-                        localStorage.setItem("supplier_access", JSON.stringify({
-                          id: supplierResult.data.id,
-                          nome_fornecedor: supplierResult.data.nome_fornecedor || '',
-                          searchType: supplierResult.type
-                        }));
-                        
-                        setLocation("/installation-checklist");
-                        
-                      } finally {
-                        setLoadingRouteStores(false);
+                      } else {
+                        // Desktop: processar imediatamente
+                        processoSeparado();
                       }
                     }}
                     disabled={loadingRouteStores}
