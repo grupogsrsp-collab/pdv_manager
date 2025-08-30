@@ -141,7 +141,7 @@ export default function InstallationChecklistNew() {
         });
       }
     }
-  }, [existingInstallation]);
+  }, [existingInstallation, kits]);
 
   // Função para contar fotos faltando
   const contarFotosFaltando = (): number => {
@@ -304,7 +304,7 @@ export default function InstallationChecklistNew() {
         latitude: geoData?.latitude,
         longitude: geoData?.longitude,
         endereco_geolocalizacao: geoData?.address,
-        mapa_screenshot_url: geoData?.mapScreenshot,
+        mapa_screenshot_url: geoData && 'mapScreenshot' in geoData ? geoData.mapScreenshot : undefined,
         geolocalizacao_timestamp: geoData ? new Date().toISOString() : undefined,
       };
 
@@ -715,8 +715,6 @@ export default function InstallationChecklistNew() {
         {showTicketForm && (
           <TicketForm
             onClose={() => setShowTicketForm(false)}
-            storeId={store.codigo_loja}
-            supplierId={supplier.id}
           />
         )}
 
@@ -753,7 +751,7 @@ export default function InstallationChecklistNew() {
 
         {/* Success Modal */}
         <SuccessModal
-          isOpen={showSuccessModal}
+          open={showSuccessModal}
           onClose={handleSuccessModalClose}
           title="Instalação Finalizada!"
           message="A instalação foi registrada com sucesso. Obrigado!"
