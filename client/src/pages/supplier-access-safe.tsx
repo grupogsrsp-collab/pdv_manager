@@ -130,14 +130,22 @@ export default function SupplierAccessSafe() {
         throw new Error('Supplier not found');
       }
       const results = await response.json();
-      setSearchSuggestions(results);
-      setShowSuggestions(results.length > 0);
-      
       return results;
     },
     enabled: !!debouncedSearchTerm && debouncedSearchTerm.length >= 3,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+
+  // Atualizar sugestões quando supplierData mudar
+  React.useEffect(() => {
+    if (supplierData) {
+      setSearchSuggestions(supplierData);
+      setShowSuggestions(supplierData.length > 0);
+    }
+  }, [supplierData]);
 
   const supplier = supplierResult?.data;
 
@@ -707,19 +715,10 @@ export default function SupplierAccessSafe() {
                           });
                       };
                       
-                      // SOLUÇÃO RADICAL MOBILE: ir direto para instalação sem buscar rotas
+                      // MOBILE-SAFE: buscar rotas mas mostrar resultado
                       if (isMobileDevice) {
-                        console.log('📱 [MOBILE-RADICAL] Mobile detectado - indo direto para instalação');
-                        setLoadingRouteStores(false);
-                        
-                        // Salvar dados e navegar imediatamente
-                        localStorage.setItem("supplier_access", JSON.stringify({
-                          id: supplierResult.data.id,
-                          nome_fornecedor: supplierResult.data.nome_fornecedor || '',
-                          searchType: supplierResult.type
-                        }));
-                        
-                        setLocation("/installation-checklist");
+                        console.log('📱 [MOBILE-SAFE] Mobile detectado - busca simplificada');
+                        setTimeout(processoSeparado, 100);
                       } else {
                         // Desktop: usar processamento normal
                         if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
