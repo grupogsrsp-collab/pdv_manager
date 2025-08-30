@@ -281,8 +281,8 @@ export const insertInstallationSchema = z.object({
   fornecedor_id: z.number().positive("ID do fornecedor deve ser positivo"),
   responsible: z.string().min(1, "Responsável é obrigatório"),
   installationDate: z.string().min(1, "Data de instalação é obrigatória"),
-  fotosOriginais: z.array(z.string()).optional(),
-  fotosFinais: z.array(z.string()).optional(),
+  fotosOriginais: z.array(z.string()).default([]),
+  fotosFinais: z.array(z.string()).default([]),
   justificativaFotos: z.string().optional(),
   // Campos de geolocalização
   latitude: z.number().optional(),

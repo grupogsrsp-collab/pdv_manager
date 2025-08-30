@@ -298,8 +298,8 @@ export default function InstallationChecklistNew() {
         fornecedor_id: supplier.id,
         responsible: responsibleName,
         installationDate: installationDate,
-        fotosOriginais: fotosConvertidas,
-        fotosFinais: fotosFinaisConvertidas,
+        fotosOriginais: fotosConvertidas.filter(Boolean) || [], // Garantir array vazio ao invés de null
+        fotosFinais: fotosFinaisConvertidas.filter(Boolean) || [], // Garantir array vazio ao invés de null
         justificativaFotos: photoJustification || undefined,
         latitude: geoData?.latitude,
         longitude: geoData?.longitude,
