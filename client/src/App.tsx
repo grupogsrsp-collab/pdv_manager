@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import Login from "@/pages/login";
 import SupplierAccess from "@/pages/supplier-access-simple";
 import StoreAccess from "@/pages/store-access";
+import StoreSearch from "@/pages/store-search";
 import SupplierDashboard from "@/pages/supplier-dashboard";
 import InstallationChecklist from "@/pages/installation-checklist";
 import StoreDashboard from "@/pages/store-dashboard";
@@ -46,6 +47,7 @@ function Router() {
         <Route path="/" component={Login} />
         <Route path="/supplier-access" component={SupplierAccess} />
         <Route path="/store-access" component={StoreAccess} />
+        <Route path="/store-search" component={StoreSearch} />
         <Route path="/supplier" component={SupplierDashboard} />
         <Route path="/installation-checklist" component={InstallationChecklist} />
         <Route path="/store-dashboard" component={StoreDashboard} />

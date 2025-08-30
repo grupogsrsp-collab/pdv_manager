@@ -1224,6 +1224,27 @@ export class MySQLStorage implements IStorage {
     console.log("Filtros recebidos no storage:", filters);
 
     // Mapear filtros do frontend para campos do banco
+    if (filters.codigo_loja) {
+      query += ' AND codigo_loja LIKE ?';
+      params.push(`%${filters.codigo_loja}%`);
+    }
+    if (filters.logradouro) {
+      query += ' AND logradouro LIKE ?';
+      params.push(`%${filters.logradouro}%`);
+    }
+    if (filters.bairro) {
+      query += ' AND bairro LIKE ?';
+      params.push(`%${filters.bairro}%`);
+    }
+    if (filters.cidade) {
+      query += ' AND cidade LIKE ?';
+      params.push(`%${filters.cidade}%`);
+    }
+    if (filters.uf) {
+      query += ' AND uf LIKE ?';
+      params.push(`%${filters.uf}%`);
+    }
+    // Manter compatibilidade com filtros antigos
     if (filters.code) {
       query += ' AND codigo_loja LIKE ?';
       params.push(`%${filters.code}%`);

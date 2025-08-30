@@ -314,11 +314,11 @@ export default function SupplierAccessSimple() {
                   <div className="text-center">
                     <p className="text-gray-600 mb-2">Ou</p>
                     <Button 
-                      onClick={() => goToInstallation()}
+                      onClick={() => setLocation("/store-search")}
                       variant="outline"
                       className="border-blue-500 text-blue-600 hover:bg-blue-50"
                     >
-                      Ir Direto para Instalação Geral
+                      Buscar Lojas
                     </Button>
                   </div>
                 </div>
