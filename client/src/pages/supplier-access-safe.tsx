@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Store, CalendarDays, MapPin, Users, Building, Phone, Mail, FileText, Star } from "lucide-react";
+import { Search, Store, CalendarDays, MapPin, Users, Building, Phone, Mail, FileText, Star, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ export default function SupplierAccessSafe() {
   const [routeStores, setRouteStores] = useState<StoreType[]>([]);
   const [loadingRouteStores, setLoadingRouteStores] = useState(false);
   const [isProcessingSelection, setIsProcessingSelection] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
 
   const { toast } = useToast();
 
@@ -237,11 +238,13 @@ export default function SupplierAccessSafe() {
       setShowSuggestions(false);
       setDebouncedSearchTerm("");
       setRouteStores([]);
+      setSelectedStore(null);
     } else {
       if (supplierResult && 
           value !== (supplierResult.type === 'supplier' ? supplierResult.data.nome_fornecedor : supplierResult.data.nome_funcionario)) {
         setSupplierResult(null);
         setRouteStores([]);
+        setSelectedStore(null);
       }
     }
   };
@@ -457,20 +460,58 @@ export default function SupplierAccessSafe() {
               <Separator className="my-6" />
 
               <div className="space-y-4">
-                <Button 
-                  onClick={() => setLocation("/installation-checklist")}
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-lg"
-                  data-testid="button-installation-checklist"
-                >
-                  <FileText className="h-5 w-5 mr-2" />
-                  Ir para Lista de Instalação
-                </Button>
+                {routeStores.length > 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Para acessar a lista de instalação, selecione uma loja abaixo:
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        if (selectedStore) {
+                          // Salvar loja selecionada no localStorage
+                          localStorage.setItem("selected_store", JSON.stringify(selectedStore));
+                          setLocation("/installation-checklist");
+                        } else {
+                          toast({
+                            title: "Atenção",
+                            description: "Selecione uma loja antes de continuar.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                      disabled={!selectedStore}
+                      className={`w-full sm:w-auto font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-lg ${
+                        selectedStore 
+                          ? 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      data-testid="button-installation-checklist"
+                    >
+                      <FileText className="h-5 w-5 mr-2" />
+                      {selectedStore ? `Ir para Instalação - ${selectedStore.nome_loja}` : 'Selecione uma loja primeiro'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-600 mb-4">
+                      Nenhuma loja encontrada nas rotas deste {supplierResult.type === 'supplier' ? 'fornecedor' : 'funcionário'}.
+                    </p>
+                    <Button 
+                      onClick={() => setLocation("/installation-checklist")}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-lg"
+                      data-testid="button-installation-checklist"
+                    >
+                      <FileText className="h-5 w-5 mr-2" />
+                      Ir para Lista de Instalação (Geral)
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Lojas das Rotas - Design Melhorado */}
+        {/* Lojas das Rotas - Design Melhorado com Seleção */}
         {routeStores.length > 0 && (
           <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
@@ -479,9 +520,9 @@ export default function SupplierAccessSafe() {
                   <Store className="h-6 w-6" />
                 </div>
                 <div>
-                  <span className="text-xl">Lojas das Rotas Associadas</span>
+                  <span className="text-xl">Selecione uma Loja da Rota</span>
                   <p className="text-sm font-normal text-gray-600 mt-1">
-                    {routeStores.length} loja{routeStores.length !== 1 ? 's' : ''} encontrada{routeStores.length !== 1 ? 's' : ''}
+                    {routeStores.length} loja{routeStores.length !== 1 ? 's' : ''} encontrada{routeStores.length !== 1 ? 's' : ''} - Clique para selecionar
                   </p>
                 </div>
               </CardTitle>
@@ -489,14 +530,39 @@ export default function SupplierAccessSafe() {
             <CardContent className="p-6">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {routeStores.map((store, index) => (
-                  <div key={store.id} className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-4 border border-gray-200 hover:shadow-lg transition-all duration-200">
+                  <div 
+                    key={store.id} 
+                    className={`rounded-lg p-4 border-2 cursor-pointer transition-all duration-200 ${
+                      selectedStore?.id === store.id
+                        ? 'bg-gradient-to-br from-green-100 to-blue-100 border-green-500 shadow-lg transform scale-105'
+                        : 'bg-gradient-to-br from-gray-50 to-blue-50 border-gray-200 hover:border-blue-300 hover:shadow-lg'
+                    }`}
+                    onClick={() => {
+                      setSelectedStore(store);
+                      toast({
+                        title: "Loja Selecionada!",
+                        description: `${store.nome_loja} foi selecionada para instalação.`,
+                      });
+                    }}
+                  >
                     <div className="flex items-start gap-3">
-                      <div className="bg-blue-500 text-white rounded-lg p-2 flex-shrink-0">
+                      <div className={`rounded-lg p-2 flex-shrink-0 ${
+                        selectedStore?.id === store.id
+                          ? 'bg-green-500 text-white'
+                          : 'bg-blue-500 text-white'
+                      }`}>
                         <Store className="h-5 w-5" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 text-lg">{store.nome_loja}</h3>
-                        <div className="space-y-1 mt-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-gray-900 text-lg">{store.nome_loja}</h3>
+                          {selectedStore?.id === store.id && (
+                            <Badge className="bg-green-500 text-white text-xs">
+                              ✓ Selecionada
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <FileText className="h-4 w-4" />
                             <span>Código: {store.codigo_loja}</span>
@@ -505,12 +571,33 @@ export default function SupplierAccessSafe() {
                             <MapPin className="h-4 w-4" />
                             <span>{store.cidade || 'Cidade não informada'}</span>
                           </div>
+                          {store.logradouro && (
+                            <div className="flex items-center gap-1 text-sm text-gray-600">
+                              <Building className="h-4 w-4" />
+                              <span>{store.logradouro}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
+              
+              {selectedStore && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <p className="font-medium text-green-800">Loja Selecionada</p>
+                  </div>
+                  <p className="text-green-700">
+                    <strong>{selectedStore.nome_loja}</strong> - Código: {selectedStore.codigo_loja}
+                  </p>
+                  <p className="text-sm text-green-600 mt-1">
+                    Clique no botão "Ir para Instalação" acima para continuar
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
