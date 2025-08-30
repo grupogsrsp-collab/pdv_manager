@@ -608,139 +608,164 @@ export default function SupplierAccessSafe() {
 
               <Separator className="my-6" />
 
-              {/* Botão MOBILE-ESPECÍFICO para buscar rotas */}
-              {isMobileDevice && routeStores.length === 0 && !loadingRouteStores && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-6 border border-amber-200">
-                  <div className="text-center space-y-4">
-                    <div className="bg-amber-500 text-white rounded-lg p-3 w-12 h-12 mx-auto flex items-center justify-center">
-                      <MapPin className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-amber-800 mb-2">
-                        Buscar Rotas e Lojas
-                      </h3>
-                      <p className="text-amber-700 text-sm mb-4">
-                        Toque no botão abaixo para carregar as rotas e lojas disponíveis para este {supplierResult.type === 'supplier' ? 'fornecedor' : 'funcionário'}.
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={() => {
-                        console.log('📱 [MOBILE-BUTTON] Busca manual iniciada');
-                        fetchRouteStoresSafe(supplierResult.data, supplierResult.type);
-                      }}
-                      disabled={loadingRouteStores}
-                      className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 text-lg"
-                      data-testid="button-search-routes"
-                    >
-                      <MapPin className="h-5 w-5 mr-2" />
-                      Buscar Rotas e Lojas
-                    </Button>
+              {/* ÚNICO BOTÃO MOBILE-SAFE - Ver Lojas para Instalação */}
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+                <div className="text-center space-y-4">
+                  <div className="bg-green-500 text-white rounded-lg p-3 w-12 h-12 mx-auto flex items-center justify-center">
+                    <Store className="h-6 w-6" />
                   </div>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                {routeStores.length > 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-600">
-                      Para acessar a lista de instalação, selecione uma loja abaixo:
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">
+                      Ver Lojas para Instalação
+                    </h3>
+                    <p className="text-green-700 text-sm mb-4">
+                      Clique para ver as lojas disponíveis nas rotas deste {supplierResult.type === 'supplier' ? 'fornecedor' : 'funcionário'} e começar as instalações.
                     </p>
-                    <Button 
-                      onClick={() => {
-                        if (selectedStore) {
-                          // Salvar loja selecionada no localStorage
-                          localStorage.setItem("selected_store", JSON.stringify(selectedStore));
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                      console.log('🔄 [ÚNICO-BOTÃO] Iniciando busca MOBILE-SAFE');
+                      
+                      setLoadingRouteStores(true);
+                      
+                      try {
+                        // Buscar rotas de forma ultra-simplificada
+                        await fetchRouteStoresSafe(supplierResult.data, supplierResult.type);
+                        
+                        // Aguardar um pouco para garantir que os dados foram processados
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        console.log('🔍 [ÚNICO-BOTÃO] Verificando lojas encontradas:', routeStores.length);
+                        
+                        // Se não encontrou lojas após a busca, ir para instalação geral
+                        if (routeStores.length === 0) {
+                          console.log('🔄 [ÚNICO-BOTÃO] Nenhuma loja encontrada, indo para instalação geral');
+                          
+                          localStorage.setItem("supplier_access", JSON.stringify({
+                            id: supplierResult.data.id,
+                            nome_fornecedor: supplierResult.data.nome_fornecedor || '',
+                            searchType: supplierResult.type
+                          }));
+                          
                           setLocation("/installation-checklist");
                         } else {
-                          toast({
-                            title: "Atenção",
-                            description: "Selecione uma loja antes de continuar.",
-                            variant: "destructive"
-                          });
+                          console.log('✅ [ÚNICO-BOTÃO] Lojas encontradas, exibindo para seleção');
                         }
-                      }}
-                      disabled={!selectedStore}
-                      className={`w-full sm:w-auto font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-lg ${
-                        selectedStore 
-                          ? 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                      data-testid="button-installation-checklist"
-                    >
-                      <FileText className="h-5 w-5 mr-2" />
-                      {selectedStore ? `Ir para Instalação - ${selectedStore.nome_loja}` : 'Selecione uma loja primeiro'}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-gray-600 mb-4">
-                      Nenhuma loja encontrada nas rotas deste {supplierResult.type === 'supplier' ? 'fornecedor' : 'funcionário'}.
-                    </p>
-                    <Button 
-                      onClick={() => setLocation("/installation-checklist")}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 shadow-lg"
-                      data-testid="button-installation-checklist"
-                    >
-                      <FileText className="h-5 w-5 mr-2" />
-                      Ir para Lista de Instalação (Geral)
-                    </Button>
-                  </div>
-                )}
+                        
+                      } catch (error) {
+                        console.error('❌ [ÚNICO-BOTÃO] Erro na busca:', error);
+                        
+                        // Em caso de erro, ir direto para instalação geral
+                        console.log('🔄 [ÚNICO-BOTÃO] Erro capturado, indo para instalação geral');
+                        
+                        localStorage.setItem("supplier_access", JSON.stringify({
+                          id: supplierResult.data.id,
+                          nome_fornecedor: supplierResult.data.nome_fornecedor || '',
+                          searchType: supplierResult.type
+                        }));
+                        
+                        setLocation("/installation-checklist");
+                        
+                      } finally {
+                        setLoadingRouteStores(false);
+                      }
+                    }}
+                    disabled={loadingRouteStores}
+                    className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+                    data-testid="button-view-stores"
+                  >
+                    {loadingRouteStores ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        <Store className="h-5 w-5 mr-2" />
+                        Ver Lojas para Instalação
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Lojas das Rotas - Design Melhorado com Seleção */}
+        {/* SEÇÃO ÚNICA - Lojas encontradas com navegação direta */}
         {routeStores.length > 0 && (
           <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
               <CardTitle className="flex items-center gap-3 text-gray-800">
-                <div className="bg-indigo-500 text-white rounded-lg p-2">
+                <div className="bg-green-500 text-white rounded-lg p-2">
                   <Store className="h-6 w-6" />
                 </div>
                 <div>
-                  <span className="text-xl">Selecione uma Loja da Rota</span>
+                  <span className="text-xl">Lojas para Instalação</span>
                   <p className="text-sm font-normal text-gray-600 mt-1">
-                    {routeStores.length} loja{routeStores.length !== 1 ? 's' : ''} encontrada{routeStores.length !== 1 ? 's' : ''} - Clique para selecionar
+                    {routeStores.length} loja{routeStores.length !== 1 ? 's' : ''} encontrada{routeStores.length !== 1 ? 's' : ''} - Toque para iniciar instalação
                   </p>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {routeStores.map((store, index) => (
+              <div className="space-y-3">
+                {routeStores.map((store) => (
                   <div 
                     key={store.id} 
-                    className={`rounded-lg p-4 border-2 cursor-pointer transition-all duration-200 ${
-                      selectedStore?.id === store.id
-                        ? 'bg-gradient-to-br from-green-100 to-blue-100 border-green-500 shadow-lg transform scale-105'
-                        : 'bg-gradient-to-br from-gray-50 to-blue-50 border-gray-200 hover:border-blue-300 hover:shadow-lg'
-                    }`}
+                    className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border-2 border-green-200 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-400 active:scale-98"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      userSelect: 'none',
+                      touchAction: 'manipulation'
+                    }}
+                    onTouchEnd={(e) => {
+                      if (isMobileDevice) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('📱 [MOBILE-STORE] Touch direto na loja:', store.nome_loja);
+                        
+                        try {
+                          localStorage.setItem("selected_store", JSON.stringify(store));
+                          localStorage.setItem("supplier_access", JSON.stringify({
+                            id: supplierResult.data.id,
+                            nome_fornecedor: supplierResult.data.nome_fornecedor || '',
+                            searchType: supplierResult.type
+                          }));
+                          setLocation("/installation-checklist");
+                        } catch (error) {
+                          console.error('❌ [MOBILE-STORE] Erro:', error);
+                        }
+                      }
+                    }}
                     onClick={() => {
-                      setSelectedStore(store);
-                      toast({
-                        title: "Loja Selecionada!",
-                        description: `${store.nome_loja} foi selecionada para instalação.`,
-                      });
+                      if (!isMobileDevice) {
+                        console.log('🖥️ [DESKTOP-STORE] Click direto na loja:', store.nome_loja);
+                        
+                        try {
+                          localStorage.setItem("selected_store", JSON.stringify(store));
+                          localStorage.setItem("supplier_access", JSON.stringify({
+                            id: supplierResult.data.id,
+                            nome_fornecedor: supplierResult.data.nome_fornecedor || '',
+                            searchType: supplierResult.type
+                          }));
+                          setLocation("/installation-checklist");
+                        } catch (error) {
+                          console.error('❌ [DESKTOP-STORE] Erro:', error);
+                        }
+                      }
                     }}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className={`rounded-lg p-2 flex-shrink-0 ${
-                        selectedStore?.id === store.id
-                          ? 'bg-green-500 text-white'
-                          : 'bg-blue-500 text-white'
-                      }`}>
+                    <div className="flex items-center gap-4">
+                      <div className="bg-green-500 text-white rounded-lg p-3 flex items-center justify-center">
                         <Store className="h-5 w-5" />
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-gray-900 text-lg">{store.nome_loja}</h3>
-                          {selectedStore?.id === store.id && (
-                            <Badge className="bg-green-500 text-white text-xs">
-                              ✓ Selecionada
-                            </Badge>
-                          )}
+                          <Badge className="bg-green-500 text-white text-xs">
+                            → Tocar para Instalar
+                          </Badge>
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -749,48 +774,16 @@ export default function SupplierAccessSafe() {
                           </div>
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <MapPin className="h-4 w-4" />
-                            <span>{store.cidade || 'Cidade não informada'}</span>
+                            <span>{store.cidade}</span>
                           </div>
-                          {store.logradouro && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Building className="h-4 w-4" />
-                              <span>{store.logradouro}</span>
-                            </div>
-                          )}
                         </div>
+                      </div>
+                      <div className="text-green-600">
+                        <CheckCircle className="h-6 w-6" />
                       </div>
                     </div>
                   </div>
                 ))}
-              </div>
-              
-              {selectedStore && (
-                <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <p className="font-medium text-green-800">Loja Selecionada</p>
-                  </div>
-                  <p className="text-green-700">
-                    <strong>{selectedStore.nome_loja}</strong> - Código: {selectedStore.codigo_loja}
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">
-                    Clique no botão "Ir para Instalação" acima para continuar
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {loadingRouteStores && (
-          <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-center gap-3 py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <div>
-                  <p className="text-blue-800 font-medium">Carregando lojas das rotas...</p>
-                  <p className="text-blue-600 text-sm">Processando informações</p>
-                </div>
               </div>
             </CardContent>
           </Card>
