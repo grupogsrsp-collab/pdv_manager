@@ -13,6 +13,11 @@ import TicketForm from "@/components/forms/ticket-form";
 export default function StoreDashboard() {
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // Debug para verificar estado do modal
+  useEffect(() => {
+    console.log('🔄 Estado showSuccessModal mudou para:', showSuccessModal);
+  }, [showSuccessModal]);
   const [isFinalized, setIsFinalized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -83,6 +88,7 @@ export default function StoreDashboard() {
         });
         
         if (response.ok) {
+          console.log('✅ Instalação finalizada com sucesso! Mostrando modal...');
           setIsFinalized(true);
           setShowSuccessModal(true);
           // Invalidar cache para atualizar dados
@@ -321,27 +327,32 @@ export default function StoreDashboard() {
       </div>
 
       {/* Success Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-semibold text-green-600 flex items-center justify-center gap-2">
-              <CheckCircle className="h-6 w-6" />
-              Loja Finalizada com Sucesso!
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center pt-4">
-            <Button 
-              onClick={() => {
-                setShowSuccessModal(false);
-                handleLogout(); // Redirecionar para página inicial
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white px-8"
-            >
-              OK
-            </Button>
+      {showSuccessModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4 text-center shadow-lg">
+            <div className="mb-4">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500 mb-4">
+                <CheckCircle className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Loja Finalizada com Sucesso!</h3>
+              <p className="text-sm text-gray-600 mb-4">A instalação foi registrada com sucesso. Obrigado!</p>
+              <Button 
+                onClick={() => {
+                  console.log('🔄 Fechando modal e redirecionando...');
+                  setShowSuccessModal(false);
+                  handleLogout(); // Redirecionar para página inicial
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
+              >
+                OK
+              </Button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* Ticket Form Modal */}
       {showTicketForm && (
