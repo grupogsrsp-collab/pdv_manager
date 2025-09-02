@@ -235,6 +235,21 @@ export class MySQLStorage implements IStorage {
       try {
         console.log('📝 Verificando estrutura da tabela chamados...');
         
+        // Primeiro, tentar remover foreign key constraints se existirem
+        try {
+          await pool.execute('ALTER TABLE chamados DROP FOREIGN KEY chamados_ibfk_1');
+          console.log('🔑 Foreign key constraint removida');
+        } catch (e) {
+          // Ignorar se não existir
+        }
+
+        try {
+          await pool.execute('ALTER TABLE chamados DROP FOREIGN KEY chamados_ibfk_2');
+          console.log('🔑 Segunda foreign key constraint removida');
+        } catch (e) {
+          // Ignorar se não existir
+        }
+        
         // Verificar colunas existentes
         const [chamadosColumns] = await pool.execute(
           `SHOW COLUMNS FROM chamados`
