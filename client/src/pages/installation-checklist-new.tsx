@@ -132,6 +132,17 @@ export default function InstallationChecklistNew() {
   const supplier: Supplier | null = supplierData ? JSON.parse(supplierData) : null;
   const store: Store | null = storeData ? JSON.parse(storeData) : null;
 
+  // Query para verificar se há chamados em aberto para esta loja
+  const { data: hasOpenTicketsData } = useQuery({
+    queryKey: ["/api/stores", store?.codigo_loja, "has-open-tickets"],
+    queryFn: async () => {
+      const response = await fetch(`/api/stores/${store?.codigo_loja}/has-open-tickets`);
+      if (!response.ok) throw new Error('Erro ao verificar chamados');
+      return response.json();
+    },
+    enabled: !!store?.codigo_loja && !!existingInstallation?.finalizada,
+  });
+
 
   // Fetch kits data
   const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
@@ -673,10 +684,17 @@ export default function InstallationChecklistNew() {
             <CardTitle className="flex items-center justify-between">
               Detalhes da Instalação
               {isEditMode && (
-                <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Loja Já Finalizada
-                </div>
+                hasOpenTicketsData?.hasOpenTickets ? (
+                  <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    Loja com Chamado em Aberto
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Loja Já Finalizada
+                  </div>
+                )
               )}
             </CardTitle>
           </CardHeader>
