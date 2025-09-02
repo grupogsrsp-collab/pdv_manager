@@ -156,30 +156,31 @@ export default function InstallationChecklistNew() {
       setInstallationDate(existingInstallation.installationDate || "");
       setPhotoJustification(existingInstallation.justificativaFotos || "");
       
-      // Para manter compatibilidade, mapear fotos do array antigo para nova estrutura
+      // Processar fotos originais - agora vêm das tabelas corretas
       if (existingInstallation.fotosOriginais && Array.isArray(existingInstallation.fotosOriginais)) {
-        console.log("📷 Processando fotos originais...");
+        console.log("📷 Processando fotos originais das tabelas novas...");
         const fotosExistentes: FotoLojaEspecifica = {};
         const fotos = existingInstallation.fotosOriginais;
         
-        if (fotos[0] && fotos[0].trim() !== "") {
+        // As fotos vêm em ordem fixa das tabelas: [frente_loja, interna_loja, lado_direito, lado_esquerdo]
+        if (fotos[0] && fotos[0].trim() !== "" && fotos[0] !== "null") {
           fotosExistentes.url_foto_frente_loja = fotos[0];
-          console.log("✅ Foto frente loja encontrada");
+          console.log("✅ Foto frente loja encontrada:", fotos[0].substring(0, 50) + "...");
         }
-        if (fotos[1] && fotos[1].trim() !== "") {
+        if (fotos[1] && fotos[1].trim() !== "" && fotos[1] !== "null") {
           fotosExistentes.url_foto_interna_loja = fotos[1];
-          console.log("✅ Foto interna loja encontrada");
+          console.log("✅ Foto interna loja encontrada:", fotos[1].substring(0, 50) + "...");
         }
-        if (fotos[2] && fotos[2].trim() !== "") {
+        if (fotos[2] && fotos[2].trim() !== "" && fotos[2] !== "null") {
           fotosExistentes.url_foto_interna_lado_direito = fotos[2];
-          console.log("✅ Foto lado direito encontrada");
+          console.log("✅ Foto lado direito encontrada:", fotos[2].substring(0, 50) + "...");
         }
-        if (fotos[3] && fotos[3].trim() !== "") {
+        if (fotos[3] && fotos[3].trim() !== "" && fotos[3] !== "null") {
           fotosExistentes.url_foto_interna_lado_esquerdo = fotos[3];
-          console.log("✅ Foto lado esquerdo encontrada");
+          console.log("✅ Foto lado esquerdo encontrada:", fotos[3].substring(0, 50) + "...");
         }
         
-        console.log("📋 Fotos mapeadas:", fotosExistentes);
+        console.log("📋 Fotos originais mapeadas:", Object.keys(fotosExistentes));
         setFotosOriginaisBase64(fotosExistentes);
       }
       
@@ -188,20 +189,22 @@ export default function InstallationChecklistNew() {
         console.log("📷 Processando fotos finais...");
         const finalPhotosArray = new Array(kits.length).fill("");
         existingInstallation.fotosFinais.forEach((photo, index) => {
-          if (index < kits.length && photo && photo.trim() !== "") {
+          if (index < kits.length && photo && photo.trim() !== "" && photo !== "null") {
             finalPhotosArray[index] = photo;
-            console.log(`✅ Foto final ${index + 1} encontrada`);
+            console.log(`✅ Foto final ${index + 1} encontrada:`, photo.substring(0, 50) + "...");
           }
         });
-        console.log("📋 Fotos finais mapeadas:", finalPhotosArray);
+        console.log("📋 Fotos finais mapeadas:", finalPhotosArray.filter(p => p !== "").length, "fotos");
         setFotosFinaisBase64(finalPhotosArray);
       }
       
       // Se há fotos faltando, mostrar campo de justificativa
-      const fotosFaltando = contarFotosFaltando();
-      if (fotosFaltando > 0) {
-        setShowJustificationField(true);
-      }
+      setTimeout(() => {
+        const fotosFaltando = contarFotosFaltando();
+        if (fotosFaltando > 0) {
+          setShowJustificationField(true);
+        }
+      }, 100);
     }
   }, [existingInstallation, kits]);
 
@@ -619,13 +622,14 @@ export default function InstallationChecklistNew() {
               {camposFoto.map((campo) => {
                 const novaFoto = fotosOriginais[campo.key];
                 const fotoExistente = fotosOriginaisBase64[campo.base64Key];
-                const temFoto = novaFoto || (fotoExistente && fotoExistente.trim() !== "");
+                const temFoto = novaFoto || (fotoExistente && fotoExistente.trim() !== "" && fotoExistente !== "null");
                 
                 console.log(`🖼️ Campo ${campo.label}:`, {
                   novaFoto: !!novaFoto,
                   fotoExistente: !!fotoExistente,
                   fotoExistenteLength: fotoExistente?.length || 0,
-                  temFoto
+                  temFoto,
+                  fotoPreview: fotoExistente ? fotoExistente.substring(0, 50) + "..." : "vazio"
                 });
                 
                 return (
