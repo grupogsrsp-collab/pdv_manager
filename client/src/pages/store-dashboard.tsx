@@ -207,7 +207,8 @@ export default function StoreDashboard() {
                   hour: '2-digit', 
                   minute: '2-digit', 
                   second: '2-digit', 
-                  hour12: false 
+                  hour12: false,
+                  timeZone: 'America/Sao_Paulo'
                 })}</p>
               </div>
             </div>
