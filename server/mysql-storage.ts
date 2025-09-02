@@ -230,6 +230,45 @@ export class MySQLStorage implements IStorage {
           console.log('⚠️ Erro ao adicionar coluna finalizada:', error.message);
         }
       }
+
+      // Verificar e corrigir estrutura da tabela chamados
+      try {
+        console.log('📝 Verificando estrutura da tabela chamados...');
+        
+        // Verificar colunas existentes
+        const [chamadosColumns] = await pool.execute(
+          `SHOW COLUMNS FROM chamados`
+        ) as [RowDataPacket[], any];
+
+        const existingCols = chamadosColumns.map(col => col.Field);
+        
+        if (!existingCols.includes('instalador')) {
+          console.log('📝 Adicionando coluna instalador à tabela chamados...');
+          await pool.execute(
+            'ALTER TABLE chamados ADD COLUMN instalador VARCHAR(255)'
+          );
+        }
+        
+        if (!existingCols.includes('data_ocorrencia')) {
+          console.log('📝 Adicionando coluna data_ocorrencia à tabela chamados...');
+          await pool.execute(
+            'ALTER TABLE chamados ADD COLUMN data_ocorrencia DATE'
+          );
+        }
+
+        // Alterar loja_id para VARCHAR se for INT
+        const lojaIdCol = chamadosColumns.find(col => col.Field === 'loja_id');
+        if (lojaIdCol && lojaIdCol.Type.includes('int')) {
+          console.log('📝 Alterando tipo da coluna loja_id para VARCHAR...');
+          await pool.execute(
+            'ALTER TABLE chamados MODIFY loja_id VARCHAR(20)'
+          );
+        }
+        
+        console.log('✅ Estrutura da tabela chamados verificada e corrigida!');
+      } catch (error: any) {
+        console.log('⚠️ Erro ao verificar estrutura da tabela chamados:', error.message);
+      }
       
       // Criar tabelas de rotas
       await this.createRoutesTables();
@@ -295,13 +334,13 @@ export class MySQLStorage implements IStorage {
         
         `CREATE TABLE IF NOT EXISTS chamados (
           id INT AUTO_INCREMENT PRIMARY KEY,
+          loja_id VARCHAR(20) NOT NULL,
           descricao TEXT NOT NULL,
-          status VARCHAR(20) DEFAULT 'aberto',
-          loja_id INT NOT NULL,
+          instalador VARCHAR(255) NOT NULL,
+          data_ocorrencia DATE NOT NULL,
           fornecedor_id INT NOT NULL,
-          data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (loja_id) REFERENCES lojas(id),
-          FOREIGN KEY (fornecedor_id) REFERENCES fornecedores(id)
+          status VARCHAR(20) DEFAULT 'aberto',
+          data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
         
         `CREATE TABLE IF NOT EXISTS admins (
@@ -2284,6 +2323,21 @@ export class MySQLStorage implements IStorage {
       return ticketRows[0];
     } catch (error) {
       console.error('Erro ao criar chamado:', error);
+      throw error;
+    }
+  }
+
+  // Verificar se loja tem chamados em aberto
+  async hasOpenTickets(lojaId: string): Promise<boolean> {
+    try {
+      const [rows] = await pool.execute(
+        `SELECT COUNT(*) as count FROM chamados WHERE loja_id = ? AND status = 'aberto'`,
+        [lojaId]
+      ) as [RowDataPacket[], any];
+
+      return rows[0].count > 0;
+    } catch (error) {
+      console.error('Erro ao verificar chamados em aberto:', error);
       throw error;
     }
   }

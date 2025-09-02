@@ -310,6 +310,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para verificar se loja tem chamados em aberto
+  app.get('/api/stores/:storeCode/has-open-tickets', async (req, res) => {
+    try {
+      const { storeCode } = req.params;
+      const hasOpenTickets = await storage.hasOpenTickets(storeCode);
+      res.json({ hasOpenTickets });
+    } catch (error) {
+      console.error('Erro ao verificar chamados em aberto:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
 
   // Endpoint removido - conflitava com o endpoint de filtros abaixo
 
