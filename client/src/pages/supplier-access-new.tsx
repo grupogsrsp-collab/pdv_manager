@@ -74,13 +74,15 @@ const StoreCard = ({ store, onSelect }: {
           <div className="flex items-center gap-1 text-sm text-gray-600">
             <MapPin className="h-4 w-4" />
             <span>
-              {store.logradouro && store.numero 
-                ? `${store.logradouro}, ${store.numero} - `
-                : store.logradouro 
-                  ? `${store.logradouro} - `
-                  : ''
-              }
-              {store.bairro && `${store.bairro} - `}
+              {(store.logradouro || store.numero || store.bairro) ? (
+                <>
+                  {store.logradouro && store.numero ? `${store.logradouro}, ${store.numero}` : 
+                   store.logradouro ? store.logradouro : 
+                   store.numero ? `Nº ${store.numero}` : ''}
+                  {store.bairro && ` - ${store.bairro}`}
+                  <br />
+                </>
+              ) : ''}
               {store.cidade}, {store.uf}
             </span>
           </div>
@@ -200,6 +202,11 @@ export default function SupplierAccessNew() {
           if (route.lojas && Array.isArray(route.lojas)) {
             route.lojas.forEach((loja: any) => {
               if (loja && loja.id && loja.nome_loja) {
+                console.log('🏪 [ROTA] Dados da loja:', loja);
+                console.log('🏪 [ROTA] Logradouro:', loja.logradouro);
+                console.log('🏪 [ROTA] Numero:', loja.numero);
+                console.log('🏪 [ROTA] Bairro:', loja.bairro);
+                
                 stores.push({
                   id: loja.id,
                   codigo_loja: String(loja.id),
