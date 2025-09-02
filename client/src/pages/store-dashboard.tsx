@@ -57,16 +57,29 @@ export default function StoreDashboard() {
   const handleFinalize = async () => {
     if (storeInfo?.installationStatus?.installation) {
       try {
+        const installation = storeInfo.installationStatus.installation;
+        
+        // Enviar apenas os campos obrigatórios e válidos
+        const installationData = {
+          loja_id: installation.loja_id || store.codigo_loja,
+          fornecedor_id: installation.fornecedor_id || 1, // Default se não tiver
+          responsible: installation.responsible || "Lojista",
+          installationDate: installation.installationDate || new Date().toISOString().split('T')[0],
+          fotosOriginais: installation.fotosOriginais || [],
+          fotosFinais: installation.fotosFinais || [],
+          justificativaFotos: installation.justificativaFotos || null,
+          finalizada: true
+        };
+        
+        console.log('Enviando dados de finalização:', installationData);
+        
         // Marcar instalação como finalizada no backend
         const response = await fetch('/api/installations', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            ...storeInfo.installationStatus.installation,
-            finalizada: true
-          })
+          body: JSON.stringify(installationData)
         });
         
         if (response.ok) {
@@ -74,6 +87,9 @@ export default function StoreDashboard() {
           setShowSuccessModal(true);
           // Invalidar cache para atualizar dados
           queryClient.invalidateQueries({ queryKey: ["/api/stores", store.codigo_loja, "complete-info"] });
+        } else {
+          const errorData = await response.json();
+          console.error('Erro na resposta:', errorData);
         }
       } catch (error) {
         console.error('Erro ao finalizar:', error);
@@ -315,7 +331,10 @@ export default function StoreDashboard() {
           </DialogHeader>
           <div className="flex justify-center pt-4">
             <Button 
-              onClick={() => setShowSuccessModal(false)}
+              onClick={() => {
+                setShowSuccessModal(false);
+                handleLogout(); // Redirecionar para página inicial
+              }}
               className="bg-green-600 hover:bg-green-700 text-white px-8"
             >
               OK
