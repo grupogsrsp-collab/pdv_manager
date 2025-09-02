@@ -30,7 +30,7 @@ export default function AdminTickets() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       toast({ 
-        title: "✅ Chamado finalizado com sucesso!", 
+        title: "✅ Chamado encerrado com sucesso!", 
         description: "O chamado foi marcado como resolvido."
       });
       setShowResolveModal(false);
@@ -303,10 +303,10 @@ export default function AdminTickets() {
                               onClick={() => handleResolveClick(ticket)}
                               disabled={resolveTicketMutation.isPending}
                               data-testid={`button-resolve-ticket-${ticket.id}`}
-                              className="bg-green-600 hover:bg-green-700 text-white"
+                              className="bg-red-600 hover:bg-red-700 text-white"
                             >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Finalizar
+                              <X className="h-4 w-4 mr-1" />
+                              Encerrar
                             </Button>
                           ) : (
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -340,10 +340,10 @@ export default function AdminTickets() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                Finalizar Chamado
+                Encerrar Chamado
               </DialogTitle>
               <DialogDescription className="pt-4">
-                Tem certeza que deseja finalizar este chamado?
+                Tem certeza que deseja encerrar este chamado?
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <p className="font-medium text-gray-900 mb-2">{selectedTicket?.descricao}</p>
                   <div className="text-sm text-gray-600 space-y-1">
@@ -373,12 +373,12 @@ export default function AdminTickets() {
                 {resolveTicketMutation.isPending ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Finalizando...
+                    Encerrando...
                   </>
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Finalizar Chamado
+                    Encerrar Chamado
                   </>
                 )}
               </Button>
