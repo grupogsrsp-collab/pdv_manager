@@ -1798,6 +1798,7 @@ export class MySQLStorage implements IStorage {
   }
 
   async getInstallationByStoreId(loja_id: string): Promise<Installation | null> {
+    // Buscar instalação básica
     const [rows] = await pool.execute(
       'SELECT * FROM instalacoes WHERE loja_id = ? ORDER BY createdAt DESC LIMIT 1',
       [loja_id]
@@ -1807,70 +1808,66 @@ export class MySQLStorage implements IStorage {
       return null;
     }
     
-    const row = rows[0];
+    const installation = rows[0];
     
+    // Buscar fotos específicas da loja da tabela fotos_loja_especificas
+    const [fotosLoja] = await pool.execute(
+      'SELECT * FROM fotos_loja_especificas WHERE loja_id = ? ORDER BY created_at DESC LIMIT 1',
+      [loja_id]
+    ) as [RowDataPacket[], any];
+    
+    // Converter fotos específicas da loja para array compatível
     let fotosOriginais = [];
-    let fotosFinais = [];
-    
-    try {
-      if (row.fotosOriginais) {
-        const fotosStr = String(row.fotosOriginais);
-        // Tentar JSON primeiro
-        if (fotosStr.startsWith('[')) {
-          fotosOriginais = JSON.parse(fotosStr);
-        } else if (fotosStr.startsWith('data:image/')) {
-          // Se for uma única foto base64, converter para array
-          fotosOriginais = [fotosStr];
-        } else {
-          fotosOriginais = [];
-        }
-      } else {
-        fotosOriginais = [];
-      }
-    } catch (error) {
-      console.log('Erro ao fazer parse das fotos originais:', error);
-      fotosOriginais = [];
+    if (fotosLoja.length > 0) {
+      const fotoData = fotosLoja[0];
+      fotosOriginais = [
+        fotoData.url_foto_frente_loja || '',
+        fotoData.url_foto_interna_loja || '', 
+        fotoData.url_foto_interna_lado_direito || '',
+        fotoData.url_foto_interna_lado_esquerdo || ''
+      ];
+      console.log('📸 Fotos originais encontradas na tabela fotos_loja_especificas:', fotosOriginais);
+    } else {
+      console.log('📸 Nenhuma foto original encontrada na tabela fotos_loja_especificas para loja', loja_id);
     }
     
-    try {
-      if (row.fotosFinais) {
-        const fotosStr = String(row.fotosFinais);
-        // Tentar JSON primeiro
-        if (fotosStr.startsWith('[')) {
-          fotosFinais = JSON.parse(fotosStr);
-        } else if (fotosStr.startsWith('data:image/')) {
-          // Se for uma única foto base64, converter para array
-          fotosFinais = [fotosStr];
-        } else {
-          fotosFinais = [];
+    // Buscar fotos finais da tabela fotos_finais
+    const [fotosFinaisRows] = await pool.execute(
+      'SELECT * FROM fotos_finais WHERE loja_id = ? ORDER BY kit_id',
+      [loja_id]
+    ) as [RowDataPacket[], any];
+    
+    // Buscar kits para mapear corretamente as fotos finais
+    const [kitsRows] = await pool.execute('SELECT * FROM kits ORDER BY id') as [RowDataPacket[], any];
+    const kits = kitsRows as Kit[];
+    
+    // Mapear fotos finais por kit_id
+    let fotosFinais = new Array(kits.length).fill('');
+    fotosFinaisRows.forEach((foto: any) => {
+      if (foto.kit_id) {
+        const kitIndex = kits.findIndex(k => k.id === foto.kit_id);
+        if (kitIndex >= 0) {
+          fotosFinais[kitIndex] = foto.foto_url;
         }
-      } else {
-        fotosFinais = [];
       }
-    } catch (error) {
-      console.log('Erro ao fazer parse das fotos finais:', error);
-      fotosFinais = [];
-    }
+    });
+    
+    console.log('📸 Fotos finais encontradas na tabela fotos_finais:', fotosFinais);
     
     return {
-      ...row,
+      ...installation,
       fotosOriginais,
       fotosFinais
     } as Installation;
   }
 
   async updateInstallation(id: string, installation: InsertInstallation): Promise<Installation> {
-    const fotosOriginaisJson = JSON.stringify(installation.fotosOriginais || []);
-    const fotosFinaisJson = JSON.stringify(installation.fotosFinais || []);
-    
-    // Atualizar instalação existente
+    // Atualizar instalação básica (sem as fotos JSON antigas)
     await pool.execute(
       `UPDATE instalacoes SET 
         fornecedor_id = ?,
         responsible = ?, 
         installationDate = ?, 
-        fotosOriginais = ?, 
-        fotosFinais = ?, 
         justificativaFotos = ?,
         finalizada = ?,
         latitude = ?,
@@ -1883,86 +1880,77 @@ export class MySQLStorage implements IStorage {
         installation.fornecedor_id || null,
         installation.responsible,
         installation.installationDate,
-        fotosOriginaisJson,
-        fotosFinaisJson,
         installation.justificativaFotos || null,
         installation.finalizada || false,
         installation.latitude || null,
         installation.longitude || null,
         installation.endereco_geolocalizacao || null,
-        installation.mapa_screenshot_url || null,
         installation.geolocalizacao_timestamp ? new Date(installation.geolocalizacao_timestamp) : null,
         id
       ]
     );
 
-    // Buscar todos os kits para recriar associações de fotos
-    const [kitsRows] = await pool.execute('SELECT * FROM kits ORDER BY id') as [RowDataPacket[], any];
-    const kits = kitsRows as Kit[];
-
-    // Remover fotos antigas
-    await pool.execute('DELETE FROM fotos_originais_loja WHERE loja_id = ?', [installation.loja_id]);
-    await pool.execute('DELETE FROM fotos_finais WHERE loja_id = ?', [installation.loja_id]);
-
-    // Salvar novas fotos originais individualmente
+    // Salvar fotos originais na tabela fotos_loja_especificas
     if (installation.fotosOriginais && installation.fotosOriginais.length > 0) {
-      for (let i = 0; i < installation.fotosOriginais.length; i++) {
-        const foto = installation.fotosOriginais[i];
-        const kit = kits[i];
-        
-        if (foto && kit) {
-          await pool.execute(
-            'INSERT INTO fotos_originais_loja (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
-            [installation.loja_id, foto, kit.id]
-          );
-        }
-      }
+      console.log('💾 Salvando fotos originais na tabela fotos_loja_especificas:', installation.fotosOriginais);
+      
+      // Deletar fotos anteriores
+      await pool.execute('DELETE FROM fotos_loja_especificas WHERE loja_id = ?', [installation.loja_id]);
+      
+      // Inserir nova linha com as 4 fotos
+      await pool.execute(
+        `INSERT INTO fotos_loja_especificas 
+         (loja_id, url_foto_frente_loja, url_foto_interna_loja, url_foto_interna_lado_direito, url_foto_interna_lado_esquerdo) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          installation.loja_id,
+          installation.fotosOriginais[0] || null,
+          installation.fotosOriginais[1] || null,
+          installation.fotosOriginais[2] || null,
+          installation.fotosOriginais[3] || null
+        ]
+      );
     }
 
-    // Salvar novas fotos finais individualmente
+    // Salvar fotos finais na tabela fotos_finais
     if (installation.fotosFinais && installation.fotosFinais.length > 0) {
+      console.log('💾 Salvando fotos finais na tabela fotos_finais:', installation.fotosFinais);
+      
+      // Deletar fotos anteriores
+      await pool.execute('DELETE FROM fotos_finais WHERE loja_id = ?', [installation.loja_id]);
+      
+      // Buscar kits para mapear kit_id
+      const [kitsRows] = await pool.execute('SELECT * FROM kits ORDER BY id') as [RowDataPacket[], any];
+      const kits = kitsRows as Kit[];
+      
+      // Inserir cada foto final com seu kit_id correspondente
       for (let i = 0; i < installation.fotosFinais.length; i++) {
-        const foto = installation.fotosFinais[i];
-        const kit = kits[i];
-        
-        if (foto && kit) {
+        const fotoUrl = installation.fotosFinais[i];
+        if (fotoUrl && fotoUrl.trim() !== '' && i < kits.length) {
           await pool.execute(
             'INSERT INTO fotos_finais (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
-            [installation.loja_id, foto, kit.id]
+            [installation.loja_id, fotoUrl, kits[i].id]
           );
         }
       }
     }
 
-    const [rows] = await pool.execute(
-      'SELECT * FROM instalacoes WHERE id = ?',
-      [id]
-    ) as [RowDataPacket[], any];
-    
-    const result = rows[0];
-    return {
-      ...result,
-      fotosOriginais: typeof result.fotosOriginais === 'string' ? JSON.parse(result.fotosOriginais || '[]') : (result.fotosOriginais || []),
-      fotosFinais: typeof result.fotosFinais === 'string' ? JSON.parse(result.fotosFinais || '[]') : (result.fotosFinais || [])
-    } as Installation;
+    // Retornar a instalação atualizada usando o método que puxa das tabelas corretas
+    return this.getInstallationByStoreId(installation.loja_id) as Promise<Installation>;
   }
 
   async createInstallation(installation: InsertInstallation): Promise<Installation> {
     const id = `inst_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const fotosOriginaisJson = JSON.stringify(installation.fotosOriginais || []);
-    const fotosFinaisJson = JSON.stringify(installation.fotosFinais || []);
     
-    // Salvar instalação principal
+    // Salvar instalação principal (sem as fotos JSON antigas)
     await pool.execute(
-      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, fotosOriginais, fotosFinais, justificativaFotos, finalizada, latitude, longitude, endereco_geolocalizacao, mapa_screenshot_url, geolocalizacao_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, justificativaFotos, finalizada, latitude, longitude, endereco_geolocalizacao, mapa_screenshot_url, geolocalizacao_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id, 
         installation.loja_id, 
         installation.fornecedor_id, 
         installation.responsible, 
         installation.installationDate, 
-        fotosOriginaisJson, 
-        fotosFinaisJson, 
         installation.justificativaFotos || null,
         installation.finalizada || false,
         installation.latitude || null,
@@ -1973,51 +1961,46 @@ export class MySQLStorage implements IStorage {
       ]
     );
 
-    // Buscar todos os kits para associar às fotos
-    const [kitsRows] = await pool.execute('SELECT * FROM kits ORDER BY id') as [RowDataPacket[], any];
-    const kits = kitsRows as Kit[];
-
-    // Salvar fotos originais individualmente
+    // Salvar fotos originais na tabela fotos_loja_especificas
     if (installation.fotosOriginais && installation.fotosOriginais.length > 0) {
-      for (let i = 0; i < installation.fotosOriginais.length; i++) {
-        const foto = installation.fotosOriginais[i];
-        const kit = kits[i]; // Associar foto ao kit pelo índice
-        
-        if (foto && kit) {
-          await pool.execute(
-            'INSERT INTO fotos_originais_loja (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
-            [installation.loja_id, foto, kit.id]
-          );
-        }
-      }
+      console.log('💾 Criando fotos originais na tabela fotos_loja_especificas:', installation.fotosOriginais);
+      
+      await pool.execute(
+        `INSERT INTO fotos_loja_especificas 
+         (loja_id, url_foto_frente_loja, url_foto_interna_loja, url_foto_interna_lado_direito, url_foto_interna_lado_esquerdo) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          installation.loja_id,
+          installation.fotosOriginais[0] || null,
+          installation.fotosOriginais[1] || null,
+          installation.fotosOriginais[2] || null,
+          installation.fotosOriginais[3] || null
+        ]
+      );
     }
 
-    // Salvar fotos finais individuamente
+    // Salvar fotos finais na tabela fotos_finais
     if (installation.fotosFinais && installation.fotosFinais.length > 0) {
+      console.log('💾 Criando fotos finais na tabela fotos_finais:', installation.fotosFinais);
+      
+      // Buscar kits para mapear kit_id
+      const [kitsRows] = await pool.execute('SELECT * FROM kits ORDER BY id') as [RowDataPacket[], any];
+      const kits = kitsRows as Kit[];
+      
+      // Inserir cada foto final com seu kit_id correspondente
       for (let i = 0; i < installation.fotosFinais.length; i++) {
-        const foto = installation.fotosFinais[i];
-        const kit = kits[i]; // Associar foto ao kit pelo índice
-        
-        if (foto && kit) {
+        const fotoUrl = installation.fotosFinais[i];
+        if (fotoUrl && fotoUrl.trim() !== '' && i < kits.length) {
           await pool.execute(
             'INSERT INTO fotos_finais (loja_id, foto_url, kit_id) VALUES (?, ?, ?)',
-            [installation.loja_id, foto, kit.id]
+            [installation.loja_id, fotoUrl, kits[i].id]
           );
         }
       }
     }
 
-    const [rows] = await pool.execute(
-      'SELECT * FROM instalacoes WHERE id = ?',
-      [id]
-    ) as [RowDataPacket[], any];
-    
-    const result = rows[0];
-    return {
-      ...result,
-      fotosOriginais: typeof result.fotosOriginais === 'string' ? JSON.parse(result.fotosOriginais || '[]') : (result.fotosOriginais || []),
-      fotosFinais: typeof result.fotosFinais === 'string' ? JSON.parse(result.fotosFinais || '[]') : (result.fotosFinais || [])
-    } as Installation;
+    // Retornar a instalação criada usando o método que puxa das tabelas corretas
+    return this.getInstallationByStoreId(installation.loja_id) as Promise<Installation>;
   }
 
   async getDashboardMetrics(): Promise<{
