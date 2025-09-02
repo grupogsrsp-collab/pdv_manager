@@ -108,6 +108,7 @@ export interface Ticket {
   bairro?: string;
   cidade?: string;
   uf?: string;
+  tipo_chamado?: string; // 'loja' ou 'fornecedor'
 }
 
 export interface InsertTicket {

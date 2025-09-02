@@ -1622,9 +1622,13 @@ export class MySQLStorage implements IStorage {
         l.nome_loja,
         l.bairro,
         l.cidade,
-        l.uf
+        l.uf,
+        CASE 
+          WHEN c.fornecedor_id IS NULL OR c.fornecedor_id = 0 THEN 'loja'
+          ELSE 'fornecedor'
+        END as tipo_chamado
       FROM chamados c
-      LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
+      LEFT JOIN fornecedores f ON c.fornecedor_id = f.id AND c.fornecedor_id > 0
       LEFT JOIN lojas l ON c.loja_id = l.codigo_loja
       ORDER BY c.data_abertura DESC
     `;

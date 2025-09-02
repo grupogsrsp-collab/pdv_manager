@@ -228,6 +228,7 @@ export default function AdminTickets() {
                 <TableHeader>
                   <TableRow className="bg-gray-50">
                     <TableHead className="font-semibold">Título</TableHead>
+                    <TableHead className="font-semibold">Tipo</TableHead>
                     <TableHead className="font-semibold">Nome do Fornecedor</TableHead>
                     <TableHead className="font-semibold">Telefone</TableHead>
                     <TableHead className="font-semibold">Código da Loja</TableHead>
@@ -253,9 +254,19 @@ export default function AdminTickets() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <Badge 
+                          variant={ticket.tipo_chamado === 'fornecedor' ? 'default' : 'secondary'} 
+                          className={ticket.tipo_chamado === 'fornecedor' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}
+                        >
+                          {ticket.tipo_chamado === 'fornecedor' ? 'Fornecedor' : 'Loja'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700">{ticket.nome_fornecedor || '-'}</span>
+                          <span className="text-gray-700">
+                            {ticket.tipo_chamado === 'fornecedor' ? (ticket.nome_fornecedor || '-') : 'Lojista'}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -268,7 +279,7 @@ export default function AdminTickets() {
                         <div className="flex items-center gap-2">
                           <Store className="h-4 w-4 text-gray-400" />
                           <span className="font-mono text-gray-700" data-testid={`text-ticket-store-${ticket.id}`}>
-                            {ticket.codigo_loja || '-'}
+                            {ticket.codigo_loja || ticket.loja_id || '-'}
                           </span>
                         </div>
                       </TableCell>
@@ -319,7 +330,7 @@ export default function AdminTickets() {
                   ))}
                   {filteredTickets.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-12">
+                      <TableCell colSpan={11} className="text-center py-12">
                         <div className="flex flex-col items-center gap-2">
                           <AlertTriangle className="h-12 w-12 text-gray-300" />
                           <p className="text-gray-500 text-lg">Nenhum chamado encontrado</p>
