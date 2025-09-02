@@ -581,7 +581,7 @@ export default function InstallationChecklistNew() {
               <div className="md:col-span-2">
                 <Label className="block text-sm font-medium text-gray-700">Endereço</Label>
                 <p className="text-gray-900">
-                  {store.logradouro}, {store.numero} {store.complemento && `- ${store.complemento}`}<br/>
+                  {store.logradouro ? `${store.logradouro}` : ''}{store.numero ? `, ${store.numero}` : ''} {store.complemento ? `- ${store.complemento}` : ''}<br/>
                   {store.bairro} - {store.cidade}, {store.uf} - CEP: {store.cep}
                 </p>
               </div>
