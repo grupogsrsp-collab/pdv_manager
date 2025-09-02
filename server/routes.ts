@@ -273,6 +273,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar observações da rota associada à loja
+  app.get('/api/stores/:storeCode/route-observations', async (req, res) => {
+    try {
+      const storeCode = req.params.storeCode;
+      const observations = await storage.getRouteObservationsByStore(storeCode);
+      res.json({ observations });
+    } catch (error) {
+      console.log('Erro ao buscar observações da rota:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
 
   // Endpoint removido - conflitava com o endpoint de filtros abaixo
 

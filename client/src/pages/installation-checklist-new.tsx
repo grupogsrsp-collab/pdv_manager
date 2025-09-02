@@ -39,6 +39,7 @@ export default function InstallationChecklistNew() {
   const { toast } = useToast();
   const [responsibleName, setResponsibleName] = useState("");
   const [installationDate, setInstallationDate] = useState("");
+  const [routeObservations, setRouteObservations] = useState<string | null>(null);
   
   // Estados para as 4 fotos específicas (File objects para novas fotos)
   const [fotosOriginais, setFotosOriginais] = useState<{
@@ -138,6 +139,12 @@ export default function InstallationChecklistNew() {
     enabled: !!store?.codigo_loja,
   });
 
+  // Buscar observações da rota associada à loja
+  const { data: routeObservationsData } = useQuery<{ observations: string | null }>({
+    queryKey: ["/api/stores", store?.codigo_loja, "route-observations"],
+    enabled: !!store?.codigo_loja,
+  });
+
   // Redirect if no access
   if (!supplier || !store) {
     setLocation("/supplier-access");
@@ -207,6 +214,13 @@ export default function InstallationChecklistNew() {
       }, 100);
     }
   }, [existingInstallation, kits]);
+
+  // Effect para carregar observações da rota
+  useEffect(() => {
+    if (routeObservationsData?.observations) {
+      setRouteObservations(routeObservationsData.observations);
+    }
+  }, [routeObservationsData]);
 
   // Função para contar fotos faltando
   const contarFotosFaltando = (): number => {
@@ -615,6 +629,16 @@ export default function InstallationChecklistNew() {
                 data-testid="input-date"
               />
             </div>
+            {routeObservations && (
+              <div>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
+                  Observações
+                </Label>
+                <div className="bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900">
+                  {routeObservations}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

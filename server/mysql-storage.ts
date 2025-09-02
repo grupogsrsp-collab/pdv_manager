@@ -2219,6 +2219,31 @@ export class MySQLStorage implements IStorage {
     }
   }
 
+  // Buscar observações da rota associada à loja
+  async getRouteObservationsByStore(storeCode: string): Promise<string | null> {
+    try {
+      // Primeiro busca a rota que contém essa loja
+      const [routeRows] = await pool.execute(
+        `SELECT r.observacoes 
+         FROM rotas r 
+         INNER JOIN rota_itens ri ON r.id = ri.rota_id 
+         WHERE ri.loja_id = ? 
+         ORDER BY r.data_criacao DESC 
+         LIMIT 1`,
+        [storeCode]
+      ) as [RowDataPacket[], any];
+
+      if (routeRows.length > 0) {
+        return routeRows[0].observacoes || null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Erro ao buscar observações da rota por loja:', error);
+      throw error;
+    }
+  }
+
   async createTestDataForRoutes(): Promise<void> {
     try {
       console.log('📝 Criando dados de teste para rotas...');
