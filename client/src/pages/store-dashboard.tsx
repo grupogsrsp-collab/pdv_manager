@@ -202,8 +202,8 @@ export default function StoreDashboard() {
                 <p className="text-gray-900">{installationStatus.supplier.nome_fornecedor}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">CNPJ do Fornecedor</p>
-                <p className="text-gray-900">{installationStatus.supplier.cnpj}</p>
+                <p className="text-sm font-medium text-gray-700">Horário de Finalização</p>
+                <p className="text-gray-900">{new Date(installationStatus.installation.createdAt).toLocaleTimeString('pt-BR')}</p>
               </div>
             </div>
           )}
@@ -214,6 +214,9 @@ export default function StoreDashboard() {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Revise a Instalação</CardTitle>
+          <p className="text-sm text-gray-600 mt-2">
+            Lojista revise a instalação e clique em FINALIZAR ou reporte o problema no botão ABRIR CHAMADO.
+          </p>
         </CardHeader>
         <CardContent>
           {fotosFinais.length === 0 ? (

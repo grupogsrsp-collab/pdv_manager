@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 100%);
+  --background: hsl(0, 0%, 1000%);
   --foreground: hsl(224, 71.4%, 4.1%);
   --muted: hsl(220, 14.3%, 95.9%);
   --muted-foreground: hsl(220, 8.9%, 46.1%);
@@ -23,7 +23,7 @@
   --destructive-foreground: hsl(210, 40%, 98%);
   --ring: hsl(207, 90%, 54%);
   --radius: 0.5rem;
-  
+
   /* Custom franchise colors */
   --success: hsl(122, 39%, 49%);
   --success-foreground: hsl(0, 0%, 100%);
@@ -72,51 +72,53 @@
   .text-success {
     color: hsl(var(--success));
   }
-  
+
   .text-warning {
     color: hsl(var(--warning));
   }
-  
+
   .text-error {
     color: hsl(var(--error));
   }
-  
+
   .bg-success {
     background-color: hsl(var(--success));
   }
-  
+
   .bg-warning {
     background-color: hsl(var(--warning));
   }
-  
+
   .bg-error {
     background-color: hsl(var(--error));
   }
-  
+
   .bg-surface {
     background-color: hsl(var(--surface));
   }
-  
+
   .bg-background-alt {
     background-color: hsl(var(--background-alt));
   }
-  
+
   .hover\:bg-success:hover {
     background-color: hsl(122, 39%, 40%);
   }
-  
+
   .hover\:bg-warning:hover {
     background-color: hsl(32, 95%, 35%);
   }
-  
+
   .hover\:bg-error:hover {
     background-color: hsl(0, 84%, 50%);
   }
-  
+
   /* Hide scrollbar for webkit browsers */
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 
   .scrollbar-hide::-webkit-scrollbar {
