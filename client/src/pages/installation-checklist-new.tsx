@@ -128,6 +128,9 @@ export default function InstallationChecklistNew() {
   const supplier: Supplier | null = supplierData ? JSON.parse(supplierData) : null;
   const store: Store | null = storeData ? JSON.parse(storeData) : null;
 
+  // Debug: verificar dados da loja
+  console.log('📍 Dados da loja carregados:', store);
+
   // Fetch kits data
   const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
     queryKey: ["/api/kits"],
@@ -581,8 +584,17 @@ export default function InstallationChecklistNew() {
               <div className="md:col-span-2">
                 <Label className="block text-sm font-medium text-gray-700">Endereço</Label>
                 <p className="text-gray-900">
-                  {store.logradouro ? `${store.logradouro}` : ''}{store.numero ? `, ${store.numero}` : ''} {store.complemento ? `- ${store.complemento}` : ''}<br/>
-                  {store.bairro} - {store.cidade}, {store.uf} - CEP: {store.cep}
+                  {store.logradouro && store.numero 
+                    ? `${store.logradouro}, Nº ${store.numero}`
+                    : store.logradouro 
+                      ? store.logradouro
+                      : store.numero 
+                        ? `Nº ${store.numero}`
+                        : ''
+                  }
+                  {store.complemento && ` - ${store.complemento}`}<br/>
+                  {store.bairro && `${store.bairro} - `}{store.cidade && `${store.cidade}, `}{store.uf && `${store.uf}`}
+                  {store.cep && ` - CEP: ${store.cep}`}
                 </p>
               </div>
             </div>
