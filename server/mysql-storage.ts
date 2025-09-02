@@ -138,6 +138,38 @@ export class MySQLStorage implements IStorage {
         await pool.execute('ALTER TABLE fornecedores ADD COLUMN email VARCHAR(255)');
       }
       
+      // CORREÇÃO CRÍTICA: Alterar colunas de fotos para LONGTEXT para suportar base64 grandes
+      console.log('🔧 Verificando e corrigindo tipos de colunas de fotos...');
+      
+      // Corrigir tabela fotos_loja_especificas - usar LONGTEXT para suportar imagens grandes
+      try {
+        await pool.execute(`
+          ALTER TABLE fotos_loja_especificas 
+          MODIFY COLUMN url_foto_frente_loja LONGTEXT,
+          MODIFY COLUMN url_foto_interna_loja LONGTEXT,
+          MODIFY COLUMN url_foto_interna_lado_direito LONGTEXT,
+          MODIFY COLUMN url_foto_interna_lado_esquerdo LONGTEXT
+        `);
+        console.log('✅ Colunas de fotos_loja_especificas alteradas para LONGTEXT');
+      } catch (e: any) {
+        if (!e.message?.includes('Table') && !e.message?.includes('Unknown')) {
+          console.log('ℹ️ Colunas de fotos_loja_especificas:', e.message);
+        }
+      }
+      
+      // Corrigir tabela fotos_finais - usar LONGTEXT
+      try {
+        await pool.execute(`
+          ALTER TABLE fotos_finais 
+          MODIFY COLUMN foto_url LONGTEXT
+        `);
+        console.log('✅ Coluna foto_url de fotos_finais alterada para LONGTEXT');
+      } catch (e: any) {
+        if (!e.message?.includes('Table') && !e.message?.includes('Unknown')) {
+          console.log('ℹ️ Coluna foto_url de fotos_finais:', e.message);
+        }
+      }
+      
       // Verificar e migrar estrutura da tabela instalacoes
       const [installationColumns] = await pool.execute(`
         SELECT COLUMN_NAME 
