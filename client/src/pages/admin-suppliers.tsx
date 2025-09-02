@@ -243,11 +243,12 @@ export default function AdminSuppliers() {
               Adicionar Fornecedor
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Novo Fornecedor</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Nome do Fornecedor - linha completa */}
               <div>
                 <Label htmlFor="nome_fornecedor">Nome do Fornecedor</Label>
                 <Input
@@ -257,83 +258,52 @@ export default function AdminSuppliers() {
                   onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
                 />
               </div>
-              <div>
-                <Label htmlFor="cnpj">CNPJ</Label>
-                <Input
-                  id="cnpj"
-                  data-testid="input-supplier-cnpj"
-                  value={formData.cnpj || ""}
-                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="cpf">CPF</Label>
-                <Input
-                  id="cpf"
-                  data-testid="input-supplier-cpf"
-                  value={formData.cpf || ""}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                />
+
+              {/* CNPJ e CPF - 2 campos por linha */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Input
+                    id="cnpj"
+                    data-testid="input-supplier-cnpj"
+                    value={formData.cnpj || ""}
+                    onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input
+                    id="cpf"
+                    data-testid="input-supplier-cpf"
+                    value={formData.cpf || ""}
+                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  data-testid="input-supplier-phone"
-                  value={formData.telefone || ""}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                />
+              {/* Nome do Responsável e Telefone - 2 campos por linha */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="nome_responsavel">Nome do Responsável</Label>
+                  <Input
+                    id="nome_responsavel"
+                    data-testid="input-supplier-responsible"
+                    value={formData.nome_responsavel || ""}
+                    onChange={(e) => setFormData({ ...formData, nome_responsavel: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="telefone">Telefone</Label>
+                  <Input
+                    id="telefone"
+                    data-testid="input-supplier-phone"
+                    value={formData.telefone || ""}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="endereco">Endereço</Label>
-                <Input
-                  id="endereco"
-                  data-testid="input-supplier-address"
-                  value={formData.endereco || ""}
-                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="estado">Estado</Label>
-                <Select 
-                  value={formData.estado || ""} 
-                  onValueChange={(value) => setFormData({ ...formData, estado: value })}
-                >
-                  <SelectTrigger data-testid="select-supplier-state">
-                    <SelectValue placeholder="Selecione o estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AC">Acre</SelectItem>
-                    <SelectItem value="AL">Alagoas</SelectItem>
-                    <SelectItem value="AP">Amapá</SelectItem>
-                    <SelectItem value="AM">Amazonas</SelectItem>
-                    <SelectItem value="BA">Bahia</SelectItem>
-                    <SelectItem value="CE">Ceará</SelectItem>
-                    <SelectItem value="DF">Distrito Federal</SelectItem>
-                    <SelectItem value="ES">Espírito Santo</SelectItem>
-                    <SelectItem value="GO">Goiás</SelectItem>
-                    <SelectItem value="MA">Maranhão</SelectItem>
-                    <SelectItem value="MT">Mato Grosso</SelectItem>
-                    <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
-                    <SelectItem value="MG">Minas Gerais</SelectItem>
-                    <SelectItem value="PA">Pará</SelectItem>
-                    <SelectItem value="PB">Paraíba</SelectItem>
-                    <SelectItem value="PR">Paraná</SelectItem>
-                    <SelectItem value="PE">Pernambuco</SelectItem>
-                    <SelectItem value="PI">Piauí</SelectItem>
-                    <SelectItem value="RJ">Rio de Janeiro</SelectItem>
-                    <SelectItem value="RN">Rio Grande do Norte</SelectItem>
-                    <SelectItem value="RS">Rio Grande do Sul</SelectItem>
-                    <SelectItem value="RO">Rondônia</SelectItem>
-                    <SelectItem value="RR">Roraima</SelectItem>
-                    <SelectItem value="SC">Santa Catarina</SelectItem>
-                    <SelectItem value="SP">São Paulo</SelectItem>
-                    <SelectItem value="SE">Sergipe</SelectItem>
-                    <SelectItem value="TO">Tocantins</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {/* E-mail - linha completa */}
               <div>
                 <Label htmlFor="email">E-mail</Label>
                 <Input
@@ -345,18 +315,73 @@ export default function AdminSuppliers() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
+
+              {/* Endereço - linha completa */}
               <div>
-                <Label htmlFor="valor_orcamento">Valor do Orçamento (R$)</Label>
+                <Label htmlFor="endereco">Endereço</Label>
                 <Input
-                  id="valor_orcamento"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  data-testid="input-supplier-budget"
-                  value={formData.valor_orcamento || ""}
-                  onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
+                  id="endereco"
+                  data-testid="input-supplier-address"
+                  value={formData.endereco || ""}
+                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
                 />
+              </div>
+
+              {/* Estado e Valor do Orçamento - 2 campos por linha */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="estado">Estado</Label>
+                  <Select 
+                    value={formData.estado || ""} 
+                    onValueChange={(value) => setFormData({ ...formData, estado: value })}
+                  >
+                    <SelectTrigger data-testid="select-supplier-state">
+                      <SelectValue placeholder="Selecione o estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AC">Acre</SelectItem>
+                      <SelectItem value="AL">Alagoas</SelectItem>
+                      <SelectItem value="AP">Amapá</SelectItem>
+                      <SelectItem value="AM">Amazonas</SelectItem>
+                      <SelectItem value="BA">Bahia</SelectItem>
+                      <SelectItem value="CE">Ceará</SelectItem>
+                      <SelectItem value="DF">Distrito Federal</SelectItem>
+                      <SelectItem value="ES">Espírito Santo</SelectItem>
+                      <SelectItem value="GO">Goiás</SelectItem>
+                      <SelectItem value="MA">Maranhão</SelectItem>
+                      <SelectItem value="MT">Mato Grosso</SelectItem>
+                      <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                      <SelectItem value="MG">Minas Gerais</SelectItem>
+                      <SelectItem value="PA">Pará</SelectItem>
+                      <SelectItem value="PB">Paraíba</SelectItem>
+                      <SelectItem value="PR">Paraná</SelectItem>
+                      <SelectItem value="PE">Pernambuco</SelectItem>
+                      <SelectItem value="PI">Piauí</SelectItem>
+                      <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                      <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                      <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                      <SelectItem value="RO">Rondônia</SelectItem>
+                      <SelectItem value="RR">Roraima</SelectItem>
+                      <SelectItem value="SC">Santa Catarina</SelectItem>
+                      <SelectItem value="SP">São Paulo</SelectItem>
+                      <SelectItem value="SE">Sergipe</SelectItem>
+                      <SelectItem value="TO">Tocantins</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="valor_orcamento">Valor do Orçamento (R$)</Label>
+                  <Input
+                    id="valor_orcamento"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,00"
+                    data-testid="input-supplier-budget"
+                    value={formData.valor_orcamento || ""}
+                    onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" data-testid="button-save-supplier" disabled={createMutation.isPending}>
@@ -529,11 +554,12 @@ export default function AdminSuppliers() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingSupplier} onOpenChange={() => setEditingSupplier(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Fornecedor</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Nome do Fornecedor - linha completa */}
             <div>
               <Label htmlFor="edit-nome_fornecedor">Nome do Fornecedor</Label>
               <Input
@@ -542,38 +568,48 @@ export default function AdminSuppliers() {
                 onChange={(e) => setFormData({ ...formData, nome_fornecedor: e.target.value })}
               />
             </div>
-            <div>
-              <Label htmlFor="edit-cnpj">CNPJ</Label>
-              <Input
-                id="edit-cnpj"
-                value={formData.cnpj || ""}
-                onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-              />
+
+            {/* CNPJ e CPF - 2 campos por linha */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-cnpj">CNPJ</Label>
+                <Input
+                  id="edit-cnpj"
+                  value={formData.cnpj || ""}
+                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-cpf">CPF</Label>
+                <Input
+                  id="edit-cpf"
+                  value={formData.cpf || ""}
+                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="edit-cpf">CPF</Label>
-              <Input
-                id="edit-cpf"
-                value={formData.cpf || ""}
-                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-              />
+
+            {/* Nome do Responsável e Telefone - 2 campos por linha */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-nome_responsavel">Nome do Responsável</Label>
+                <Input
+                  id="edit-nome_responsavel"
+                  value={formData.nome_responsavel || ""}
+                  onChange={(e) => setFormData({ ...formData, nome_responsavel: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-telefone">Telefone</Label>
+                <Input
+                  id="edit-telefone"
+                  value={formData.telefone || ""}
+                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="edit-nome_responsavel">Nome do Responsável</Label>
-              <Input
-                id="edit-nome_responsavel"
-                value={formData.nome_responsavel || ""}
-                onChange={(e) => setFormData({ ...formData, nome_responsavel: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-telefone">Telefone</Label>
-              <Input
-                id="edit-telefone"
-                value={formData.telefone || ""}
-                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-              />
-            </div>
+
+            {/* Endereço - linha completa */}
             <div>
               <Label htmlFor="edit-endereco">Endereço</Label>
               <Input
@@ -582,57 +618,61 @@ export default function AdminSuppliers() {
                 onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
               />
             </div>
-            <div>
-              <Label htmlFor="edit-estado">Estado</Label>
-              <Select 
-                value={formData.estado || ""} 
-                onValueChange={(value) => setFormData({ ...formData, estado: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AC">Acre</SelectItem>
-                  <SelectItem value="AL">Alagoas</SelectItem>
-                  <SelectItem value="AP">Amapá</SelectItem>
-                  <SelectItem value="AM">Amazonas</SelectItem>
-                  <SelectItem value="BA">Bahia</SelectItem>
-                  <SelectItem value="CE">Ceará</SelectItem>
-                  <SelectItem value="DF">Distrito Federal</SelectItem>
-                  <SelectItem value="ES">Espírito Santo</SelectItem>
-                  <SelectItem value="GO">Goiás</SelectItem>
-                  <SelectItem value="MA">Maranhão</SelectItem>
-                  <SelectItem value="MT">Mato Grosso</SelectItem>
-                  <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
-                  <SelectItem value="MG">Minas Gerais</SelectItem>
-                  <SelectItem value="PA">Pará</SelectItem>
-                  <SelectItem value="PB">Paraíba</SelectItem>
-                  <SelectItem value="PR">Paraná</SelectItem>
-                  <SelectItem value="PE">Pernambuco</SelectItem>
-                  <SelectItem value="PI">Piauí</SelectItem>
-                  <SelectItem value="RJ">Rio de Janeiro</SelectItem>
-                  <SelectItem value="RN">Rio Grande do Norte</SelectItem>
-                  <SelectItem value="RS">Rio Grande do Sul</SelectItem>
-                  <SelectItem value="RO">Rondônia</SelectItem>
-                  <SelectItem value="RR">Roraima</SelectItem>
-                  <SelectItem value="SC">Santa Catarina</SelectItem>
-                  <SelectItem value="SP">São Paulo</SelectItem>
-                  <SelectItem value="SE">Sergipe</SelectItem>
-                  <SelectItem value="TO">Tocantins</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-valor_orcamento">Valor do Orçamento (R$)</Label>
-              <Input
-                id="edit-valor_orcamento"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                value={formData.valor_orcamento || ""}
-                onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
-              />
+
+            {/* Estado e Valor do Orçamento - 2 campos por linha */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-estado">Estado</Label>
+                <Select 
+                  value={formData.estado || ""} 
+                  onValueChange={(value) => setFormData({ ...formData, estado: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AC">Acre</SelectItem>
+                    <SelectItem value="AL">Alagoas</SelectItem>
+                    <SelectItem value="AP">Amapá</SelectItem>
+                    <SelectItem value="AM">Amazonas</SelectItem>
+                    <SelectItem value="BA">Bahia</SelectItem>
+                    <SelectItem value="CE">Ceará</SelectItem>
+                    <SelectItem value="DF">Distrito Federal</SelectItem>
+                    <SelectItem value="ES">Espírito Santo</SelectItem>
+                    <SelectItem value="GO">Goiás</SelectItem>
+                    <SelectItem value="MA">Maranhão</SelectItem>
+                    <SelectItem value="MT">Mato Grosso</SelectItem>
+                    <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                    <SelectItem value="MG">Minas Gerais</SelectItem>
+                    <SelectItem value="PA">Pará</SelectItem>
+                    <SelectItem value="PB">Paraíba</SelectItem>
+                    <SelectItem value="PR">Paraná</SelectItem>
+                    <SelectItem value="PE">Pernambuco</SelectItem>
+                    <SelectItem value="PI">Piauí</SelectItem>
+                    <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                    <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                    <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                    <SelectItem value="RO">Rondônia</SelectItem>
+                    <SelectItem value="RR">Roraima</SelectItem>
+                    <SelectItem value="SC">Santa Catarina</SelectItem>
+                    <SelectItem value="SP">São Paulo</SelectItem>
+                    <SelectItem value="SE">Sergipe</SelectItem>
+                    <SelectItem value="TO">Tocantins</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-valor_orcamento">Valor do Orçamento (R$)</Label>
+                <Input
+                  id="edit-valor_orcamento"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0,00"
+                  value={formData.valor_orcamento || ""}
+                  onChange={(e) => setFormData({ ...formData, valor_orcamento: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
             </div>
             <div className="flex gap-2">
               <Button type="submit" disabled={updateMutation.isPending}>
