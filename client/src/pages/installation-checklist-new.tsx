@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,10 @@ export default function InstallationChecklistNew() {
   const [responsibleName, setResponsibleName] = useState("");
   const [installationDate, setInstallationDate] = useState("");
   const [routeObservations, setRouteObservations] = useState<string | null>(null);
+  
+  // Estados para formulário de chamado
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [ticketDescription, setTicketDescription] = useState("");
   
   // Estados para as 4 fotos específicas (File objects para novas fotos)
   const [fotosOriginais, setFotosOriginais] = useState<{
@@ -101,7 +105,7 @@ export default function InstallationChecklistNew() {
     };
 
     const preventKeyboardSubmit = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && (e.target as HTMLElement)?.type === 'file') {
+      if (e.key === 'Enter' && (e.target as HTMLInputElement)?.type === 'file') {
         console.log('📱 Mobile: Enter em input file prevenido');
         e.preventDefault();
         e.stopPropagation();
@@ -222,6 +226,41 @@ export default function InstallationChecklistNew() {
       setRouteObservations(routeObservationsData.observations);
     }
   }, [routeObservationsData]);
+
+  // Mutation para criar chamado
+  const createTicketMutation = useMutation({
+    mutationFn: async (ticketData: { 
+      loja_id: string; 
+      descricao: string; 
+      instalador: string; 
+      data_ocorrencia: string; 
+      fornecedor_id: number; 
+    }) => {
+      return apiRequest('/api/tickets', {
+        method: 'POST',
+        body: JSON.stringify(ticketData),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Chamado aberto com sucesso.",
+      });
+      setShowTicketForm(false);
+      setTicketDescription("");
+    },
+    onError: (error) => {
+      console.error('Erro ao criar chamado:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao abrir chamado. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Função para contar fotos faltando
   const contarFotosFaltando = (): number => {
@@ -500,6 +539,41 @@ export default function InstallationChecklistNew() {
 
     finalizeMutation.mutate();
   }, [isUploading, responsibleName, installationDate, fotosOriginais, fotosFinais, photoJustification, toast, finalizeMutation]);
+
+  // Função para abrir chamado
+  const handleOpenTicket = useCallback(() => {
+    if (!responsibleName.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, informe o nome do instalador antes de abrir o chamado.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowTicketForm(true);
+  }, [responsibleName, toast]);
+
+  // Função para submeter chamado
+  const handleSubmitTicket = useCallback(() => {
+    if (!ticketDescription.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, descreva o problema.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const ticketData = {
+      loja_id: store.codigo_loja,
+      descricao: ticketDescription.trim(),
+      instalador: responsibleName.trim(),
+      data_ocorrencia: new Date().toISOString().split('T')[0], // Data atual
+      fornecedor_id: supplier.id,
+    };
+
+    createTicketMutation.mutate(ticketData);
+  }, [ticketDescription, store?.codigo_loja, responsibleName, supplier?.id, createTicketMutation, toast]);
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
@@ -881,7 +955,7 @@ export default function InstallationChecklistNew() {
 
 
         {/* Action Buttons */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-4">
           <Button
             type="button"
             onClick={handleFinalize}
@@ -901,7 +975,90 @@ export default function InstallationChecklistNew() {
               </div>
             )}
           </Button>
+
+          <Button
+            type="button"
+            onClick={handleOpenTicket}
+            variant="outline"
+            className="border-red-500 text-red-600 hover:bg-red-50 px-8 py-3"
+            data-testid="button-open-ticket"
+          >
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              Abrir Chamado
+            </div>
+          </Button>
         </div>
+
+        {/* Modal de Chamado */}
+        {showTicketForm && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Abrir Chamado</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Descreva o problema encontrado durante a instalação:
+                </p>
+                
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Loja:</label>
+                    <p className="text-sm text-gray-900">{store?.nome_loja}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Instalador:</label>
+                    <p className="text-sm text-gray-900">{responsibleName}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Data:</label>
+                    <p className="text-sm text-gray-900">{new Date().toLocaleDateString('pt-BR')}</p>
+                  </div>
+                </div>
+
+                <Textarea
+                  placeholder="Descreva detalhadamente o problema encontrado..."
+                  value={ticketDescription}
+                  onChange={(e) => setTicketDescription(e.target.value)}
+                  className="min-h-[120px] mb-4"
+                  data-testid="textarea-ticket-description"
+                />
+                
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handleSubmitTicket}
+                    disabled={createTicketMutation.isPending}
+                    className="bg-red-600 hover:bg-red-700 text-white flex-1"
+                  >
+                    {createTicketMutation.isPending ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Enviando...
+                      </div>
+                    ) : (
+                      'Enviar Chamado'
+                    )}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setShowTicketForm(false);
+                      setTicketDescription("");
+                    }}
+                    disabled={createTicketMutation.isPending}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Success Modal - Independente */}
         {showSuccessModal && (

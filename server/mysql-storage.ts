@@ -2252,6 +2252,42 @@ export class MySQLStorage implements IStorage {
     }
   }
 
+  // Criar chamado
+  async createTicket(ticketData: {
+    loja_id: string;
+    descricao: string;
+    instalador: string;
+    data_ocorrencia: string;
+    fornecedor_id: number;
+    status: string;
+  }): Promise<any> {
+    try {
+      const [result] = await pool.execute(
+        `INSERT INTO chamados (loja_id, descricao, instalador, data_ocorrencia, fornecedor_id, status, data_abertura)
+         VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          ticketData.loja_id,
+          ticketData.descricao,
+          ticketData.instalador,
+          ticketData.data_ocorrencia,
+          ticketData.fornecedor_id,
+          ticketData.status
+        ]
+      ) as [ResultSetHeader, any];
+
+      // Buscar o chamado criado para retornar
+      const [ticketRows] = await pool.execute(
+        'SELECT * FROM chamados WHERE id = ?',
+        [result.insertId]
+      ) as [RowDataPacket[], any];
+
+      return ticketRows[0];
+    } catch (error) {
+      console.error('Erro ao criar chamado:', error);
+      throw error;
+    }
+  }
+
   async createTestDataForRoutes(): Promise<void> {
     try {
       console.log('📝 Criando dados de teste para rotas...');

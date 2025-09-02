@@ -285,6 +285,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para criar chamados
+  app.post('/api/tickets', async (req, res) => {
+    try {
+      const { loja_id, descricao, instalador, data_ocorrencia, fornecedor_id } = req.body;
+      
+      if (!loja_id || !descricao || !instalador || !data_ocorrencia || !fornecedor_id) {
+        return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+      }
+
+      const ticket = await storage.createTicket({
+        loja_id,
+        descricao,
+        instalador,
+        data_ocorrencia,
+        fornecedor_id,
+        status: 'aberto'
+      });
+
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error('Erro ao criar chamado:', error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+
 
   // Endpoint removido - conflitava com o endpoint de filtros abaixo
 
