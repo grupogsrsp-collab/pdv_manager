@@ -73,81 +73,6 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        {/* Quick Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total de Lojas</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.totalStores || 0}</p>
-                </div>
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
-                  <Building2 className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                +12% este mês
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Fornecedores</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.totalSuppliers || 0}</p>
-                </div>
-                <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-lg">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                +5% este mês
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Chamados Abertos</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.openTickets || 0}</p>
-                </div>
-                <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-orange-600">
-                <Clock className="h-4 w-4 mr-1" />
-                Requer atenção
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Instalações</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.completedInstallations || 0}</p>
-                </div>
-                <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <Check className="h-4 w-4 mr-1" />
-                Concluídas
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Management Navigation Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 lg:gap-6 mb-8">
           <Link href="/admin/suppliers">
@@ -239,6 +164,85 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </Link>
+        </div>
+
+        {/* Relatórios Gerenciais */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Relatórios Gerenciais</h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total de Lojas</p>
+                    <p className="text-2xl font-bold text-gray-900">{metrics?.totalStores || 0}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
+                    <Building2 className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  +12% este mês
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Fornecedores</p>
+                    <p className="text-2xl font-bold text-gray-900">{metrics?.totalSuppliers || 0}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-lg">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  +5% este mês
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Chamados Abertos</p>
+                    <p className="text-2xl font-bold text-gray-900">{metrics?.openTickets || 0}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg">
+                    <AlertTriangle className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-orange-600">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Requer atenção
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Instalações</p>
+                    <p className="text-2xl font-bold text-gray-900">{metrics?.completedInstallations || 0}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-green-600">
+                  <Check className="h-4 w-4 mr-1" />
+                  Concluídas
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Additional Content Sections */}
