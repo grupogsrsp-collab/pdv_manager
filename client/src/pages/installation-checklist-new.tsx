@@ -128,8 +128,6 @@ export default function InstallationChecklistNew() {
   const supplier: Supplier | null = supplierData ? JSON.parse(supplierData) : null;
   const store: Store | null = storeData ? JSON.parse(storeData) : null;
 
-  // Debug: verificar dados da loja
-  console.log('📍 Dados da loja carregados:', store);
 
   // Fetch kits data
   const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({

@@ -197,14 +197,14 @@ export default function SupplierAccessNew() {
                   nome_loja: loja.nome_loja,
                   cidade: loja.cidade || 'N/A',
                   uf: loja.uf || '',
-                  logradouro: '',
-                  numero: '',
-                  complemento: '',
-                  bairro: '',
-                  cep: '',
-                  regiao: '',
-                  telefone_loja: '',
-                  nome_operador: ''
+                  logradouro: loja.logradouro || '',
+                  numero: loja.numero || '',
+                  complemento: loja.complemento || '',
+                  bairro: loja.bairro || '',
+                  cep: loja.cep || '',
+                  regiao: loja.regiao || '',
+                  telefone_loja: loja.telefone_loja || '',
+                  nome_operador: loja.nome_operador || ''
                 });
               }
             });

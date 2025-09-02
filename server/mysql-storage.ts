@@ -753,7 +753,7 @@ export class MySQLStorage implements IStorage {
   async getRoutesBySupplier(supplierId: number): Promise<any[]> {
     try {
       const [routeRows] = await pool.execute(
-        `SELECT r.*, ri.loja_id, l.nome_loja, l.cidade, l.uf 
+        `SELECT r.*, ri.loja_id, l.nome_loja, l.cidade, l.uf, l.logradouro, l.numero, l.complemento, l.bairro, l.cep, l.regiao, l.telefone_loja, l.nome_operador 
          FROM rotas r 
          LEFT JOIN rota_itens ri ON r.id = ri.rota_id 
          LEFT JOIN lojas l ON ri.loja_id = l.codigo_loja 
@@ -782,7 +782,15 @@ export class MySQLStorage implements IStorage {
             id: row.loja_id,
             nome_loja: row.nome_loja,
             cidade: row.cidade,
-            uf: row.uf
+            uf: row.uf,
+            logradouro: row.logradouro,
+            numero: row.numero,
+            complemento: row.complemento,
+            bairro: row.bairro,
+            cep: row.cep,
+            regiao: row.regiao,
+            telefone_loja: row.telefone_loja,
+            nome_operador: row.nome_operador
           });
         }
       });
