@@ -500,7 +500,16 @@ export default function InstallationChecklistNew() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {camposFoto.map((campo) => {
-                const temFoto = fotosOriginais[campo.key] || fotosOriginaisBase64[campo.base64Key];
+                const novaFoto = fotosOriginais[campo.key];
+                const fotoExistente = fotosOriginaisBase64[campo.base64Key];
+                const temFoto = novaFoto || (fotoExistente && fotoExistente.trim() !== "");
+                
+                console.log(`🖼️ Campo ${campo.label}:`, {
+                  novaFoto: !!novaFoto,
+                  fotoExistente: !!fotoExistente,
+                  fotoExistenteLength: fotoExistente?.length || 0,
+                  temFoto
+                });
                 
                 return (
                   <div
@@ -510,12 +519,19 @@ export default function InstallationChecklistNew() {
                     {temFoto ? (
                       <div className="relative w-full h-full">
                         <img
-                          src={fotosOriginais[campo.key] 
-                            ? URL.createObjectURL(fotosOriginais[campo.key]!) 
-                            : fotosOriginaisBase64[campo.base64Key]
+                          src={novaFoto 
+                            ? URL.createObjectURL(novaFoto) 
+                            : fotoExistente!
                           }
                           alt={campo.label}
                           className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            console.error(`❌ Erro ao carregar imagem ${campo.label}:`, e);
+                            console.log("🔍 URL da imagem:", novaFoto ? 'URL.createObjectURL' : fotoExistente);
+                          }}
+                          onLoad={() => {
+                            console.log(`✅ Imagem ${campo.label} carregada com sucesso`);
+                          }}
                         />
                         <Button
                           variant="destructive"
@@ -526,7 +542,7 @@ export default function InstallationChecklistNew() {
                         >
                           ×
                         </Button>
-                        {fotosOriginaisBase64[campo.base64Key] && !fotosOriginais[campo.key] && (
+                        {fotoExistente && !novaFoto && (
                           <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
                             ✓ Salva
                           </div>
@@ -572,58 +588,78 @@ export default function InstallationChecklistNew() {
               <div className="text-center py-4">Carregando kits...</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {kits.map((kit, index) => (
-                  <div
-                    key={kit.id}
-                    className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
-                  >
-                    {(fotosFinais[index] || fotosFinaisBase64[index]) ? (
-                      <div className="relative w-full h-full">
-                        <img
-                          src={fotosFinais[index] 
-                            ? URL.createObjectURL(fotosFinais[index]) 
-                            : fotosFinaisBase64[index]
-                          }
-                          alt={`Foto final - ${kit.nome_peca}`}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => handleFotoFinalUpload(index, null)}
-                          data-testid={`button-remove-final-${kit.id}`}
-                        >
-                          ×
-                        </Button>
-                        {fotosFinaisBase64[index] && !fotosFinais[index] && (
-                          <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
-                            ✓ Salva
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
-                        <Camera className="h-8 w-8 text-gray-400 mb-2" />
-                        <span className="text-sm text-gray-700 font-medium mb-1">{kit.nome_peca}</span>
-                        <span className="text-xs text-gray-500">{kit.descricao}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          data-testid={`input-foto-final-${kit.id}`}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFotoFinalUpload(index, file);
+                {kits.map((kit, index) => {
+                  const novaFotoFinal = fotosFinais[index];
+                  const fotoFinalExistente = fotosFinaisBase64[index];
+                  const temFotoFinal = novaFotoFinal || (fotoFinalExistente && fotoFinalExistente.trim() !== "");
+                  
+                  console.log(`📸 Kit ${kit.nome_peca} (índice ${index}):`, {
+                    novaFotoFinal: !!novaFotoFinal,
+                    fotoFinalExistente: !!fotoFinalExistente,
+                    fotoFinalExistenteLength: fotoFinalExistente?.length || 0,
+                    temFotoFinal
+                  });
+                  
+                  return (
+                    <div
+                      key={kit.id}
+                      className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      {temFotoFinal ? (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={novaFotoFinal 
+                              ? URL.createObjectURL(novaFotoFinal) 
+                              : fotoFinalExistente!
                             }
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-                ))}
+                            alt={`Foto final - ${kit.nome_peca}`}
+                            className="w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              console.error(`❌ Erro ao carregar foto final ${kit.nome_peca}:`, e);
+                              console.log("🔍 URL da foto final:", novaFotoFinal ? 'URL.createObjectURL' : fotoFinalExistente);
+                            }}
+                            onLoad={() => {
+                              console.log(`✅ Foto final ${kit.nome_peca} carregada com sucesso`);
+                            }}
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => handleFotoFinalUpload(index, null)}
+                            data-testid={`button-remove-final-${kit.id}`}
+                          >
+                            ×
+                          </Button>
+                          {fotoFinalExistente && !novaFotoFinal && (
+                            <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
+                              ✓ Salva
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
+                          <Camera className="h-8 w-8 text-gray-400 mb-2" />
+                          <span className="text-sm text-gray-700 font-medium mb-1">{kit.nome_peca}</span>
+                          <span className="text-xs text-gray-500">{kit.descricao}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            data-testid={`input-foto-final-${kit.id}`}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleFotoFinalUpload(index, file);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
