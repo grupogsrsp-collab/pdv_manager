@@ -345,10 +345,13 @@ export default function InstallationChecklistNew() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
       
-      // Refresh automático após finalização no mobile
-      console.log('📱 Mobile: Realizando refresh automático após finalização...');
+      // Redirecionamento para tela inicial do fornecedor após finalização
+      console.log('📱 Mobile: Redirecionando para tela inicial do fornecedor...');
       setTimeout(() => {
-        window.location.reload();
+        localStorage.removeItem("supplier_access");
+        localStorage.removeItem("selected_store");
+        // Redirecionar para a tela inicial do fornecedor e forçar refresh
+        window.location.href = "/supplier-access";
       }, 2000); // Aguarda 2 segundos para garantir que os dados foram salvos
     },
     onError: () => {
