@@ -344,6 +344,12 @@ export default function InstallationChecklistNew() {
         setShowSuccessModal(true);
       });
       queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
+      
+      // Refresh automático após finalização no mobile
+      console.log('📱 Mobile: Realizando refresh automático após finalização...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000); // Aguarda 2 segundos para garantir que os dados foram salvos
     },
     onError: () => {
       toast({
