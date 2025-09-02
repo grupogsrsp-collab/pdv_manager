@@ -87,7 +87,9 @@ export default function InstallationChecklistNew() {
   // Load existing installation data when available
   useEffect(() => {
     if (existingInstallation) {
-      console.log("Carregando dados da instalação existente:", existingInstallation);
+      console.log("🔍 Carregando dados da instalação existente:", existingInstallation);
+      console.log("🖼️ Fotos originais recebidas:", existingInstallation.fotosOriginais);
+      console.log("🖼️ Fotos finais recebidas:", existingInstallation.fotosFinais);
       
       setIsEditMode(true);
       setResponsibleName(existingInstallation.responsible || "");
@@ -96,23 +98,42 @@ export default function InstallationChecklistNew() {
       
       // Para manter compatibilidade, mapear fotos do array antigo para nova estrutura
       if (existingInstallation.fotosOriginais && Array.isArray(existingInstallation.fotosOriginais)) {
+        console.log("📷 Processando fotos originais...");
         const fotosExistentes: FotoLojaEspecifica = {};
         const fotos = existingInstallation.fotosOriginais;
-        if (fotos[0]) fotosExistentes.url_foto_frente_loja = fotos[0];
-        if (fotos[1]) fotosExistentes.url_foto_interna_loja = fotos[1];
-        if (fotos[2]) fotosExistentes.url_foto_interna_lado_direito = fotos[2];
-        if (fotos[3]) fotosExistentes.url_foto_interna_lado_esquerdo = fotos[3];
+        
+        if (fotos[0] && fotos[0].trim() !== "") {
+          fotosExistentes.url_foto_frente_loja = fotos[0];
+          console.log("✅ Foto frente loja encontrada");
+        }
+        if (fotos[1] && fotos[1].trim() !== "") {
+          fotosExistentes.url_foto_interna_loja = fotos[1];
+          console.log("✅ Foto interna loja encontrada");
+        }
+        if (fotos[2] && fotos[2].trim() !== "") {
+          fotosExistentes.url_foto_interna_lado_direito = fotos[2];
+          console.log("✅ Foto lado direito encontrada");
+        }
+        if (fotos[3] && fotos[3].trim() !== "") {
+          fotosExistentes.url_foto_interna_lado_esquerdo = fotos[3];
+          console.log("✅ Foto lado esquerdo encontrada");
+        }
+        
+        console.log("📋 Fotos mapeadas:", fotosExistentes);
         setFotosOriginaisBase64(fotosExistentes);
       }
       
       // Carregar fotos finais existentes
       if (existingInstallation.fotosFinais && Array.isArray(existingInstallation.fotosFinais) && kits.length > 0) {
+        console.log("📷 Processando fotos finais...");
         const finalPhotosArray = new Array(kits.length).fill("");
         existingInstallation.fotosFinais.forEach((photo, index) => {
           if (index < kits.length && photo && photo.trim() !== "") {
             finalPhotosArray[index] = photo;
+            console.log(`✅ Foto final ${index + 1} encontrada`);
           }
         });
+        console.log("📋 Fotos finais mapeadas:", finalPhotosArray);
         setFotosFinaisBase64(finalPhotosArray);
       }
       
