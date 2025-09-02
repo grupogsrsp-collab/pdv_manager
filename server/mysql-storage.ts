@@ -2008,6 +2008,7 @@ export class MySQLStorage implements IStorage {
         installation.latitude || null,
         installation.longitude || null,
         installation.endereco_geolocalizacao || null,
+        installation.mapa_screenshot_url || null,
         installation.geolocalizacao_timestamp ? new Date(installation.geolocalizacao_timestamp) : null,
         id
       ]
