@@ -410,7 +410,15 @@ export default function InstallationChecklistNew() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <form 
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('📱 Mobile: Form submit prevenido');
+        return false;
+      }}
+      className="min-h-screen bg-gray-50 p-4"
+    >
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -551,10 +559,21 @@ export default function InstallationChecklistNew() {
                           className="hidden"
                           data-testid={`input-${campo.id}`}
                           onChange={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log(`📱 Mobile: Upload iniciado para ${campo.label}`);
+                            
                             const file = e.target.files?.[0];
                             if (file) {
+                              console.log(`📱 Mobile: Arquivo selecionado - ${file.name}`);
                               handleFotoUpload(campo.key, file);
+                              
+                              // Limpar o input para permitir o mesmo arquivo novamente
+                              e.target.value = '';
                             }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
                           }}
                         />
                       </label>
@@ -620,7 +639,13 @@ export default function InstallationChecklistNew() {
                           )}
                         </div>
                       ) : (
-                        <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center">
+                        <label 
+                          className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-4 text-center"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log(`📱 Mobile: Label clicado para foto final ${kit.nome_peca}`);
+                          }}
+                        >
                           <Camera className="h-8 w-8 text-gray-400 mb-2" />
                           <span className="text-sm text-gray-700 font-medium mb-1">{kit.nome_peca}</span>
                           <span className="text-xs text-gray-500">{kit.descricao}</span>
@@ -631,10 +656,21 @@ export default function InstallationChecklistNew() {
                             className="hidden"
                             data-testid={`input-foto-final-${kit.id}`}
                             onChange={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log(`📱 Mobile: Upload final iniciado para ${kit.nome_peca}`);
+                              
                               const file = e.target.files?.[0];
                               if (file) {
+                                console.log(`📱 Mobile: Arquivo final selecionado - ${file.name}`);
                                 handleFotoFinalUpload(index, file);
+                                
+                                // Limpar o input para permitir o mesmo arquivo novamente
+                                e.target.value = '';
                               }
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
                             }}
                           />
                         </label>
@@ -673,6 +709,7 @@ export default function InstallationChecklistNew() {
         {/* Action Buttons */}
         <div className="flex justify-center">
           <Button
+            type="button"
             onClick={handleFinalize}
             disabled={finalizeMutation.isPending}
             className="bg-green-600 hover:bg-green-700 px-8 py-3"
@@ -716,6 +753,6 @@ export default function InstallationChecklistNew() {
           </div>
         )}
       </div>
-    </div>
+    </form>
   );
 }
