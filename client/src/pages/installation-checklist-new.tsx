@@ -140,7 +140,7 @@ export default function InstallationChecklistNew() {
       if (!response.ok) throw new Error('Erro ao verificar chamados');
       return response.json();
     },
-    enabled: !!store?.codigo_loja && !!existingInstallation?.finalizada,
+    enabled: !!store?.codigo_loja,
   });
 
 
@@ -684,7 +684,7 @@ export default function InstallationChecklistNew() {
             <CardTitle className="flex items-center justify-between">
               Detalhes da Instalação
               {isEditMode && (
-                hasOpenTicketsData?.hasOpenTickets ? (
+                hasOpenTicketsData?.hasOpenTickets && existingInstallation?.finalizada ? (
                   <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
                     <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                     Loja com Chamado em Aberto
