@@ -66,6 +66,19 @@ export default function InstallationChecklistNew() {
   
   // Estado para prevenir múltiplos uploads simultâneos
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Mecanismo de segurança para limpar isUploading se ficar preso
+  useEffect(() => {
+    if (isUploading) {
+      console.log('📱 Mobile: Timer de segurança ativado');
+      const timeout = setTimeout(() => {
+        console.log('📱 Mobile: Timer de segurança executado - liberando scroll');
+        setIsUploading(false);
+      }, 2000); // 2 segundos de segurança
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isUploading]);
 
   // Useef para adicionar preventDefault global no mobile
   useEffect(() => {
@@ -99,14 +112,6 @@ export default function InstallationChecklistNew() {
     document.addEventListener('submit', preventFormSubmit, true);
     document.addEventListener('keydown', preventKeyboardSubmit, true);
     window.addEventListener('beforeunload', preventBeforeUnload);
-    
-    // Prevenir refresh por gestos no mobile
-    document.addEventListener('touchmove', (e) => {
-      if (isUploading) {
-        console.log('📱 Mobile: Touchmove durante upload bloqueado');
-        e.preventDefault();
-      }
-    }, { passive: false });
 
     return () => {
       document.removeEventListener('submit', preventFormSubmit, true);
@@ -357,7 +362,8 @@ export default function InstallationChecklistNew() {
 
     setIsUploading(true);
     
-    requestAnimationFrame(() => {
+    // Usar setTimeout em vez de requestAnimationFrame para garantir limpeza do estado
+    setTimeout(() => {
       setFotosOriginais(prev => ({
         ...prev,
         [tipo]: file || undefined
@@ -372,8 +378,12 @@ export default function InstallationChecklistNew() {
         }));
       }
       
-      setIsUploading(false);
-    });
+      // Garantir que isUploading seja limpo
+      setTimeout(() => {
+        setIsUploading(false);
+        console.log('📱 Mobile: Upload concluído, scroll liberado');
+      }, 50);
+    }, 10);
   }, [isUploading]);
 
   // Função robusta para upload de fotos finais
@@ -387,7 +397,8 @@ export default function InstallationChecklistNew() {
 
     setIsUploading(true);
     
-    requestAnimationFrame(() => {
+    // Usar setTimeout em vez de requestAnimationFrame para garantir limpeza do estado
+    setTimeout(() => {
       setFotosFinais(prev => {
         const newPhotos = [...prev];
         if (file) {
@@ -407,8 +418,12 @@ export default function InstallationChecklistNew() {
         });
       }
       
-      setIsUploading(false);
-    });
+      // Garantir que isUploading seja limpo
+      setTimeout(() => {
+        setIsUploading(false);
+        console.log('📱 Mobile: Upload final concluído, scroll liberado');
+      }, 50);
+    }, 10);
   }, [isUploading]);
 
   const handleFinalize = useCallback(() => {
