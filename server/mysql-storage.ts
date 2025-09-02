@@ -1471,6 +1471,23 @@ export class MySQLStorage implements IStorage {
 
     const supplier = supplierRows[0] as Supplier;
 
+    // Buscar fotos finais da tabela fotos_finais em vez do campo JSON
+    const [fotosFinaisRows] = await pool.execute(
+      'SELECT foto_url FROM fotos_finais WHERE loja_id = ? ORDER BY id ASC',
+      [codigo_loja]
+    ) as [RowDataPacket[], any];
+    
+    // Extrair apenas as URLs das fotos finais
+    const fotosFinaisFromTable = fotosFinaisRows.map((row: any) => row.foto_url);
+    
+    // Sobrescrever fotosFinais com dados da tabela fotos_finais
+    installation.fotosFinais = fotosFinaisFromTable;
+    
+    console.log(`🔍 Fotos finais da loja ${codigo_loja}:`, {
+      quantidadeEncontrada: fotosFinaisFromTable.length,
+      primeiraFoto: fotosFinaisFromTable[0] ? fotosFinaisFromTable[0].substring(0, 50) + '...' : 'Nenhuma'
+    });
+
     return {
       isInstalled: true,
       installation,

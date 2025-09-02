@@ -203,7 +203,12 @@ export default function StoreDashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Horário de Finalização</p>
-                <p className="text-gray-900">{new Date(installationStatus.installation.createdAt).toLocaleTimeString('pt-BR')}</p>
+                <p className="text-gray-900">{new Date(installationStatus.installation.createdAt).toLocaleTimeString('pt-BR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit', 
+                  second: '2-digit', 
+                  hour12: false 
+                })}</p>
               </div>
             </div>
           )}
