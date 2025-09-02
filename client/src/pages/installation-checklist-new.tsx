@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -59,6 +59,61 @@ export default function InstallationChecklistNew() {
   const [photoJustification, setPhotoJustification] = useState("");
   const [showJustificationField, setShowJustificationField] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Refs para controlar os inputs de arquivo de forma mais robusta
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const finalPhotoInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  
+  // Estado para prevenir múltiplos uploads simultâneos
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Useef para adicionar preventDefault global no mobile
+  useEffect(() => {
+    const preventFormSubmit = (e: Event) => {
+      console.log('📱 Mobile: Form submit global interceptado');
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+
+    const preventBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Prevenir reload acidental durante uploads
+      if (isUploading) {
+        console.log('📱 Mobile: Reload prevenido durante upload');
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    const preventKeyboardSubmit = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && (e.target as HTMLElement)?.type === 'file') {
+        console.log('📱 Mobile: Enter em input file prevenido');
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+
+    // Adiciona listeners para prevenir submissões acidentais
+    document.addEventListener('submit', preventFormSubmit, true);
+    document.addEventListener('keydown', preventKeyboardSubmit, true);
+    window.addEventListener('beforeunload', preventBeforeUnload);
+    
+    // Prevenir refresh por gestos no mobile
+    document.addEventListener('touchmove', (e) => {
+      if (isUploading) {
+        console.log('📱 Mobile: Touchmove durante upload bloqueado');
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    return () => {
+      document.removeEventListener('submit', preventFormSubmit, true);
+      document.removeEventListener('keydown', preventKeyboardSubmit, true);
+      window.removeEventListener('beforeunload', preventBeforeUnload);
+    };
+  }, [isUploading]);
 
   // Get data from localStorage
   const supplierData = localStorage.getItem("supplier_access");
@@ -291,44 +346,83 @@ export default function InstallationChecklistNew() {
     },
   });
 
-  const handleFotoUpload = (tipo: keyof typeof fotosOriginais, file: File | null) => {
-    setFotosOriginais(prev => ({
-      ...prev,
-      [tipo]: file || undefined
-    }));
+  // Função robusta para upload de fotos originais
+  const handleFotoUpload = useCallback((tipo: keyof typeof fotosOriginais, file: File | null) => {
+    console.log(`📱 Mobile: handleFotoUpload chamado para ${tipo}`, { file, isUploading });
     
-    // Se removeu uma foto, limpar também a base64
-    if (!file) {
-      const campo = `url_${tipo}` as keyof FotoLojaEspecifica;
-      setFotosOriginaisBase64(prev => ({
-        ...prev,
-        [campo]: undefined
-      }));
+    if (isUploading) {
+      console.log('📱 Mobile: Upload já em progresso, cancelando');
+      return;
     }
-  };
 
-  const handleFotoFinalUpload = (index: number, file: File | null) => {
-    setFotosFinais(prev => {
-      const newPhotos = [...prev];
-      if (file) {
-        newPhotos[index] = file;
-      } else {
-        newPhotos.splice(index, 1);
-      }
-      return newPhotos;
-    });
+    setIsUploading(true);
     
-    // Se removeu uma foto, limpar também a base64
-    if (!file) {
-      setFotosFinaisBase64(prev => {
+    requestAnimationFrame(() => {
+      setFotosOriginais(prev => ({
+        ...prev,
+        [tipo]: file || undefined
+      }));
+      
+      // Se removeu uma foto, limpar também a base64
+      if (!file) {
+        const campo = `url_${tipo}` as keyof FotoLojaEspecifica;
+        setFotosOriginaisBase64(prev => ({
+          ...prev,
+          [campo]: undefined
+        }));
+      }
+      
+      setIsUploading(false);
+    });
+  }, [isUploading]);
+
+  // Função robusta para upload de fotos finais
+  const handleFotoFinalUpload = useCallback((index: number, file: File | null) => {
+    console.log(`📱 Mobile: handleFotoFinalUpload chamado para kit ${index}`, { file, isUploading });
+    
+    if (isUploading) {
+      console.log('📱 Mobile: Upload já em progresso, cancelando');
+      return;
+    }
+
+    setIsUploading(true);
+    
+    requestAnimationFrame(() => {
+      setFotosFinais(prev => {
         const newPhotos = [...prev];
-        newPhotos[index] = "";
+        if (file) {
+          newPhotos[index] = file;
+        } else {
+          newPhotos.splice(index, 1);
+        }
         return newPhotos;
       });
-    }
-  };
+      
+      // Se removeu uma foto, limpar também a base64
+      if (!file) {
+        setFotosFinaisBase64(prev => {
+          const newBase64 = [...prev];
+          newBase64.splice(index, 1);
+          return newBase64;
+        });
+      }
+      
+      setIsUploading(false);
+    });
+  }, [isUploading]);
 
-  const handleFinalize = () => {
+  const handleFinalize = useCallback(() => {
+    console.log('📱 Mobile: handleFinalize chamado');
+    
+    if (isUploading) {
+      console.log('📱 Mobile: Finalização bloqueada - upload em progresso');
+      toast({
+        title: "Aguarde",
+        description: "Aguarde o upload da foto terminar antes de finalizar.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!responsibleName.trim()) {
       toast({
         title: "Campo obrigatório",
@@ -363,7 +457,7 @@ export default function InstallationChecklistNew() {
     }
 
     finalizeMutation.mutate();
-  };
+  }, [isUploading, responsibleName, installationDate, fotosOriginais, fotosFinais, photoJustification, toast, finalizeMutation]);
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
@@ -563,14 +657,23 @@ export default function InstallationChecklistNew() {
                             e.stopPropagation();
                             console.log(`📱 Mobile: Upload iniciado para ${campo.label}`);
                             
+                            if (isUploading) {
+                              console.log('📱 Mobile: Upload original bloqueado - já em progresso');
+                              e.target.value = '';
+                              return false;
+                            }
+                            
                             const file = e.target.files?.[0];
                             if (file) {
                               console.log(`📱 Mobile: Arquivo selecionado - ${file.name}`);
                               handleFotoUpload(campo.key, file);
                               
                               // Limpar o input para permitir o mesmo arquivo novamente
-                              e.target.value = '';
+                              setTimeout(() => {
+                                e.target.value = '';
+                              }, 100);
                             }
+                            return false;
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -660,14 +763,23 @@ export default function InstallationChecklistNew() {
                               e.stopPropagation();
                               console.log(`📱 Mobile: Upload final iniciado para ${kit.nome_peca}`);
                               
+                              if (isUploading) {
+                                console.log('📱 Mobile: Upload final bloqueado - já em progresso');
+                                e.target.value = '';
+                                return false;
+                              }
+                              
                               const file = e.target.files?.[0];
                               if (file) {
                                 console.log(`📱 Mobile: Arquivo final selecionado - ${file.name}`);
                                 handleFotoFinalUpload(index, file);
                                 
                                 // Limpar o input para permitir o mesmo arquivo novamente
-                                e.target.value = '';
+                                setTimeout(() => {
+                                  e.target.value = '';
+                                }, 100);
                               }
+                              return false;
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
