@@ -236,13 +236,7 @@ export default function InstallationChecklistNew() {
       data_ocorrencia: string; 
       fornecedor_id: number; 
     }) => {
-      return apiRequest('/api/tickets', {
-        method: 'POST',
-        body: JSON.stringify(ticketData),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return apiRequest('POST', '/api/tickets', ticketData);
     },
     onSuccess: () => {
       toast({
@@ -565,11 +559,11 @@ export default function InstallationChecklistNew() {
     }
 
     const ticketData = {
-      loja_id: store.codigo_loja,
+      loja_id: store?.codigo_loja,
       descricao: ticketDescription.trim(),
       instalador: responsibleName.trim(),
       data_ocorrencia: new Date().toISOString().split('T')[0], // Data atual
-      fornecedor_id: supplier.id,
+      fornecedor_id: supplier?.id,
     };
 
     createTicketMutation.mutate(ticketData);
