@@ -233,6 +233,16 @@ router.get("/api/stores/:codigo/complete-info", async (req, res) => {
       return res.status(404).json({ error: "Loja não encontrada" });
     }
     
+    // Debug: Log do horário original do banco
+    if (storeInfo.installationStatus?.installation?.createdAt) {
+      console.log(`🕐 Horário original do banco para loja ${req.params.codigo}:`, {
+        createdAt_raw: storeInfo.installationStatus.installation.createdAt,
+        createdAt_string: new Date(storeInfo.installationStatus.installation.createdAt).toString(),
+        createdAt_ISO: new Date(storeInfo.installationStatus.installation.createdAt).toISOString(),
+        createdAt_BrasilTime: new Date(storeInfo.installationStatus.installation.createdAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      });
+    }
+    
     res.json(storeInfo);
   } catch (error) {
     console.error("Erro ao buscar informações completas da loja:", error);

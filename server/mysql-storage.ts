@@ -1452,8 +1452,14 @@ export class MySQLStorage implements IStorage {
     supplier?: Supplier;
   }> {
     // Check if store has installation (get the most recent one)
+    // Usar DATE_FORMAT para garantir que o timestamp seja retornado no timezone correto
     const [installationRows] = await pool.execute(
-      'SELECT * FROM instalacoes WHERE loja_id = ? ORDER BY id DESC LIMIT 1',
+      `SELECT *, 
+       DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '-03:00'), '%Y-%m-%d %H:%i:%s') as createdAt_brasil
+       FROM instalacoes 
+       WHERE loja_id = ? 
+       ORDER BY id DESC 
+       LIMIT 1`,
       [codigo_loja]
     ) as [RowDataPacket[], any];
 
@@ -1461,6 +1467,16 @@ export class MySQLStorage implements IStorage {
     
     if (!installation) {
       return { isInstalled: false };
+    }
+    
+    // Se temos o horário de Brasília, usar ele ao invés do createdAt original
+    if (installation && installation.createdAt_brasil) {
+      console.log(`🕐 Substituindo createdAt pelo horário de Brasília para loja ${codigo_loja}:`, {
+        original: installation.createdAt,
+        brasil: installation.createdAt_brasil
+      });
+      // Substituir o createdAt pelo horário correto de Brasília
+      installation.createdAt = installation.createdAt_brasil;
     }
 
     // Get supplier info if installation exists
