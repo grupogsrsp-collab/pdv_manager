@@ -1608,7 +1608,28 @@ export class MySQLStorage implements IStorage {
   }
 
   async getAllTickets(): Promise<Ticket[]> {
-    const [rows] = await pool.execute('SELECT * FROM chamados') as [RowDataPacket[], any];
+    const query = `
+      SELECT 
+        c.id,
+        c.descricao,
+        c.status,
+        c.loja_id,
+        c.fornecedor_id,
+        c.data_abertura,
+        f.nome_fornecedor,
+        f.telefone AS telefone_fornecedor,
+        l.codigo_loja,
+        l.nome_loja,
+        l.bairro,
+        l.cidade,
+        l.uf
+      FROM chamados c
+      LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
+      LEFT JOIN lojas l ON c.loja_id = l.codigo_loja
+      ORDER BY c.data_abertura DESC
+    `;
+    
+    const [rows] = await pool.execute(query) as [RowDataPacket[], any];
     return rows as Ticket[];
   }
 

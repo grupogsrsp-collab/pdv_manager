@@ -97,15 +97,23 @@ export interface Ticket {
   id: number;
   descricao: string;
   status: string;
-  loja_id: number;
+  loja_id: string;
   fornecedor_id: number;
   data_abertura: Date;
+  // Campos do JOIN
+  nome_fornecedor?: string;
+  telefone_fornecedor?: string;
+  codigo_loja?: string;
+  nome_loja?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
 }
 
 export interface InsertTicket {
   descricao: string;
   status: string;
-  loja_id: number;
+  loja_id: string;
   fornecedor_id: number;
   data_abertura?: Date;
 }
