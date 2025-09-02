@@ -43,6 +43,7 @@ export default function InstallationChecklistNew() {
   
   // Estados para formulário de chamado
   const [showTicketForm, setShowTicketForm] = useState(false);
+  const [showTicketSuccessModal, setShowTicketSuccessModal] = useState(false);
   const [ticketDescription, setTicketDescription] = useState("");
   
   // Estados para as 4 fotos específicas (File objects para novas fotos)
@@ -250,22 +251,9 @@ export default function InstallationChecklistNew() {
       return apiRequest('POST', '/api/tickets', ticketData);
     },
     onSuccess: () => {
-      toast({
-        title: "Sucesso!",
-        description: "Chamado aberto com sucesso.",
-        action: (
-          <button
-            onClick={() => {
-              setLocation("/supplier-access");
-            }}
-            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-          >
-            OK
-          </button>
-        ),
-      });
       setShowTicketForm(false);
       setTicketDescription("");
+      setShowTicketSuccessModal(true);
     },
     onError: (error) => {
       console.error('Erro ao criar chamado:', error);
@@ -598,6 +586,12 @@ export default function InstallationChecklistNew() {
       localStorage.removeItem("selected_store");
       setLocation("/supplier-access");
     });
+  };
+
+  const handleTicketSuccessModalClose = () => {
+    setShowTicketSuccessModal(false);
+    // Redirecionar para a página inicial do fornecedor
+    setLocation("/supplier-access");
   };
 
   const handleLogout = () => {
@@ -1098,6 +1092,29 @@ export default function InstallationChecklistNew() {
                 <Button 
                   onClick={handleSuccessModalClose}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                >
+                  OK
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showTicketSuccessModal && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div className="bg-white rounded-lg p-6 max-w-sm mx-4 text-center shadow-lg">
+              <div className="mb-4">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500 mb-4">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Chamado Aberto com Sucesso!</h3>
+                <p className="text-sm text-gray-600 mb-4">Seu chamado foi registrado e será atendido em breve.</p>
+                <Button 
+                  onClick={handleTicketSuccessModalClose}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
                 >
                   OK
                 </Button>
