@@ -73,7 +73,16 @@ const StoreCard = ({ store, onSelect }: {
           </div>
           <div className="flex items-center gap-1 text-sm text-gray-600">
             <MapPin className="h-4 w-4" />
-            <span>{store.cidade}, {store.uf}</span>
+            <span>
+              {store.logradouro && store.numero 
+                ? `${store.logradouro}, ${store.numero} - `
+                : store.logradouro 
+                  ? `${store.logradouro} - `
+                  : ''
+              }
+              {store.bairro && `${store.bairro} - `}
+              {store.cidade}, {store.uf}
+            </span>
           </div>
         </div>
       </div>
@@ -303,16 +312,10 @@ export default function SupplierAccessNew() {
   // Função para selecionar loja e ir para instalação
   const handleSelectStore = (store: StoreType) => {
     console.log('🏪 [STORE] Loja selecionada:', store);
-    console.log('🏪 [DEBUG] Endereço - logradouro:', store.logradouro);
-    console.log('🏪 [DEBUG] Endereço - numero:', store.numero);
-    console.log('🏪 [DEBUG] Endereço - bairro:', store.bairro);
-    console.log('🏪 [DEBUG] Endereço - complemento:', store.complemento);
-    console.log('🏪 [DEBUG] Endereço - cep:', store.cep);
     
     try {
       // Salvar loja selecionada
       localStorage.setItem("selected_store", JSON.stringify(store));
-      console.log('🏪 [DEBUG] Dados salvos no localStorage:', JSON.stringify(store));
       
       // Navegar para instalação
       setLocation("/installation-checklist");
