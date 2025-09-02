@@ -253,6 +253,16 @@ export default function InstallationChecklistNew() {
       toast({
         title: "Sucesso!",
         description: "Chamado aberto com sucesso.",
+        action: (
+          <button
+            onClick={() => {
+              setLocation("/supplier-access");
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+          >
+            OK
+          </button>
+        ),
       });
       setShowTicketForm(false);
       setTicketDescription("");
