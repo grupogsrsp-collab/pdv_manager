@@ -527,21 +527,12 @@ export default function InstallationChecklistNew() {
                           className="w-full h-full object-cover rounded-lg"
                           onError={(e) => {
                             console.error(`❌ Erro ao carregar imagem ${campo.label}:`, e);
-                            console.log("🔍 URL da imagem:", novaFoto ? 'URL.createObjectURL' : fotoExistente);
+                            console.log("🔍 URL da imagem:", novaFoto ? 'URL.createObjectURL' : fotoExistente?.substring(0, 100) + '...');
                           }}
                           onLoad={() => {
                             console.log(`✅ Imagem ${campo.label} carregada com sucesso`);
                           }}
                         />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => handleFotoUpload(campo.key, null)}
-                          data-testid={`button-remove-${campo.id}`}
-                        >
-                          ×
-                        </Button>
                         {fotoExistente && !novaFoto && (
                           <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
                             ✓ Salva
@@ -616,21 +607,12 @@ export default function InstallationChecklistNew() {
                             className="w-full h-full object-cover rounded-lg"
                             onError={(e) => {
                               console.error(`❌ Erro ao carregar foto final ${kit.nome_peca}:`, e);
-                              console.log("🔍 URL da foto final:", novaFotoFinal ? 'URL.createObjectURL' : fotoFinalExistente);
+                              console.log("🔍 URL da foto final:", novaFotoFinal ? 'URL.createObjectURL' : fotoFinalExistente?.substring(0, 100) + '...');
                             }}
                             onLoad={() => {
                               console.log(`✅ Foto final ${kit.nome_peca} carregada com sucesso`);
                             }}
                           />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => handleFotoFinalUpload(index, null)}
-                            data-testid={`button-remove-final-${kit.id}`}
-                          >
-                            ×
-                          </Button>
                           {fotoFinalExistente && !novaFotoFinal && (
                             <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
                               ✓ Salva
