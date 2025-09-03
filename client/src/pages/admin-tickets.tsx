@@ -303,129 +303,140 @@ export default function AdminTickets() {
 
         {/* Modal de Detalhes */}
         <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Info className="h-5 w-5 text-blue-600" />
                 Detalhes do Chamado
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+            
+            {/* Layout Horizontal Compacto */}
+            <div className="py-4">
+              {/* Seção Superior - Informações Básicas */}
+              <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm font-semibold text-gray-600 mb-1">Tipo</p>
-                  <p className="text-gray-900">
+                  <p className="text-gray-900 font-medium">
                     {selectedTicket?.tipo_chamado === 'fornecedor' ? 'Fornecedor' : 'Lojista'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-600 mb-1">Status</p>
                   <Badge 
-                    variant={selectedTicket?.status === 'aberto' ? 'default' : 'secondary'}
-                    className={selectedTicket?.status === 'aberto' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}
+                    variant={(selectedTicket?.status === 'aberto' || selectedTicket?.status === 'Aberto') ? 'default' : 'secondary'}
+                    className={(selectedTicket?.status === 'aberto' || selectedTicket?.status === 'Aberto') ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}
                   >
-                    {selectedTicket?.status === 'aberto' ? 'Aberto' : selectedTicket?.status === 'encerrado' ? 'Encerrado' : 'Resolvido'}
+                    {(selectedTicket?.status === 'aberto' || selectedTicket?.status === 'Aberto') ? 'Aberto' : 'Resolvido'}
                   </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">Código da Loja</p>
+                  <p className="text-gray-900 font-medium">{selectedTicket?.codigo_loja || selectedTicket?.loja_id || 'Não informado'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">Data de Abertura</p>
+                  <p className="text-gray-900 font-medium">
+                    {selectedTicket?.data_abertura && formatDate(String(selectedTicket.data_abertura))}
+                  </p>
                 </div>
               </div>
 
-              {selectedTicket?.tipo_chamado === 'fornecedor' ? (
-                <>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Fornecedor</p>
-                    <p className="text-gray-900">{selectedTicket?.nome_fornecedor || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Responsável</p>
-                    <p className="text-gray-900">{selectedTicket?.nome_responsavel || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Telefone</p>
-                    <p className="text-gray-900">{selectedTicket?.telefone_fornecedor || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">E-mail</p>
-                    <p className="text-gray-900">{selectedTicket?.email_fornecedor || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Estado</p>
-                    <p className="text-gray-900">{selectedTicket?.estado_fornecedor || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Endereço Completo</p>
-                    <p className="text-gray-900">{selectedTicket?.endereco_fornecedor || 'Não informado'}</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome da Loja</p>
-                    <p className="text-gray-900">{selectedTicket?.nome_loja || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Operador</p>
-                    <p className="text-gray-900">{selectedTicket?.nome_operador || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Telefone da Loja</p>
-                    <p className="text-gray-900">{selectedTicket?.telefone_loja || 'Não informado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Endereço Completo</p>
-                    <p className="text-gray-900">
-                      {[
-                        selectedTicket?.logradouro,
-                        selectedTicket?.numero,
-                        selectedTicket?.complemento,
-                        selectedTicket?.bairro,
-                        selectedTicket?.cidade,
-                        selectedTicket?.uf,
-                        selectedTicket?.cep
-                      ].filter(Boolean).join(', ') || 'Não informado'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">Região</p>
-                    <p className="text-gray-900">{selectedTicket?.regiao || 'Não informado'}</p>
-                  </div>
-                </>
-              )}
+              {/* Grid Principal - 2 Colunas */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* Coluna Esquerda - Informações do Responsável */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
+                    {selectedTicket?.tipo_chamado === 'fornecedor' ? 'Dados do Fornecedor' : 'Dados da Loja'}
+                  </h3>
+                  
+                  {selectedTicket?.tipo_chamado === 'fornecedor' ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Fornecedor</p>
+                        <p className="text-gray-900">{selectedTicket?.nome_fornecedor || 'Não informado'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Responsável</p>
+                        <p className="text-gray-900">{selectedTicket?.nome_responsavel || 'Não informado'}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">Telefone</p>
+                          <p className="text-gray-900">{selectedTicket?.telefone_fornecedor || 'Não informado'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">Estado</p>
+                          <p className="text-gray-900">{selectedTicket?.estado_fornecedor || 'Não informado'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">E-mail</p>
+                        <p className="text-gray-900">{selectedTicket?.email_fornecedor || 'Não informado'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">Endereço Completo</p>
+                        <p className="text-gray-900">{selectedTicket?.endereco_fornecedor || 'Não informado'}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">Nome da Loja</p>
+                        <p className="text-gray-900">{selectedTicket?.nome_loja || selectedTicket?.nome_fornecedor || 'Não informado'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Operador</p>
+                        <p className="text-gray-900">{selectedTicket?.nome_operador || selectedTicket?.nome_responsavel || 'Não informado'}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">Telefone</p>
+                          <p className="text-gray-900">{selectedTicket?.telefone_loja || selectedTicket?.telefone_fornecedor || 'Não informado'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">Estado</p>
+                          <p className="text-gray-900">{selectedTicket?.uf || selectedTicket?.estado_fornecedor || 'Não informado'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">Região</p>
+                        <p className="text-gray-900">{selectedTicket?.regiao || 'Não informado'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-600 mb-1">Endereço Completo</p>
+                        <p className="text-gray-900">
+                          {selectedTicket?.endereco_fornecedor || 
+                           [
+                             selectedTicket?.logradouro,
+                             selectedTicket?.numero,
+                             selectedTicket?.complemento,
+                             selectedTicket?.bairro,
+                             selectedTicket?.cidade,
+                             selectedTicket?.uf,
+                             selectedTicket?.cep
+                           ].filter(Boolean).join(', ') || 'Não informado'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">Código da Loja</p>
-                <p className="text-gray-900">{selectedTicket?.codigo_loja || selectedTicket?.loja_id || 'Não informado'}</p>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">Nome da Loja</p>
-                <p className="text-gray-900">{selectedTicket?.nome_loja || 'Não informado'}</p>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">Endereço</p>
-                <p className="text-gray-900">
-                  {[selectedTicket?.bairro, selectedTicket?.cidade, selectedTicket?.uf]
-                    .filter(Boolean)
-                    .join(', ') || 'Não informado'}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">Descrição do Chamado</p>
-                <p className="text-gray-900">{selectedTicket?.descricao}</p>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">Data de Abertura</p>
-                <p className="text-gray-900">
-                  {selectedTicket?.data_abertura && formatDate(String(selectedTicket.data_abertura))}
-                </p>
+                {/* Coluna Direita - Informações do Chamado */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Descrição do Chamado</h3>
+                  <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+                    <p className="text-gray-900 leading-relaxed">{selectedTicket?.descricao}</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <DialogFooter>
+
+            <DialogFooter className="mt-6">
               <Button
                 variant="outline"
                 onClick={() => setShowDetailsModal(false)}
+                className="px-6"
               >
                 Fechar
               </Button>
