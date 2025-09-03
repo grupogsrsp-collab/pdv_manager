@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Search, CheckCircle, Clock, AlertTriangle, ArrowLeft, Phone, MapPin, Calendar, Store, User, X } from "lucide-react";
+import { Search, CheckCircle, Clock, AlertTriangle, ArrowLeft, Phone, MapPin, Calendar, User, X, Info } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -18,6 +17,7 @@ export default function AdminTickets() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { toast } = useToast();
 
   const { data: tickets, isLoading } = useQuery({
@@ -31,7 +31,7 @@ export default function AdminTickets() {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       toast({ 
         title: "✅ Chamado encerrado com sucesso!", 
-        description: "O chamado foi marcado como resolvido."
+        description: "O chamado foi marcado como encerrado."
       });
       setShowResolveModal(false);
       setSelectedTicket(null);
@@ -53,31 +53,12 @@ export default function AdminTickets() {
       ticket.nome_loja?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.cidade?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || 
+      ticket.status === statusFilter || 
+      (statusFilter === "encerrado" && (ticket.status === "encerrado" || ticket.status === "resolvido"));
     
     return matchesSearch && matchesStatus;
   }) || [];
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "aberto":
-        return (
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Aberto
-          </Badge>
-        );
-      case "resolvido":
-        return (
-          <Badge variant="default" className="bg-green-500 flex items-center gap-1">
-            <CheckCircle className="h-3 w-3" />
-            Resolvido
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("pt-BR", {
@@ -90,6 +71,11 @@ export default function AdminTickets() {
   const handleResolveClick = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setShowResolveModal(true);
+  };
+
+  const handleDetailsClick = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setShowDetailsModal(true);
   };
 
   if (isLoading) {
@@ -107,14 +93,14 @@ export default function AdminTickets() {
   const statusCounts = {
     total: tickets?.length || 0,
     aberto: tickets?.filter((t: Ticket) => t.status === "aberto").length || 0,
-    resolvido: tickets?.filter((t: Ticket) => t.status === "resolvido").length || 0,
+    resolvido: tickets?.filter((t: Ticket) => t.status === "encerrado" || t.status === "resolvido").length || 0,
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center gap-4 mb-4">
             <Link href="/admin">
               <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
@@ -123,53 +109,51 @@ export default function AdminTickets() {
               </Button>
             </Link>
           </div>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gerenciar Chamados</h1>
-              <p className="text-gray-600 mt-2">Acompanhe e resolva os chamados de fornecedores e lojas</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gerenciar Chamados</h1>
+            <p className="text-gray-500 text-sm mt-1">Acompanhe e resolva os chamados de fornecedores e lojas</p>
           </div>
         </div>
 
-        {/* Estatísticas */}
+        {/* Estatísticas Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total de Chamados</p>
-                  <p className="text-2xl font-bold text-gray-900">{statusCounts.total}</p>
+                  <p className="text-sm text-gray-500 mb-1">Total de Chamados</p>
+                  <p className="text-3xl font-bold text-gray-900">{statusCounts.total}</p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-blue-600" />
+                  <AlertTriangle className="h-5 w-5 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="border-l-4 border-l-red-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Chamados Abertos</p>
-                  <p className="text-2xl font-bold text-gray-900">{statusCounts.aberto}</p>
+                  <p className="text-sm text-gray-500 mb-1">Chamados Abertos</p>
+                  <p className="text-3xl font-bold text-gray-900">{statusCounts.aberto}</p>
                 </div>
                 <div className="bg-red-100 p-3 rounded-lg">
-                  <Clock className="h-6 w-6 text-red-600" />
+                  <Clock className="h-5 w-5 text-red-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="border-l-4 border-l-green-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Chamados Resolvidos</p>
-                  <p className="text-2xl font-bold text-gray-900">{statusCounts.resolvido}</p>
+                  <p className="text-sm text-gray-500 mb-1">Chamados Resolvidos</p>
+                  <p className="text-3xl font-bold text-gray-900">{statusCounts.resolvido}</p>
                 </div>
                 <div className="bg-green-100 p-3 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -177,175 +161,205 @@ export default function AdminTickets() {
         </div>
 
         {/* Filtros */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por descrição, fornecedor, loja ou cidade..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-tickets"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-48" data-testid="select-status-filter">
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="aberto">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-red-500" />
-                      Abertos
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="resolvido">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      Resolvidos
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar por descrição, fornecedor, loja ou cidade..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-white"
+              data-testid="input-search-tickets"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48 bg-white" data-testid="select-status-filter">
+              <SelectValue placeholder="Todos os Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Status</SelectItem>
+              <SelectItem value="aberto">Abertos</SelectItem>
+              <SelectItem value="encerrado">Encerrados</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Tabela de Chamados */}
-        <Card>
-          <CardHeader className="bg-gray-50 border-b">
-            <CardTitle className="flex items-center gap-2">
+        {/* Lista de Chamados */}
+        <Card className="bg-white shadow-sm">
+          <CardHeader className="border-b bg-gray-50 py-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <AlertTriangle className="h-5 w-5" />
               Lista de Chamados ({filteredTickets.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    <TableHead className="font-semibold">Título</TableHead>
-                    <TableHead className="font-semibold">Tipo</TableHead>
-                    <TableHead className="font-semibold">Nome do Fornecedor</TableHead>
-                    <TableHead className="font-semibold">Telefone</TableHead>
-                    <TableHead className="font-semibold">Código da Loja</TableHead>
-                    <TableHead className="font-semibold">Bairro</TableHead>
-                    <TableHead className="font-semibold">Cidade</TableHead>
-                    <TableHead className="font-semibold">Estado</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Data</TableHead>
-                    <TableHead className="font-semibold text-center">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTickets.map((ticket: Ticket) => (
-                    <TableRow 
-                      key={ticket.id} 
-                      className="hover:bg-gray-50 transition-colors"
+            <div className="divide-y divide-gray-200">
+              {filteredTickets.map((ticket: Ticket) => (
+                <div key={ticket.id} className="p-4 hover:bg-gray-50 transition-colors">
+                  {/* Header do Chamado */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-500">Tipo:</span>
+                      <span className="text-sm font-semibold text-blue-600">
+                        {ticket.tipo_chamado === 'fornecedor' ? 'Fornecedor' : 'Lojista'}
+                      </span>
+                      <span className="text-gray-300 mx-2">|</span>
+                      <span className="text-sm text-gray-500">Estado:</span>
+                      <span className="text-sm font-semibold text-blue-600">
+                        {ticket.uf || 'Não informado'}
+                      </span>
+                      <span className="text-gray-300 mx-2">|</span>
+                      <span className="text-sm text-gray-500">Telefone:</span>
+                      <span className="text-sm font-semibold text-blue-600">
+                        {ticket.telefone_fornecedor || 'Não informado'}
+                      </span>
+                    </div>
+                    <Badge 
+                      variant={ticket.status === 'aberto' ? 'default' : 'secondary'}
+                      className={ticket.status === 'aberto' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : 'bg-green-100 text-green-700'}
                     >
-                      <TableCell>
-                        <div className="max-w-xs">
-                          <p className="font-medium text-gray-900 truncate" data-testid={`text-ticket-title-${ticket.id}`}>
-                            {ticket.descricao}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={ticket.tipo_chamado === 'fornecedor' ? 'default' : 'secondary'} 
-                          className={ticket.tipo_chamado === 'fornecedor' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}
-                        >
-                          {ticket.tipo_chamado === 'fornecedor' ? 'Fornecedor' : 'Loja'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700">
-                            {ticket.tipo_chamado === 'fornecedor' ? (ticket.nome_fornecedor || '-') : 'Lojista'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700">{ticket.telefone_fornecedor || '-'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Store className="h-4 w-4 text-gray-400" />
-                          <span className="font-mono text-gray-700" data-testid={`text-ticket-store-${ticket.id}`}>
-                            {ticket.codigo_loja || ticket.loja_id || '-'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-gray-700">{ticket.bairro || '-'}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700">{ticket.cidade || '-'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-gray-700">{ticket.uf || '-'}</span>
-                      </TableCell>
-                      <TableCell data-testid={`status-ticket-${ticket.id}`}>
-                        {getStatusBadge(ticket.status)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700" data-testid={`date-ticket-${ticket.id}`}>
-                            {formatDate(ticket.data_abertura)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-center">
-                          {ticket.status === "aberto" ? (
-                            <Button
-                              size="sm"
-                              onClick={() => handleResolveClick(ticket)}
-                              disabled={resolveTicketMutation.isPending}
-                              data-testid={`button-resolve-ticket-${ticket.id}`}
-                              className="bg-red-600 hover:bg-red-700 text-white"
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Encerrar
-                            </Button>
-                          ) : (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                              ✓ Finalizado
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredTickets.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={11} className="text-center py-12">
-                        <div className="flex flex-col items-center gap-2">
-                          <AlertTriangle className="h-12 w-12 text-gray-300" />
-                          <p className="text-gray-500 text-lg">Nenhum chamado encontrado</p>
-                          <p className="text-gray-400 text-sm">Tente ajustar os filtros de busca</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                      {ticket.status === 'aberto' ? 'Aberto' : ticket.status === 'encerrado' ? 'Encerrado' : 'Resolvido'}
+                    </Badge>
+                  </div>
+
+                  {/* Data */}
+                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>Criado: {formatDate(ticket.data_abertura)}</span>
+                  </div>
+
+                  {/* Título/Descrição */}
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-gray-900 mb-1">Título</h3>
+                    <p className="text-gray-700">{ticket.descricao}</p>
+                    {ticket.codigo_loja && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Loja: {ticket.codigo_loja} - {ticket.nome_loja}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Botões de Ação */}
+                  <div className="flex gap-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-blue-500 text-white hover:bg-blue-600 border-0"
+                      onClick={() => handleDetailsClick(ticket)}
+                      data-testid={`button-details-ticket-${ticket.id}`}
+                    >
+                      Dados
+                    </Button>
+                    {ticket.status === "aberto" && (
+                      <Button
+                        size="sm"
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                        onClick={() => handleResolveClick(ticket)}
+                        disabled={resolveTicketMutation.isPending}
+                        data-testid={`button-resolve-ticket-${ticket.id}`}
+                      >
+                        Encerrar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {filteredTickets.length === 0 && (
+                <div className="text-center py-12">
+                  <AlertTriangle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-lg">Nenhum chamado encontrado</p>
+                  <p className="text-gray-400 text-sm">Tente ajustar os filtros de busca</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Modal de Confirmação para Resolver Chamado */}
+        {/* Modal de Detalhes */}
+        <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                Detalhes do Chamado
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">Tipo</p>
+                  <p className="text-gray-900">
+                    {selectedTicket?.tipo_chamado === 'fornecedor' ? 'Fornecedor' : 'Lojista'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 mb-1">Status</p>
+                  <Badge 
+                    variant={selectedTicket?.status === 'aberto' ? 'default' : 'secondary'}
+                    className={selectedTicket?.status === 'aberto' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}
+                  >
+                    {selectedTicket?.status === 'aberto' ? 'Aberto' : selectedTicket?.status === 'encerrado' ? 'Encerrado' : 'Resolvido'}
+                  </Badge>
+                </div>
+              </div>
+
+              {selectedTicket?.tipo_chamado === 'fornecedor' && (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Fornecedor</p>
+                    <p className="text-gray-900">{selectedTicket?.nome_fornecedor || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Telefone</p>
+                    <p className="text-gray-900">{selectedTicket?.telefone_fornecedor || 'Não informado'}</p>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">Código da Loja</p>
+                <p className="text-gray-900">{selectedTicket?.codigo_loja || selectedTicket?.loja_id || 'Não informado'}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">Nome da Loja</p>
+                <p className="text-gray-900">{selectedTicket?.nome_loja || 'Não informado'}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">Endereço</p>
+                <p className="text-gray-900">
+                  {[selectedTicket?.bairro, selectedTicket?.cidade, selectedTicket?.uf]
+                    .filter(Boolean)
+                    .join(', ') || 'Não informado'}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">Descrição do Chamado</p>
+                <p className="text-gray-900">{selectedTicket?.descricao}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">Data de Abertura</p>
+                <p className="text-gray-900">
+                  {selectedTicket?.data_abertura && formatDate(selectedTicket.data_abertura)}
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowDetailsModal(false)}
+              >
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Confirmação para Encerrar Chamado */}
         <Dialog open={showResolveModal} onOpenChange={setShowResolveModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>

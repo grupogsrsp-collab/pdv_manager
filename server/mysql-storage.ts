@@ -1656,7 +1656,7 @@ export class MySQLStorage implements IStorage {
 
   async resolveTicket(id: number): Promise<void> {
     await pool.execute(
-      'UPDATE chamados SET status = "resolvido" WHERE id = ?',
+      'UPDATE chamados SET status = "encerrado" WHERE id = ?',
       [id]
     );
   }
