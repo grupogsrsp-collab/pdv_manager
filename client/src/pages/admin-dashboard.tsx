@@ -217,47 +217,56 @@ export default function AdminDashboard() {
                     <span className="text-sm font-medium text-gray-700">Filtrar por Região:</span>
                   </div>
                   <div className="flex flex-wrap gap-3 flex-1">
-                    <Select value={selectedEstado || "all"} onValueChange={(value) => setSelectedEstado(value === "all" ? "" : value)}>
-                      <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {locations?.estados?.map(estado => (
-                          <SelectItem key={estado} value={estado}>
-                            {estado}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-medium text-gray-600">Estado</label>
+                      <Select value={selectedEstado || "all"} onValueChange={(value) => setSelectedEstado(value === "all" ? "" : value)}>
+                        <SelectTrigger className="w-[150px]">
+                          <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {locations?.estados?.map(estado => (
+                            <SelectItem key={estado} value={estado}>
+                              {estado}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     
-                    <Select value={selectedCidade || "all"} onValueChange={(value) => setSelectedCidade(value === "all" ? "" : value)} disabled={!filteredCidades.length}>
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Cidade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        {filteredCidades?.map(cidade => (
-                          <SelectItem key={cidade} value={cidade}>
-                            {cidade}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-medium text-gray-600">Cidade</label>
+                      <Select value={selectedCidade || "all"} onValueChange={(value) => setSelectedCidade(value === "all" ? "" : value)} disabled={!filteredCidades.length}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Cidade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas</SelectItem>
+                          {filteredCidades?.map(cidade => (
+                            <SelectItem key={cidade} value={cidade}>
+                              {cidade}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     
-                    <Select value={selectedBairro || "all"} onValueChange={(value) => setSelectedBairro(value === "all" ? "" : value)} disabled={!filteredBairros.length}>
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Bairro" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {filteredBairros?.map(bairro => (
-                          <SelectItem key={bairro} value={bairro}>
-                            {bairro}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-medium text-gray-600">Bairro</label>
+                      <Select value={selectedBairro || "all"} onValueChange={(value) => setSelectedBairro(value === "all" ? "" : value)} disabled={!filteredBairros.length}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Bairro" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {filteredBairros?.map(bairro => (
+                            <SelectItem key={bairro} value={bairro}>
+                              {bairro}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     
                     {(selectedEstado || selectedCidade || selectedBairro) && (
                       <Button
