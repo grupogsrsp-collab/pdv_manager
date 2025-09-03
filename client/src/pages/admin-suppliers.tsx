@@ -609,6 +609,18 @@ export default function AdminSuppliers() {
               </div>
             </div>
 
+            {/* E-mail - linha completa */}
+            <div>
+              <Label htmlFor="edit-email">E-mail</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                placeholder="fornecedor@email.com"
+                value={formData.email || ""}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+
             {/* Endereço - linha completa */}
             <div>
               <Label htmlFor="edit-endereco">Endereço</Label>
