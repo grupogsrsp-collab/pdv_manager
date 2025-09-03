@@ -2155,26 +2155,42 @@ export class MySQLStorage implements IStorage {
     openTickets: number;
     resolvedTickets: number;
     completedInstallations: number;
+    nonCompletedStores: number;
     unusedKits: number;
     monthlyInstallations: number[];
     ticketsByStatus: { open: number; resolved: number };
     unusedKitsList: any[];
   }> {
+    // Total de fornecedores
     const [supplierRows] = await pool.execute('SELECT COUNT(*) as count FROM fornecedores') as [RowDataPacket[], any];
+    
+    // Total de lojas
     const [storeRows] = await pool.execute('SELECT COUNT(*) as count FROM lojas') as [RowDataPacket[], any];
+    
+    // Total de chamados
     const [ticketRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados') as [RowDataPacket[], any];
     
-    // Status dos tickets
-    const [openTicketsRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados WHERE status = "aberto"') as [RowDataPacket[], any];
-    const [resolvedTicketsRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados WHERE status = "resolvido"') as [RowDataPacket[], any];
+    // Chamados em aberto (considera "aberto" ou "Aberto")
+    const [openTicketsRows] = await pool.execute(
+      'SELECT COUNT(*) as count FROM chamados WHERE LOWER(status) = "aberto"'
+    ) as [RowDataPacket[], any];
+    
+    // Chamados resolvidos (considera "resolvido" ou "Resolvido") 
+    const [resolvedTicketsRows] = await pool.execute(
+      'SELECT COUNT(*) as count FROM chamados WHERE LOWER(status) = "resolvido"'
+    ) as [RowDataPacket[], any];
 
-    // Instalações completas - instalacoes com dados preenchidos que correspondem ao codigo_loja das lojas
+    // Lojas finalizadas - conta instalações com finalizada = true
     const [completedInstallationsRows] = await pool.execute(`
-      SELECT COUNT(DISTINCT i.loja_id) as count 
-      FROM instalacoes i 
-      INNER JOIN lojas l ON i.loja_id = l.codigo_loja 
-      WHERE i.fotosFinais IS NOT NULL AND i.fotosFinais != '' AND i.fotosFinais != '[]'
+      SELECT COUNT(DISTINCT loja_id) as count 
+      FROM instalacoes 
+      WHERE finalizada = 1
     `) as [RowDataPacket[], any];
+
+    // Calcula lojas não finalizadas
+    const totalStores = storeRows[0].count;
+    const completedStores = completedInstallationsRows[0].count;
+    const nonCompletedStores = totalStores - completedStores;
 
     // Kits não usados - contagem total de kits (como exemplo)
     const [unusedKitsRows] = await pool.execute('SELECT COUNT(*) as count FROM kits') as [RowDataPacket[], any];
@@ -2184,11 +2200,12 @@ export class MySQLStorage implements IStorage {
 
     return {
       totalSuppliers: supplierRows[0].count,
-      totalStores: storeRows[0].count,
+      totalStores: totalStores,
       totalTickets: ticketRows[0].count,
       openTickets: openTicketsRows[0].count,
       resolvedTickets: resolvedTicketsRows[0].count,
-      completedInstallations: completedInstallationsRows[0].count,
+      completedInstallations: completedStores,
+      nonCompletedStores: nonCompletedStores,
       unusedKits: unusedKitsRows[0].count,
       monthlyInstallations: [15, 23, 18, 31, 28, 19], // Dados exemplo para 6 meses
       ticketsByStatus: {

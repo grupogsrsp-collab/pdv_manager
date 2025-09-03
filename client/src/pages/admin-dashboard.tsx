@@ -15,6 +15,7 @@ interface DashboardMetrics {
   openTickets: number;
   resolvedTickets: number;
   completedInstallations: number;
+  nonCompletedStores: number;
   unusedKits: number;
   monthlyInstallations: number[];
   ticketsByStatus: { open: number; resolved: number };
@@ -55,269 +56,225 @@ export default function AdminDashboard() {
                 </Link>
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-                Dashboard Administrativo
+                Relatórios Gerenciais
               </h1>
-              <p className="text-gray-600">Visão geral completa da plataforma de franquias</p>
+              <p className="text-gray-600">Visão executiva completa para acompanhamento da plataforma</p>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Activity className="h-4 w-4" />
-              <span>Atualizado agora</span>
+              <span>Atualizado em tempo real</span>
             </div>
           </div>
         </div>
         
-        {/* Quick Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total de Lojas</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.totalStores || 0}</p>
+        {/* Métricas Principais - Design Executivo */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+            <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+            Indicadores Principais
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            {/* Total de Lojas */}
+            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <Building2 className="h-8 w-8 text-white/80" />
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Base</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/90 mb-1">Total de Lojas</p>
+                  <p className="text-3xl font-bold">{metrics?.totalStores || 0}</p>
+                  <p className="text-xs text-white/70 mt-2">Cadastradas no sistema</p>
                 </div>
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
-                  <Building2 className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                +12% este mês
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Fornecedores</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.totalSuppliers || 0}</p>
+            {/* Total de Fornecedores */}
+            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <Users className="h-8 w-8 text-white/80" />
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Base</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/90 mb-1">Total de Fornecedores</p>
+                  <p className="text-3xl font-bold">{metrics?.totalSuppliers || 0}</p>
+                  <p className="text-xs text-white/70 mt-2">Parceiros ativos</p>
                 </div>
-                <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-lg">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                +5% este mês
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Chamados Abertos</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.openTickets || 0}</p>
+            {/* Chamados em Aberto */}
+            <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <AlertTriangle className="h-8 w-8 text-white/80" />
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full animate-pulse">Atenção</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/90 mb-1">Chamados em Aberto</p>
+                  <p className="text-3xl font-bold">{metrics?.openTickets || 0}</p>
+                  <p className="text-xs text-white/70 mt-2">Aguardando resolução</p>
                 </div>
-                <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-orange-600">
-                <Clock className="h-4 w-4 mr-1" />
-                Requer atenção
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            {/* Chamados Resolvidos */}
+            <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <CheckCircle className="h-8 w-8 text-white/80" />
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Sucesso</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/90 mb-1">Chamados Resolvidos</p>
+                  <p className="text-3xl font-bold">{metrics?.resolvedTickets || 0}</p>
+                  <p className="text-xs text-white/70 mt-2">Finalizados com êxito</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lojas Finalizadas */}
+            <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <Check className="h-8 w-8 text-white/80" />
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Meta</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/90 mb-1">Lojas Finalizadas</p>
+                  <p className="text-3xl font-bold">{metrics?.completedInstallations || 0}</p>
+                  <p className="text-xs text-white/70 mt-2">Instalações completas</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lojas Não Finalizadas */}
+            <Card className="bg-gradient-to-br from-gray-600 to-gray-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <Clock className="h-8 w-8 text-white/80" />
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Pendente</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/90 mb-1">Lojas Não Finalizadas</p>
+                  <p className="text-3xl font-bold">{metrics?.nonCompletedStores || 0}</p>
+                  <p className="text-xs text-white/70 mt-2">Em processo de instalação</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Indicador de Performance */}
+        <div className="mb-8">
+          <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Instalações</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics?.completedInstallations || 0}</p>
-                </div>
-                <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-white" />
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+                  Taxa de Conclusão
+                </h3>
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  {metrics?.totalStores > 0 
+                    ? `${Math.round((metrics.completedInstallations / metrics.totalStores) * 100)}%`
+                    : '0%'
+                  } Concluído
+                </Badge>
               </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <Check className="h-4 w-4 mr-1" />
-                Concluídas
+              <div className="w-full bg-gray-200 rounded-full h-4">
+                <div 
+                  className="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-500"
+                  style={{ 
+                    width: metrics?.totalStores > 0 
+                      ? `${Math.min((metrics.completedInstallations / metrics.totalStores) * 100, 100)}%`
+                      : '0%' 
+                  }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-gray-600">
+                <span>{metrics?.completedInstallations || 0} finalizadas</span>
+                <span>{metrics?.nonCompletedStores || 0} pendentes</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Management Navigation Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 mb-8">
-          <Link href="/admin/suppliers">
-            <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Users className="h-8 w-8 text-white" />
+        {/* Acessos Rápidos - Módulos do Sistema */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+            <Settings className="h-5 w-5 mr-2 text-gray-600" />
+            Acessos Rápidos
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <Link href="/admin/suppliers">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Users className="h-6 w-6 text-blue-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Fornecedores</p>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">Gerenciar</p>
-                  <p className="font-semibold text-gray-900">Fornecedores</p>
-                  <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-blue-600 transition-colors" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          
-          <Link href="/admin/stores">
-            <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Building2 className="h-8 w-8 text-white" />
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/stores">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Building2 className="h-6 w-6 text-green-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Lojas</p>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">Gerenciar</p>
-                  <p className="font-semibold text-gray-900">Lojas</p>
-                  <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-green-600 transition-colors" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          
-          <Link href="/admin/tickets">
-            <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
-              <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-orange-500 rounded-lg">
-                  <FileText className="h-6 w-6 text-white" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-gray-600">Gerenciar</p>
-                  <p className="text-lg font-semibold text-gray-900">Chamados</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/admin/routes">
-          <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="p-4 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <MapPin className="h-8 w-8 text-white" />
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Gerenciar</p>
-                <p className="font-semibold text-gray-900">Rotas</p>
-                <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-indigo-600 transition-colors" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/admin/settings">
-          <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white/80 backdrop-blur-sm border-0 shadow-lg group">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Settings className="h-8 w-8 text-white" />
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Configurações</p>
-                <p className="font-semibold text-gray-900">Sistema</p>
-                <ChevronRight className="h-4 w-4 text-gray-400 mt-2 group-hover:text-purple-600 transition-colors" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/tickets">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <FileText className="h-6 w-6 text-orange-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Chamados</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/kits">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Package className="h-6 w-6 text-purple-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Kits</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/routes">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <MapPin className="h-6 w-6 text-indigo-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Rotas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/settings">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Settings className="h-6 w-6 text-gray-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Configurações</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Building2 className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-xs text-gray-600">Total de Lojas</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {metrics?.totalStores || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-xs text-gray-600">Total de Fornecedores</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {metrics?.totalSuppliers || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-xs text-gray-600">Chamados Abertos</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {metrics?.openTickets || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-xs text-gray-600">Chamados Resolvidos</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {metrics?.resolvedTickets || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Check className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-xs text-gray-600">Instalações Concluídas</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {metrics?.completedInstallations || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Package className="h-5 w-5 text-orange-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-xs text-gray-600">Kits não Usados</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {metrics?.unusedKits || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Charts Section */}
       {metrics && <DashboardCharts metrics={metrics} />}
