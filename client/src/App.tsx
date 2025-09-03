@@ -11,7 +11,7 @@ import StoreSearch from "@/pages/store-search-ultra-simple";
 import SupplierDashboard from "@/pages/supplier-dashboard";
 import InstallationChecklist from "@/pages/installation-checklist-new";
 import StoreDashboard from "@/pages/store-dashboard";
-import AdminDashboard from "@/pages/admin-dashboard-new";
+import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSuppliers from "@/pages/admin-suppliers";
 import AdminStores from "@/pages/admin-stores";
 import AdminTickets from "@/pages/admin-tickets";
