@@ -125,83 +125,6 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        {/* Filtros de Localização */}
-        <div className="mb-6">
-          <Card className="bg-white/95 border-gray-200 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-5 w-5 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">Filtrar por Região:</span>
-                </div>
-                <div className="flex flex-wrap gap-3 flex-1">
-                  <Select value={selectedEstado || "all"} onValueChange={(value) => setSelectedEstado(value === "all" ? "" : value)}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="Estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {locations?.estados?.map(estado => (
-                        <SelectItem key={estado} value={estado}>
-                          {estado}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Select value={selectedCidade || "all"} onValueChange={(value) => setSelectedCidade(value === "all" ? "" : value)} disabled={!filteredCidades.length}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Cidade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      {filteredCidades?.map(cidade => (
-                        <SelectItem key={cidade} value={cidade}>
-                          {cidade}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Select value={selectedBairro || "all"} onValueChange={(value) => setSelectedBairro(value === "all" ? "" : value)} disabled={!filteredBairros.length}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Bairro" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {filteredBairros?.map(bairro => (
-                        <SelectItem key={bairro} value={bairro}>
-                          {bairro}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {(selectedEstado || selectedCidade || selectedBairro) && (
-                    <Button
-                      onClick={clearFilters}
-                      variant="outline"
-                      size="sm"
-                      className="text-gray-600"
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Limpar Filtros
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {(selectedEstado || selectedCidade || selectedBairro) && (
-                <div className="mt-3 text-sm text-gray-600">
-                  Exibindo dados filtrados por:
-                  {selectedEstado && <span className="ml-2 font-medium">Estado: {selectedEstado}</span>}
-                  {selectedCidade && <span className="ml-2 font-medium">Cidade: {selectedCidade}</span>}
-                  {selectedBairro && <span className="ml-2 font-medium">Bairro: {selectedBairro}</span>}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        
         {/* Acessos Rápidos - Módulos do Sistema */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
@@ -283,6 +206,84 @@ export default function AdminDashboard() {
             <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
             Indicadores Principais
           </h2>
+          
+          {/* Filtros de Localização */}
+          <div className="mb-6">
+            <Card className="bg-white/95 border-gray-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Filtrar por Região:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3 flex-1">
+                    <Select value={selectedEstado || "all"} onValueChange={(value) => setSelectedEstado(value === "all" ? "" : value)}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {locations?.estados?.map(estado => (
+                          <SelectItem key={estado} value={estado}>
+                            {estado}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={selectedCidade || "all"} onValueChange={(value) => setSelectedCidade(value === "all" ? "" : value)} disabled={!filteredCidades.length}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Cidade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        {filteredCidades?.map(cidade => (
+                          <SelectItem key={cidade} value={cidade}>
+                            {cidade}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={selectedBairro || "all"} onValueChange={(value) => setSelectedBairro(value === "all" ? "" : value)} disabled={!filteredBairros.length}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Bairro" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {filteredBairros?.map(bairro => (
+                          <SelectItem key={bairro} value={bairro}>
+                            {bairro}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {(selectedEstado || selectedCidade || selectedBairro) && (
+                      <Button
+                        onClick={clearFilters}
+                        variant="outline"
+                        size="sm"
+                        className="text-gray-600"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Limpar Filtros
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {(selectedEstado || selectedCidade || selectedBairro) && (
+                  <div className="mt-3 text-sm text-gray-600">
+                    Exibindo dados filtrados por:
+                    {selectedEstado && <span className="ml-2 font-medium">Estado: {selectedEstado}</span>}
+                    {selectedCidade && <span className="ml-2 font-medium">Cidade: {selectedCidade}</span>}
+                    {selectedBairro && <span className="ml-2 font-medium">Bairro: {selectedBairro}</span>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* Total de Lojas */}
             <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
