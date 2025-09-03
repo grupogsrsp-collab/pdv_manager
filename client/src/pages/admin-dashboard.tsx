@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle, Plus, Eye, ChevronRight, BarChart3, TrendingUp, Activity, ArrowLeft, MapPin, Download, FileSpreadsheet } from "lucide-react";
-import DashboardCharts from "@/components/charts/dashboard-charts";
 import { Link } from "wouter";
 import { generatePDFReport, generateExcelReport } from "@/utils/report-generator";
 
@@ -17,10 +16,10 @@ interface DashboardMetrics {
   resolvedTickets: number;
   completedInstallations: number;
   nonCompletedStores: number;
-  unusedKits: number;
-  monthlyInstallations: number[];
-  ticketsByStatus: { open: number; resolved: number };
-  unusedKitsList: any[];
+  unusedKits?: number;
+  monthlyInstallations?: number[];
+  ticketsByStatus?: { open: number; resolved: number };
+  unusedKitsList?: any[];
 }
 
 export default function AdminDashboard() {
@@ -343,45 +342,6 @@ export default function AdminDashboard() {
         </div>
 
 
-        {/* Charts Section */}
-        {metrics && <DashboardCharts metrics={metrics} />}
-
-        {/* Unused Kits Details */}
-        {metrics?.unusedKitsList && metrics.unusedKitsList.length > 0 && (
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Package className="h-5 w-5 mr-2" />
-                Detalhes dos Kits não Usados
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {metrics.unusedKitsList.slice(0, 6).map((kit: any, index: number) => (
-                  <div key={index} className="p-3 border rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium">{kit.nome || `Kit ${kit.id}`}</p>
-                        <p className="text-sm text-gray-600">ID: {kit.id}</p>
-                        {kit.descricao && (
-                          <p className="text-sm text-gray-500 mt-1">{kit.descricao}</p>
-                        )}
-                      </div>
-                      <Badge variant="destructive">Não Usado</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {metrics.unusedKitsList.length > 6 && (
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-600">
-                    E mais {metrics.unusedKitsList.length - 6} kits não utilizados...
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
