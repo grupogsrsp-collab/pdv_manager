@@ -1,13 +1,7 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 interface ReportData {
   totalSuppliers: number;
@@ -63,7 +57,7 @@ export const generatePDFReport = (data: ReportData) => {
   ];
 
   // Add metrics table
-  doc.autoTable({
+  autoTable(doc, {
     startY: 80,
     head: [metricsData[0]],
     body: metricsData.slice(1),
@@ -104,7 +98,7 @@ export const generatePDFReport = (data: ReportData) => {
     ['Eficiência Operacional', `${100 - Math.round((data.openTickets / (data.openTickets + data.resolvedTickets)) * 100)}%`, 'Taxa de resolução']
   ];
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: finalY + 30,
     head: [performanceData[0]],
     body: performanceData.slice(1),

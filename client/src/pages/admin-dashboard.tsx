@@ -68,6 +68,81 @@ export default function AdminDashboard() {
           </div>
         </div>
         
+        {/* Acessos Rápidos - Módulos do Sistema */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+            <Settings className="h-5 w-5 mr-2 text-gray-600" />
+            Acessos Rápidos
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <Link href="/admin/suppliers">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Users className="h-6 w-6 text-blue-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Fornecedores</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/stores">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Building2 className="h-6 w-6 text-green-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Lojas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/tickets">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <FileText className="h-6 w-6 text-orange-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Chamados</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/kits">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Package className="h-6 w-6 text-purple-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Kits</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/routes">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <MapPin className="h-6 w-6 text-indigo-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Rotas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/admin/settings">
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Settings className="h-6 w-6 text-gray-600 mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Configurações</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+        
         {/* Métricas Principais - Design Executivo */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
@@ -266,80 +341,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Acessos Rápidos - Módulos do Sistema */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
-            <Settings className="h-5 w-5 mr-2 text-gray-600" />
-            Acessos Rápidos
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Link href="/admin/suppliers">
-              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center text-center">
-                    <Users className="h-6 w-6 text-blue-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-700">Fornecedores</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/admin/stores">
-              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center text-center">
-                    <Building2 className="h-6 w-6 text-green-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-700">Lojas</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/admin/tickets">
-              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center text-center">
-                    <FileText className="h-6 w-6 text-orange-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-700">Chamados</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/admin/kits">
-              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center text-center">
-                    <Package className="h-6 w-6 text-purple-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-700">Kits</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/admin/routes">
-              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center text-center">
-                    <MapPin className="h-6 w-6 text-indigo-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-700">Rotas</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/admin/settings">
-              <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-white/90 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center text-center">
-                    <Settings className="h-6 w-6 text-gray-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-700">Configurações</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
 
 
       </div>
