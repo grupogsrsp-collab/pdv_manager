@@ -54,8 +54,9 @@ export default function AdminTickets() {
       ticket.cidade?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || 
-      ticket.status === statusFilter || 
-      (statusFilter === "encerrado" && (ticket.status === "encerrado" || ticket.status === "resolvido"));
+      ticket.status.toLowerCase() === statusFilter || 
+      (statusFilter === "aberto" && (ticket.status === "aberto" || ticket.status === "Aberto")) ||
+      (statusFilter === "encerrado" && (ticket.status === "resolvido" || ticket.status === "Resolvido" || ticket.status === "encerrado"));
     
     return matchesSearch && matchesStatus;
   }) || [];
