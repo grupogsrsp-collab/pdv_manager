@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle, Plus, Eye, ChevronRight, BarChart3, TrendingUp, Activity, ArrowLeft, MapPin } from "lucide-react";
+import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle, Plus, Eye, ChevronRight, BarChart3, TrendingUp, Activity, ArrowLeft, MapPin, Download, FileSpreadsheet } from "lucide-react";
 import DashboardCharts from "@/components/charts/dashboard-charts";
 import { Link } from "wouter";
+import { generatePDFReport, generateExcelReport } from "@/utils/report-generator";
 
 interface DashboardMetrics {
   totalSuppliers: number;
@@ -24,6 +25,7 @@ interface DashboardMetrics {
 
 export default function AdminDashboard() {
   const [showUnusedKitsDetails, setShowUnusedKitsDetails] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   
   const { data: metrics, isLoading } = useQuery<DashboardMetrics>({
     queryKey: ["/api/dashboard/metrics"],
@@ -176,7 +178,7 @@ export default function AdminDashboard() {
                   Taxa de Conclusão
                 </h3>
                 <Badge className="bg-green-100 text-green-800 border-green-200">
-                  {metrics?.totalStores > 0 
+                  {metrics && metrics.totalStores > 0 
                     ? `${Math.round((metrics.completedInstallations / metrics.totalStores) * 100)}%`
                     : '0%'
                   } Concluído
@@ -186,7 +188,7 @@ export default function AdminDashboard() {
                 <div 
                   className="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-500"
                   style={{ 
-                    width: metrics?.totalStores > 0 
+                    width: metrics && metrics.totalStores > 0 
                       ? `${Math.min((metrics.completedInstallations / metrics.totalStores) * 100, 100)}%`
                       : '0%' 
                   }}
@@ -195,6 +197,71 @@ export default function AdminDashboard() {
               <div className="flex justify-between mt-2 text-xs text-gray-600">
                 <span>{metrics?.completedInstallations || 0} finalizadas</span>
                 <span>{metrics?.nonCompletedStores || 0} pendentes</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Seção de Exportação de Relatórios */}
+        <div className="mb-8">
+          <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center mb-1">
+                    <Download className="h-5 w-5 mr-2 text-gray-600" />
+                    Exportar Relatórios
+                  </h3>
+                  <p className="text-sm text-gray-600">Baixe os dados em PDF ou Excel para análise offline</p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      if (metrics) {
+                        setIsGeneratingReport(true);
+                        setTimeout(() => {
+                          generatePDFReport({
+                            totalSuppliers: metrics.totalSuppliers,
+                            totalStores: metrics.totalStores,
+                            openTickets: metrics.openTickets,
+                            resolvedTickets: metrics.resolvedTickets,
+                            completedInstallations: metrics.completedInstallations,
+                            nonCompletedStores: metrics.nonCompletedStores
+                          });
+                          setIsGeneratingReport(false);
+                        }, 100);
+                      }
+                    }}
+                    disabled={isGeneratingReport || !metrics}
+                    className="bg-red-600 text-white hover:bg-red-700 transition-colors"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    {isGeneratingReport ? 'Gerando...' : 'Baixar PDF'}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (metrics) {
+                        setIsGeneratingReport(true);
+                        setTimeout(() => {
+                          generateExcelReport({
+                            totalSuppliers: metrics.totalSuppliers,
+                            totalStores: metrics.totalStores,
+                            openTickets: metrics.openTickets,
+                            resolvedTickets: metrics.resolvedTickets,
+                            completedInstallations: metrics.completedInstallations,
+                            nonCompletedStores: metrics.nonCompletedStores
+                          });
+                          setIsGeneratingReport(false);
+                        }, 100);
+                      }
+                    }}
+                    disabled={isGeneratingReport || !metrics}
+                    className="bg-green-600 text-white hover:bg-green-700 transition-colors"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    {isGeneratingReport ? 'Gerando...' : 'Baixar Excel'}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -276,45 +343,46 @@ export default function AdminDashboard() {
         </div>
 
 
-      {/* Charts Section */}
-      {metrics && <DashboardCharts metrics={metrics} />}
+        {/* Charts Section */}
+        {metrics && <DashboardCharts metrics={metrics} />}
 
-      {/* Unused Kits Details */}
-      {metrics?.unusedKitsList && metrics.unusedKitsList.length > 0 && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Package className="h-5 w-5 mr-2" />
-              Detalhes dos Kits não Usados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {metrics.unusedKitsList.slice(0, 6).map((kit: any, index: number) => (
-                <div key={index} className="p-3 border rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{kit.nome || `Kit ${kit.id}`}</p>
-                      <p className="text-sm text-gray-600">ID: {kit.id}</p>
-                      {kit.descricao && (
-                        <p className="text-sm text-gray-500 mt-1">{kit.descricao}</p>
-                      )}
+        {/* Unused Kits Details */}
+        {metrics?.unusedKitsList && metrics.unusedKitsList.length > 0 && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Package className="h-5 w-5 mr-2" />
+                Detalhes dos Kits não Usados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {metrics.unusedKitsList.slice(0, 6).map((kit: any, index: number) => (
+                  <div key={index} className="p-3 border rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{kit.nome || `Kit ${kit.id}`}</p>
+                        <p className="text-sm text-gray-600">ID: {kit.id}</p>
+                        {kit.descricao && (
+                          <p className="text-sm text-gray-500 mt-1">{kit.descricao}</p>
+                        )}
+                      </div>
+                      <Badge variant="destructive">Não Usado</Badge>
                     </div>
-                    <Badge variant="destructive">Não Usado</Badge>
                   </div>
-                </div>
-              ))}
-            </div>
-            {metrics.unusedKitsList.length > 6 && (
-              <div className="mt-4 text-center">
-                <p className="text-sm text-gray-600">
-                  E mais {metrics.unusedKitsList.length - 6} kits não utilizados...
-                </p>
+                ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              {metrics.unusedKitsList.length > 6 && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600">
+                    E mais {metrics.unusedKitsList.length - 6} kits não utilizados...
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
