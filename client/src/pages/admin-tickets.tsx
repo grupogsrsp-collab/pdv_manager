@@ -26,7 +26,7 @@ export default function AdminTickets() {
 
   const resolveTicketMutation = useMutation({
     mutationFn: (ticketId: number) => 
-      apiRequest(`/api/tickets/${ticketId}/resolve`, { method: "PATCH" }),
+      apiRequest("PATCH", `/api/tickets/${ticketId}/resolve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       toast({ 
@@ -45,7 +45,7 @@ export default function AdminTickets() {
     },
   });
 
-  const filteredTickets = tickets?.filter((ticket: Ticket) => {
+  const filteredTickets = (tickets || []).filter((ticket: Ticket) => {
     const matchesSearch = 
       ticket.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.nome_fornecedor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -91,9 +91,9 @@ export default function AdminTickets() {
 
   // Contadores de status
   const statusCounts = {
-    total: tickets?.length || 0,
-    aberto: tickets?.filter((t: Ticket) => t.status === "aberto").length || 0,
-    resolvido: tickets?.filter((t: Ticket) => t.status === "encerrado" || t.status === "resolvido").length || 0,
+    total: (tickets || []).length,
+    aberto: (tickets || []).filter((t: Ticket) => t.status === "aberto" || t.status === "Aberto").length,
+    resolvido: (tickets || []).filter((t: Ticket) => t.status === "encerrado" || t.status === "resolvido").length,
   };
 
   return (
@@ -206,40 +206,40 @@ export default function AdminTickets() {
                       <span className="text-gray-300 mx-2">|</span>
                       <span className="text-sm text-gray-500">Nome:</span>
                       <span className="text-sm font-semibold text-blue-600">
-                        {ticket.tipo_chamado === 'fornecedor' 
-                          ? (ticket.nome_fornecedor || 'Não informado')
-                          : (ticket.nome_operador || ticket.nome_loja || 'Não informado')
+                        {ticket.tipo_chamado === 'loja' 
+                          ? (ticket.nome_loja || ticket.nome_operador || ticket.nome_fornecedor || 'Não informado')
+                          : (ticket.nome_fornecedor || 'Não informado')
                         }
                       </span>
                       <span className="text-gray-300 mx-2">|</span>
                       <span className="text-sm text-gray-500">Estado:</span>
                       <span className="text-sm font-semibold text-blue-600">
-                        {ticket.tipo_chamado === 'fornecedor' 
-                          ? (ticket.estado_fornecedor || 'Não informado')
-                          : (ticket.uf || 'Não informado')
+                        {ticket.tipo_chamado === 'loja' 
+                          ? (ticket.uf || ticket.estado_fornecedor || 'Não informado')
+                          : (ticket.estado_fornecedor || 'Não informado')
                         }
                       </span>
                       <span className="text-gray-300 mx-2">|</span>
                       <span className="text-sm text-gray-500">Telefone:</span>
                       <span className="text-sm font-semibold text-blue-600">
-                        {ticket.tipo_chamado === 'fornecedor' 
-                          ? (ticket.telefone_fornecedor || 'Não informado')
-                          : (ticket.telefone_loja || 'Não informado')
+                        {ticket.tipo_chamado === 'loja' 
+                          ? (ticket.telefone_loja || ticket.telefone_fornecedor || 'Não informado')
+                          : (ticket.telefone_fornecedor || 'Não informado')
                         }
                       </span>
                     </div>
                     <Badge 
-                      variant={ticket.status === 'aberto' ? 'default' : 'secondary'}
-                      className={ticket.status === 'aberto' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : 'bg-green-100 text-green-700'}
+                      variant={ticket.status === 'aberto' || ticket.status === 'Aberto' ? 'default' : 'secondary'}
+                      className={(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : 'bg-green-100 text-green-700'}
                     >
-                      {ticket.status === 'aberto' ? 'Aberto' : ticket.status === 'encerrado' ? 'Encerrado' : 'Resolvido'}
+                      {(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'Aberto' : 'Resolvido'}
                     </Badge>
                   </div>
 
                   {/* Data */}
                   <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                     <Calendar className="h-4 w-4" />
-                    <span>Criado: {formatDate(ticket.data_abertura)}</span>
+                    <span>Criado: {formatDate(String(ticket.data_abertura))}</span>
                   </div>
 
                   {/* Título/Descrição */}
@@ -266,7 +266,7 @@ export default function AdminTickets() {
                       >
                         Dados
                       </Button>
-                      {ticket.status === "aberto" ? (
+                      {(ticket.status === "aberto" || ticket.status === "Aberto") ? (
                         <Button
                           size="sm"
                           className="bg-red-500 hover:bg-red-600 text-white"
@@ -418,7 +418,7 @@ export default function AdminTickets() {
               <div>
                 <p className="text-sm font-semibold text-gray-600 mb-1">Data de Abertura</p>
                 <p className="text-gray-900">
-                  {selectedTicket?.data_abertura && formatDate(selectedTicket.data_abertura)}
+                  {selectedTicket?.data_abertura && formatDate(String(selectedTicket.data_abertura))}
                 </p>
               </div>
             </div>
