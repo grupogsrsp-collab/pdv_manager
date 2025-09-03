@@ -105,7 +105,6 @@ export default function AdminRouteTrack() {
     );
   }
 
-  const summary = getStatusSummary(routeDetails.lojas);
 
   return (
     <div className="p-6 space-y-6">
@@ -128,56 +127,6 @@ export default function AdminRouteTrack() {
         </Badge>
       </div>
 
-      {/* Resumo da Rota */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-500 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-green-600">{summary.finalizadas}</p>
-                <p className="text-sm text-gray-600">Finalizadas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <XCircle className="h-8 w-8 text-red-500 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-red-600">{summary.pendentes}</p>
-                <p className="text-sm text-gray-600">Pendentes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-orange-500 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-orange-600">{summary.chamados}</p>
-                <p className="text-sm text-gray-600">Com Chamados</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Building2 className="h-8 w-8 text-blue-500 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{summary.total}</p>
-                <p className="text-sm text-gray-600">Total de Lojas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Informações da Rota */}
       <Card>
