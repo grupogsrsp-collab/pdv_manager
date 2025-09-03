@@ -100,6 +100,7 @@ export interface Ticket {
   loja_id: string;
   fornecedor_id: number;
   data_abertura: Date;
+  instalador?: string;
   // Campos do JOIN - Fornecedor
   nome_fornecedor?: string;
   telefone_fornecedor?: string;

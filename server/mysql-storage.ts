@@ -1616,6 +1616,7 @@ export class MySQLStorage implements IStorage {
         c.loja_id,
         c.fornecedor_id,
         c.data_abertura,
+        c.instalador,
         f.nome_fornecedor,
         f.telefone AS telefone_fornecedor,
         f.estado AS estado_fornecedor,
@@ -1635,11 +1636,11 @@ export class MySQLStorage implements IStorage {
         l.cep,
         l.regiao,
         CASE 
-          WHEN c.fornecedor_id IS NULL OR c.fornecedor_id = 0 THEN 'loja'
+          WHEN c.instalador = 'Lojista' THEN 'loja'
           ELSE 'fornecedor'
         END as tipo_chamado
       FROM chamados c
-      LEFT JOIN fornecedores f ON c.fornecedor_id = f.id AND c.fornecedor_id > 0
+      LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
       LEFT JOIN lojas l ON c.loja_id = l.codigo_loja
       ORDER BY c.data_abertura DESC
     `;
@@ -1648,22 +1649,6 @@ export class MySQLStorage implements IStorage {
     return rows as Ticket[];
   }
 
-  async createTicket(ticket: InsertTicket): Promise<Ticket> {
-    // If fornecedor_id is provided, use it; otherwise, set to NULL
-    const fornecedorId = ticket.fornecedor_id || null;
-    
-    const [result] = await pool.execute(
-      'INSERT INTO chamados (descricao, status, loja_id, fornecedor_id, data_abertura) VALUES (?, ?, ?, ?, ?)',
-      [ticket.descricao, ticket.status, ticket.loja_id, fornecedorId, ticket.data_abertura || new Date()]
-    ) as [ResultSetHeader, any];
-
-    const [rows] = await pool.execute(
-      'SELECT * FROM chamados WHERE id = ?',
-      [result.insertId]
-    ) as [RowDataPacket[], any];
-    
-    return rows[0] as Ticket;
-  }
 
   async resolveTicket(id: number): Promise<void> {
     await pool.execute(
