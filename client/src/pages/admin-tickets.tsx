@@ -93,7 +93,7 @@ export default function AdminTickets() {
   const statusCounts = {
     total: (tickets || []).length,
     aberto: (tickets || []).filter((t: Ticket) => t.status === "aberto" || t.status === "Aberto").length,
-    resolvido: (tickets || []).filter((t: Ticket) => t.status === "encerrado" || t.status === "resolvido").length,
+    resolvido: (tickets || []).filter((t: Ticket) => t.status === "resolvido" || t.status === "Resolvido").length,
   };
 
   return (
