@@ -33,6 +33,7 @@ interface RouteDetails {
   observacoes?: string;
   lojas: RouteStoreStatus[];
   funcionarios: string[];
+  instaladores: string[];
 }
 
 export default function AdminRouteTrack() {
@@ -156,6 +157,12 @@ export default function AdminRouteTrack() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">Funcionários</p>
                 <p className="font-medium">{routeDetails.funcionarios.join(', ')}</p>
+              </div>
+            )}
+            {routeDetails.instaladores && routeDetails.instaladores.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Instaladores</p>
+                <p className="font-medium">{routeDetails.instaladores.join(', ')}</p>
               </div>
             )}
             {routeDetails.observacoes && (

@@ -1013,6 +1013,16 @@ export class MySQLStorage implements IStorage {
     
     const funcionarios = employeeRows.map((emp: any) => emp.nome_funcionario);
     
+    // Buscar todos os funcionários/instaladores do fornecedor
+    const [instaladoresRows] = await pool.execute(
+      `SELECT nome_funcionario 
+       FROM funcionarios_fornecedores 
+       WHERE fornecedor_id = ? AND ativo = 1`,
+      [route.fornecedor_id]
+    ) as [RowDataPacket[], any];
+    
+    const instaladores = instaladoresRows.map((inst: any) => inst.nome_funcionario);
+    
     // Buscar lojas da rota com status
     const [storeRows] = await pool.execute(
       `SELECT 
@@ -1072,6 +1082,7 @@ export class MySQLStorage implements IStorage {
       fornecedor_nome: route.nome_fornecedor,
       observacoes: route.observacoes,
       funcionarios,
+      instaladores,
       lojas
     };
   }
