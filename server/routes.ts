@@ -515,6 +515,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get unique locations for filter dropdowns
+  app.get("/api/stores/locations", async (req, res) => {
+    try {
+      const locations = await storage.getStoreLocations();
+      res.json(locations);
+    } catch (error) {
+      console.error("Erro ao buscar localizações:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   // Store search with GET method and query parameters
   app.get("/api/stores/search", async (req, res) => {
     try {
@@ -795,7 +806,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard analytics
   app.get("/api/dashboard/metrics", async (req, res) => {
     try {
-      const metrics = await storage.getDashboardMetrics();
+      const { estado, cidade, bairro } = req.query;
+      const filters = {
+        estado: estado as string | undefined,
+        cidade: cidade as string | undefined,
+        bairro: bairro as string | undefined
+      };
+      const metrics = await storage.getDashboardMetrics(filters);
       res.json(metrics);
     } catch (error) {
       console.error("Erro ao obter métricas:", error);

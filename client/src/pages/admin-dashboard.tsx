@@ -1,12 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle, Plus, Eye, ChevronRight, BarChart3, TrendingUp, Activity, ArrowLeft, MapPin, Download, FileSpreadsheet } from "lucide-react";
+import { Check, Clock, AlertTriangle, Users, Building2, FileText, Settings, Package, CheckCircle, Plus, Eye, ChevronRight, BarChart3, TrendingUp, Activity, ArrowLeft, MapPin, Download, FileSpreadsheet, Filter, X } from "lucide-react";
 import { Link } from "wouter";
 import { generatePDFReport, generateExcelReport } from "@/utils/report-generator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DashboardMetrics {
   totalSuppliers: number;
@@ -25,10 +32,60 @@ interface DashboardMetrics {
 export default function AdminDashboard() {
   const [showUnusedKitsDetails, setShowUnusedKitsDetails] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [selectedEstado, setSelectedEstado] = useState<string>("");
+  const [selectedCidade, setSelectedCidade] = useState<string>("");
+  const [selectedBairro, setSelectedBairro] = useState<string>("");
+  const [filteredCidades, setFilteredCidades] = useState<string[]>([]);
+  const [filteredBairros, setFilteredBairros] = useState<string[]>([]);
   
-  const { data: metrics, isLoading } = useQuery<DashboardMetrics>({
-    queryKey: ["/api/dashboard/metrics"],
+  // Buscar localizações para os filtros
+  const { data: locations } = useQuery<{
+    estados: string[];
+    cidades: string[];
+    bairros: string[];
+  }>({
+    queryKey: ["/api/stores/locations"],
   });
+
+  // Buscar métricas com filtros
+  const { data: metrics, isLoading } = useQuery<DashboardMetrics>({
+    queryKey: [
+      "/api/dashboard/metrics",
+      { estado: selectedEstado, cidade: selectedCidade, bairro: selectedBairro }
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedEstado) params.append('estado', selectedEstado);
+      if (selectedCidade) params.append('cidade', selectedCidade);
+      if (selectedBairro) params.append('bairro', selectedBairro);
+      
+      const response = await fetch(`/api/dashboard/metrics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch metrics');
+      return response.json();
+    },
+  });
+
+  // Filtrar cidades e bairros baseado nas seleções
+  useEffect(() => {
+    if (locations) {
+      // Resetar cidade e bairro quando estado muda
+      if (selectedEstado) {
+        setSelectedCidade("");
+        setSelectedBairro("");
+      }
+      
+      // Por enquanto mostrar todas as cidades e bairros
+      // Em produção, filtraríamos baseado no estado/cidade selecionado
+      setFilteredCidades(locations.cidades || []);
+      setFilteredBairros(locations.bairros || []);
+    }
+  }, [selectedEstado, locations]);
+
+  const clearFilters = () => {
+    setSelectedEstado("");
+    setSelectedCidade("");
+    setSelectedBairro("");
+  };
 
   if (isLoading) {
     return (
@@ -66,6 +123,83 @@ export default function AdminDashboard() {
               <span>Atualizado em tempo real</span>
             </div>
           </div>
+        </div>
+        
+        {/* Filtros de Localização */}
+        <div className="mb-6">
+          <Card className="bg-white/95 border-gray-200 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Filtrar por Região:</span>
+                </div>
+                <div className="flex flex-wrap gap-3 flex-1">
+                  <Select value={selectedEstado} onValueChange={setSelectedEstado}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todos</SelectItem>
+                      {locations?.estados?.map(estado => (
+                        <SelectItem key={estado} value={estado}>
+                          {estado}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={selectedCidade} onValueChange={setSelectedCidade} disabled={!filteredCidades.length}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Cidade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todas</SelectItem>
+                      {filteredCidades?.map(cidade => (
+                        <SelectItem key={cidade} value={cidade}>
+                          {cidade}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={selectedBairro} onValueChange={setSelectedBairro} disabled={!filteredBairros.length}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Bairro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todos</SelectItem>
+                      {filteredBairros?.map(bairro => (
+                        <SelectItem key={bairro} value={bairro}>
+                          {bairro}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {(selectedEstado || selectedCidade || selectedBairro) && (
+                    <Button
+                      onClick={clearFilters}
+                      variant="outline"
+                      size="sm"
+                      className="text-gray-600"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Limpar Filtros
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {(selectedEstado || selectedCidade || selectedBairro) && (
+                <div className="mt-3 text-sm text-gray-600">
+                  Exibindo dados filtrados por:
+                  {selectedEstado && <span className="ml-2 font-medium">Estado: {selectedEstado}</span>}
+                  {selectedCidade && <span className="ml-2 font-medium">Cidade: {selectedCidade}</span>}
+                  {selectedBairro && <span className="ml-2 font-medium">Bairro: {selectedBairro}</span>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         
         {/* Acessos Rápidos - Módulos do Sistema */}
@@ -301,6 +435,10 @@ export default function AdminDashboard() {
                             resolvedTickets: metrics.resolvedTickets,
                             completedInstallations: metrics.completedInstallations,
                             nonCompletedStores: metrics.nonCompletedStores
+                          }, {
+                            estado: selectedEstado,
+                            cidade: selectedCidade,
+                            bairro: selectedBairro
                           });
                           setIsGeneratingReport(false);
                         }, 100);
@@ -324,6 +462,10 @@ export default function AdminDashboard() {
                             resolvedTickets: metrics.resolvedTickets,
                             completedInstallations: metrics.completedInstallations,
                             nonCompletedStores: metrics.nonCompletedStores
+                          }, {
+                            estado: selectedEstado,
+                            cidade: selectedCidade,
+                            bairro: selectedBairro
                           });
                           setIsGeneratingReport(false);
                         }, 100);

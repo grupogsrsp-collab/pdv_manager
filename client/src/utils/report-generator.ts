@@ -12,7 +12,10 @@ interface ReportData {
   nonCompletedStores: number;
 }
 
-export const generatePDFReport = (data: ReportData) => {
+export const generatePDFReport = (
+  data: ReportData,
+  filters?: { estado?: string; cidade?: string; bairro?: string }
+) => {
   const doc = new jsPDF();
   const currentDate = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -30,20 +33,34 @@ export const generatePDFReport = (data: ReportData) => {
   doc.setFontSize(12);
   doc.setTextColor(100, 100, 100);
   doc.text(`Gerado em: ${currentDate}`, 105, 30, { align: 'center' });
+  
+  // Adicionar filtros aplicados se houver
+  if (filters && (filters.estado || filters.cidade || filters.bairro)) {
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    let filterText = 'Filtros aplicados: ';
+    if (filters.estado) filterText += `Estado: ${filters.estado} `;
+    if (filters.cidade) filterText += `Cidade: ${filters.cidade} `;
+    if (filters.bairro) filterText += `Bairro: ${filters.bairro}`;
+    doc.text(filterText, 105, 38, { align: 'center' });
+  }
 
   // Company/System Info
+  const systemInfoY = filters && (filters.estado || filters.cidade || filters.bairro) ? 48 : 45;
   doc.setFontSize(14);
   doc.setTextColor(60, 60, 60);
-  doc.text('Sistema de Gestão de Franquias', 105, 45, { align: 'center' });
+  doc.text('Sistema de Gestão de Franquias', 105, systemInfoY, { align: 'center' });
   
   // Line separator
+  const lineY = systemInfoY + 10;
   doc.setDrawColor(200, 200, 200);
-  doc.line(20, 55, 190, 55);
+  doc.line(20, lineY, 190, lineY);
 
   // Metrics Summary Title
+  const titleY = lineY + 15;
   doc.setFontSize(16);
   doc.setTextColor(40, 40, 40);
-  doc.text('Resumo dos Indicadores', 20, 70);
+  doc.text('Resumo dos Indicadores', 20, titleY);
 
   // Create metrics table data
   const metricsData = [
@@ -57,8 +74,9 @@ export const generatePDFReport = (data: ReportData) => {
   ];
 
   // Add metrics table
+  const tableStartY = filters && (filters.estado || filters.cidade || filters.bairro) ? 90 : 80;
   autoTable(doc, {
-    startY: 80,
+    startY: tableStartY,
     head: [metricsData[0]],
     body: metricsData.slice(1),
     theme: 'striped',
@@ -133,7 +151,10 @@ export const generatePDFReport = (data: ReportData) => {
   doc.save(`relatorio_gerencial_${new Date().getTime()}.pdf`);
 };
 
-export const generateExcelReport = (data: ReportData) => {
+export const generateExcelReport = (
+  data: ReportData,
+  filters?: { estado?: string; cidade?: string; bairro?: string }
+) => {
   // Create workbook
   const wb = XLSX.utils.book_new();
   
@@ -141,21 +162,39 @@ export const generateExcelReport = (data: ReportData) => {
   const metricsData = [
     ['RELATÓRIO GERENCIAL - SISTEMA DE GESTÃO DE FRANQUIAS'],
     [`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`],
+  ];
+  
+  // Adicionar filtros se houver
+  if (filters && (filters.estado || filters.cidade || filters.bairro)) {
+    metricsData.push([]);
+    metricsData.push(['FILTROS APLICADOS:']);
+    if (filters.estado) metricsData.push([`Estado: ${filters.estado}`]);
+    if (filters.cidade) metricsData.push([`Cidade: ${filters.cidade}`]);
+    if (filters.bairro) metricsData.push([`Bairro: ${filters.bairro}`]);
+  }
+  
+  metricsData.push(
     [],
     ['RESUMO DOS INDICADORES'],
     [],
-    ['Indicador', 'Valor', 'Status', 'Observações'],
+    ['Indicador', 'Valor', 'Status', 'Observações']
+  );
+  
+  metricsData.push(
     ['Total de Lojas', data.totalStores, 'Base cadastrada', 'Total de lojas cadastradas no sistema'],
     ['Total de Fornecedores', data.totalSuppliers, 'Parceiros ativos', 'Fornecedores disponíveis para instalação'],
     ['Chamados em Aberto', data.openTickets, data.openTickets > 0 ? 'Requer atenção' : 'Ok', 'Chamados aguardando resolução'],
     ['Chamados Resolvidos', data.resolvedTickets, 'Finalizados', 'Chamados concluídos com sucesso'],
     ['Lojas Finalizadas', data.completedInstallations, 'Instalações completas', 'Lojas com instalação finalizada'],
-    ['Lojas Não Finalizadas', data.nonCompletedStores, 'Em processo', 'Lojas aguardando finalização'],
+    ['Lojas Não Finalizadas', data.nonCompletedStores, 'Em processo', 'Lojas aguardando finalização']
+  );
+  
+  metricsData.push(
     [],
     ['ANÁLISE DE PERFORMANCE'],
     [],
     ['Métrica', 'Valor', 'Análise']
-  ];
+  );
 
   // Calculate performance metrics
   const completionRate = data.totalStores > 0 

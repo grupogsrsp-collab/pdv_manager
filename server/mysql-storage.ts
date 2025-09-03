@@ -80,8 +80,11 @@ interface IStorage {
   getAllInstallations(): Promise<Installation[]>;
   createInstallation(installation: InsertInstallation): Promise<Installation>;
   
+  // Store Locations
+  getStoreLocations(): Promise<{ estados: string[]; cidades: string[]; bairros: string[] }>;
+  
   // Analytics
-  getDashboardMetrics(): Promise<{
+  getDashboardMetrics(filters?: { estado?: string; cidade?: string; bairro?: string }): Promise<{
     totalSuppliers: number;
     totalStores: number;
     totalTickets: number;
@@ -2148,7 +2151,35 @@ export class MySQLStorage implements IStorage {
     return this.getInstallationByStoreId(installation.loja_id) as Promise<Installation>;
   }
 
-  async getDashboardMetrics(): Promise<{
+  async getStoreLocations(): Promise<{ estados: string[]; cidades: string[]; bairros: string[] }> {
+    try {
+      // Buscar estados únicos
+      const [estados] = await pool.execute(
+        'SELECT DISTINCT uf FROM lojas WHERE uf IS NOT NULL AND uf != "" ORDER BY uf'
+      ) as [RowDataPacket[], any];
+      
+      // Buscar cidades únicas
+      const [cidades] = await pool.execute(
+        'SELECT DISTINCT cidade FROM lojas WHERE cidade IS NOT NULL AND cidade != "" ORDER BY cidade'
+      ) as [RowDataPacket[], any];
+      
+      // Buscar bairros únicos
+      const [bairros] = await pool.execute(
+        'SELECT DISTINCT bairro FROM lojas WHERE bairro IS NOT NULL AND bairro != "" ORDER BY bairro'
+      ) as [RowDataPacket[], any];
+      
+      return {
+        estados: estados.map((e: any) => e.uf),
+        cidades: cidades.map((c: any) => c.cidade),
+        bairros: bairros.map((b: any) => b.bairro)
+      };
+    } catch (error) {
+      console.error('Erro ao buscar localizações:', error);
+      return { estados: [], cidades: [], bairros: [] };
+    }
+  }
+
+  async getDashboardMetrics(filters?: { estado?: string; cidade?: string; bairro?: string }): Promise<{
     totalSuppliers: number;
     totalStores: number;
     totalTickets: number;
@@ -2164,28 +2195,107 @@ export class MySQLStorage implements IStorage {
     // Total de fornecedores
     const [supplierRows] = await pool.execute('SELECT COUNT(*) as count FROM fornecedores') as [RowDataPacket[], any];
     
-    // Total de lojas
-    const [storeRows] = await pool.execute('SELECT COUNT(*) as count FROM lojas') as [RowDataPacket[], any];
+    // Total de lojas com filtros
+    let storeQuery = 'SELECT COUNT(*) as count FROM lojas WHERE 1=1';
+    const storeParams: any[] = [];
+    
+    if (filters?.estado) {
+      storeQuery += ' AND uf = ?';
+      storeParams.push(filters.estado);
+    }
+    if (filters?.cidade) {
+      storeQuery += ' AND cidade = ?';
+      storeParams.push(filters.cidade);
+    }
+    if (filters?.bairro) {
+      storeQuery += ' AND bairro = ?';
+      storeParams.push(filters.bairro);
+    }
+    
+    const [storeRows] = await pool.execute(storeQuery, storeParams) as [RowDataPacket[], any];
     
     // Total de chamados
     const [ticketRows] = await pool.execute('SELECT COUNT(*) as count FROM chamados') as [RowDataPacket[], any];
     
-    // Chamados em aberto (considera "aberto" ou "Aberto")
-    const [openTicketsRows] = await pool.execute(
-      'SELECT COUNT(*) as count FROM chamados WHERE LOWER(status) = "aberto"'
-    ) as [RowDataPacket[], any];
+    // Chamados em aberto com filtros de loja
+    let openTicketsQuery = 'SELECT COUNT(*) as count FROM chamados c WHERE LOWER(c.status) = "aberto"';
+    const openTicketsParams: any[] = [];
     
-    // Chamados resolvidos (considera "resolvido" ou "Resolvido") 
-    const [resolvedTicketsRows] = await pool.execute(
-      'SELECT COUNT(*) as count FROM chamados WHERE LOWER(status) = "resolvido"'
-    ) as [RowDataPacket[], any];
+    if (filters?.estado || filters?.cidade || filters?.bairro) {
+      openTicketsQuery = `
+        SELECT COUNT(*) as count 
+        FROM chamados c
+        INNER JOIN lojas l ON c.loja_id = l.codigo_loja
+        WHERE LOWER(c.status) = "aberto"
+      `;
+      
+      if (filters?.estado) {
+        openTicketsQuery += ' AND l.uf = ?';
+        openTicketsParams.push(filters.estado);
+      }
+      if (filters?.cidade) {
+        openTicketsQuery += ' AND l.cidade = ?';
+        openTicketsParams.push(filters.cidade);
+      }
+      if (filters?.bairro) {
+        openTicketsQuery += ' AND l.bairro = ?';
+        openTicketsParams.push(filters.bairro);
+      }
+    }
+    
+    const [openTicketsRows] = await pool.execute(openTicketsQuery, openTicketsParams) as [RowDataPacket[], any];
+    
+    // Chamados resolvidos com filtros de loja
+    let resolvedTicketsQuery = 'SELECT COUNT(*) as count FROM chamados c WHERE LOWER(c.status) = "resolvido"';
+    const resolvedTicketsParams: any[] = [];
+    
+    if (filters?.estado || filters?.cidade || filters?.bairro) {
+      resolvedTicketsQuery = `
+        SELECT COUNT(*) as count 
+        FROM chamados c
+        INNER JOIN lojas l ON c.loja_id = l.codigo_loja
+        WHERE LOWER(c.status) = "resolvido"
+      `;
+      
+      if (filters?.estado) {
+        resolvedTicketsQuery += ' AND l.uf = ?';
+        resolvedTicketsParams.push(filters.estado);
+      }
+      if (filters?.cidade) {
+        resolvedTicketsQuery += ' AND l.cidade = ?';
+        resolvedTicketsParams.push(filters.cidade);
+      }
+      if (filters?.bairro) {
+        resolvedTicketsQuery += ' AND l.bairro = ?';
+        resolvedTicketsParams.push(filters.bairro);
+      }
+    }
+    
+    const [resolvedTicketsRows] = await pool.execute(resolvedTicketsQuery, resolvedTicketsParams) as [RowDataPacket[], any];
 
-    // Lojas finalizadas - conta instalações com finalizada = true
-    const [completedInstallationsRows] = await pool.execute(`
-      SELECT COUNT(DISTINCT loja_id) as count 
-      FROM instalacoes 
-      WHERE finalizada = 1
-    `) as [RowDataPacket[], any];
+    // Lojas finalizadas com filtros
+    let completedQuery = `
+      SELECT COUNT(DISTINCT i.loja_id) as count 
+      FROM instalacoes i
+      INNER JOIN lojas l ON i.loja_id = l.id
+      WHERE i.finalizada = 1
+    `;
+    const completedParams: any[] = [];
+    
+    if (filters?.estado) {
+      completedQuery += ' AND l.uf = ?';
+      completedParams.push(filters.estado);
+    }
+    if (filters?.cidade) {
+      completedQuery += ' AND l.cidade = ?';
+      completedParams.push(filters.cidade);
+    }
+    if (filters?.bairro) {
+      completedQuery += ' AND l.bairro = ?';
+      completedParams.push(filters.bairro);
+    }
+    
+    const [completedInstallationsRows] = await pool.execute(completedQuery, completedParams) as [RowDataPacket[], any];
 
     // Calcula lojas não finalizadas
     const totalStores = storeRows[0].count;
