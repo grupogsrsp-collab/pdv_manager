@@ -1017,7 +1017,7 @@ export class MySQLStorage implements IStorage {
     const [instaladoresRows] = await pool.execute(
       `SELECT nome_funcionario 
        FROM funcionarios_fornecedores 
-       WHERE fornecedor_id = ? AND ativo = 1`,
+       WHERE fornecedor_id = ?`,
       [route.fornecedor_id]
     ) as [RowDataPacket[], any];
     

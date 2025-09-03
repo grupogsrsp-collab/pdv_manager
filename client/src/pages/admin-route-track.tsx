@@ -153,7 +153,7 @@ export default function AdminRouteTrack() {
                 <p className="font-medium">{new Date(routeDetails.data_prevista).toLocaleDateString('pt-BR')}</p>
               </div>
             )}
-            {routeDetails.funcionarios.length > 0 && (
+            {routeDetails.funcionarios && routeDetails.funcionarios.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">Funcionários</p>
                 <p className="font-medium">{routeDetails.funcionarios.join(', ')}</p>
