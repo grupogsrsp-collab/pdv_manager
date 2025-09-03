@@ -1618,11 +1618,22 @@ export class MySQLStorage implements IStorage {
         c.data_abertura,
         f.nome_fornecedor,
         f.telefone AS telefone_fornecedor,
+        f.estado AS estado_fornecedor,
+        f.endereco AS endereco_fornecedor,
+        f.nome_responsavel,
+        f.email AS email_fornecedor,
         l.codigo_loja,
         l.nome_loja,
+        l.nome_operador,
         l.bairro,
         l.cidade,
         l.uf,
+        l.telefone_loja,
+        l.logradouro,
+        l.numero,
+        l.complemento,
+        l.cep,
+        l.regiao,
         CASE 
           WHEN c.fornecedor_id IS NULL OR c.fornecedor_id = 0 THEN 'loja'
           ELSE 'fornecedor'

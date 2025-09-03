@@ -204,14 +204,28 @@ export default function AdminTickets() {
                         {ticket.tipo_chamado === 'fornecedor' ? 'Fornecedor' : 'Lojista'}
                       </span>
                       <span className="text-gray-300 mx-2">|</span>
+                      <span className="text-sm text-gray-500">Nome:</span>
+                      <span className="text-sm font-semibold text-blue-600">
+                        {ticket.tipo_chamado === 'fornecedor' 
+                          ? (ticket.nome_fornecedor || 'Não informado')
+                          : (ticket.nome_operador || ticket.nome_loja || 'Não informado')
+                        }
+                      </span>
+                      <span className="text-gray-300 mx-2">|</span>
                       <span className="text-sm text-gray-500">Estado:</span>
                       <span className="text-sm font-semibold text-blue-600">
-                        {ticket.uf || 'Não informado'}
+                        {ticket.tipo_chamado === 'fornecedor' 
+                          ? (ticket.estado_fornecedor || 'Não informado')
+                          : (ticket.uf || 'Não informado')
+                        }
                       </span>
                       <span className="text-gray-300 mx-2">|</span>
                       <span className="text-sm text-gray-500">Telefone:</span>
                       <span className="text-sm font-semibold text-blue-600">
-                        {ticket.telefone_fornecedor || 'Não informado'}
+                        {ticket.tipo_chamado === 'fornecedor' 
+                          ? (ticket.telefone_fornecedor || 'Não informado')
+                          : (ticket.telefone_loja || 'Não informado')
+                        }
                       </span>
                     </div>
                     <Badge 
@@ -240,27 +254,38 @@ export default function AdminTickets() {
                   </div>
 
                   {/* Botões de Ação */}
-                  <div className="flex gap-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="bg-blue-500 text-white hover:bg-blue-600 border-0"
-                      onClick={() => handleDetailsClick(ticket)}
-                      data-testid={`button-details-ticket-${ticket.id}`}
-                    >
-                      Dados
-                    </Button>
-                    {ticket.status === "aberto" && (
+                  <div className="flex justify-between items-center">
+                    <div></div> {/* Espaçador para alinhar à direita */}
+                    <div className="flex gap-3">
                       <Button
                         size="sm"
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                        onClick={() => handleResolveClick(ticket)}
-                        disabled={resolveTicketMutation.isPending}
-                        data-testid={`button-resolve-ticket-${ticket.id}`}
+                        variant="outline"
+                        className="bg-blue-500 text-white hover:bg-blue-600 border-0"
+                        onClick={() => handleDetailsClick(ticket)}
+                        data-testid={`button-details-ticket-${ticket.id}`}
                       >
-                        Encerrar
+                        Dados
                       </Button>
-                    )}
+                      {ticket.status === "aberto" ? (
+                        <Button
+                          size="sm"
+                          className="bg-red-500 hover:bg-red-600 text-white"
+                          onClick={() => handleResolveClick(ticket)}
+                          disabled={resolveTicketMutation.isPending}
+                          data-testid={`button-resolve-ticket-${ticket.id}`}
+                        >
+                          Encerrar
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="bg-green-500 text-white cursor-default"
+                          disabled
+                        >
+                          Resolvido
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -304,15 +329,64 @@ export default function AdminTickets() {
                 </div>
               </div>
 
-              {selectedTicket?.tipo_chamado === 'fornecedor' && (
+              {selectedTicket?.tipo_chamado === 'fornecedor' ? (
                 <>
                   <div>
                     <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Fornecedor</p>
                     <p className="text-gray-900">{selectedTicket?.nome_fornecedor || 'Não informado'}</p>
                   </div>
                   <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Responsável</p>
+                    <p className="text-gray-900">{selectedTicket?.nome_responsavel || 'Não informado'}</p>
+                  </div>
+                  <div>
                     <p className="text-sm font-semibold text-gray-600 mb-1">Telefone</p>
                     <p className="text-gray-900">{selectedTicket?.telefone_fornecedor || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">E-mail</p>
+                    <p className="text-gray-900">{selectedTicket?.email_fornecedor || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Estado</p>
+                    <p className="text-gray-900">{selectedTicket?.estado_fornecedor || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Endereço Completo</p>
+                    <p className="text-gray-900">{selectedTicket?.endereco_fornecedor || 'Não informado'}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome da Loja</p>
+                    <p className="text-gray-900">{selectedTicket?.nome_loja || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Nome do Operador</p>
+                    <p className="text-gray-900">{selectedTicket?.nome_operador || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Telefone da Loja</p>
+                    <p className="text-gray-900">{selectedTicket?.telefone_loja || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Endereço Completo</p>
+                    <p className="text-gray-900">
+                      {[
+                        selectedTicket?.logradouro,
+                        selectedTicket?.numero,
+                        selectedTicket?.complemento,
+                        selectedTicket?.bairro,
+                        selectedTicket?.cidade,
+                        selectedTicket?.uf,
+                        selectedTicket?.cep
+                      ].filter(Boolean).join(', ') || 'Não informado'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">Região</p>
+                    <p className="text-gray-900">{selectedTicket?.regiao || 'Não informado'}</p>
                   </div>
                 </>
               )}

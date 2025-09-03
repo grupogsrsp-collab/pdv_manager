@@ -100,14 +100,26 @@ export interface Ticket {
   loja_id: string;
   fornecedor_id: number;
   data_abertura: Date;
-  // Campos do JOIN
+  // Campos do JOIN - Fornecedor
   nome_fornecedor?: string;
   telefone_fornecedor?: string;
+  estado_fornecedor?: string;
+  endereco_fornecedor?: string;
+  nome_responsavel?: string;
+  email_fornecedor?: string;
+  // Campos do JOIN - Loja
   codigo_loja?: string;
   nome_loja?: string;
+  nome_operador?: string;
   bairro?: string;
   cidade?: string;
   uf?: string;
+  telefone_loja?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  cep?: string;
+  regiao?: string;
   tipo_chamado?: string; // 'loja' ou 'fornecedor'
 }
 
