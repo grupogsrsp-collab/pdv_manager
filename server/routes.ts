@@ -526,6 +526,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get cities by state
+  app.get("/api/stores/cities/:estado", async (req, res) => {
+    try {
+      const estado = req.params.estado;
+      const cities = await storage.getCitiesByState(estado);
+      res.json(cities);
+    } catch (error) {
+      console.error("Erro ao buscar cidades:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Get neighborhoods by city and state
+  app.get("/api/stores/neighborhoods/:estado/:cidade", async (req, res) => {
+    try {
+      const { estado, cidade } = req.params;
+      const neighborhoods = await storage.getNeighborhoodsByCity(estado, cidade);
+      res.json(neighborhoods);
+    } catch (error) {
+      console.error("Erro ao buscar bairros:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   // Store search with GET method and query parameters
   app.get("/api/stores/search", async (req, res) => {
     try {

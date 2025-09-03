@@ -35,8 +35,6 @@ export default function AdminDashboard() {
   const [selectedEstado, setSelectedEstado] = useState<string>("");
   const [selectedCidade, setSelectedCidade] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
-  const [filteredCidades, setFilteredCidades] = useState<string[]>([]);
-  const [filteredBairros, setFilteredBairros] = useState<string[]>([]);
   
   // Buscar localizações para os filtros
   const { data: locations } = useQuery<{
@@ -45,6 +43,28 @@ export default function AdminDashboard() {
     bairros: string[];
   }>({
     queryKey: ["/api/stores/locations"],
+  });
+
+  // Buscar cidades por estado selecionado
+  const { data: cidadesPorEstado = [] } = useQuery<string[]>({
+    queryKey: [`/api/stores/cities/${selectedEstado}`],
+    enabled: !!selectedEstado,
+    queryFn: async () => {
+      const response = await fetch(`/api/stores/cities/${selectedEstado}`);
+      if (!response.ok) throw new Error('Failed to fetch cities');
+      return response.json();
+    },
+  });
+
+  // Buscar bairros por cidade selecionada
+  const { data: bairrosPorCidade = [] } = useQuery<string[]>({
+    queryKey: [`/api/stores/neighborhoods/${selectedEstado}/${selectedCidade}`],
+    enabled: !!(selectedEstado && selectedCidade),
+    queryFn: async () => {
+      const response = await fetch(`/api/stores/neighborhoods/${selectedEstado}/${selectedCidade}`);
+      if (!response.ok) throw new Error('Failed to fetch neighborhoods');
+      return response.json();
+    },
   });
 
   // Buscar métricas com filtros
@@ -65,21 +85,17 @@ export default function AdminDashboard() {
     },
   });
 
-  // Filtrar cidades e bairros baseado nas seleções
+  // Controlar filtros em cascata
   useEffect(() => {
-    if (locations) {
-      // Resetar cidade e bairro quando estado muda
-      if (selectedEstado) {
-        setSelectedCidade("");
-        setSelectedBairro("");
-      }
-      
-      // Por enquanto mostrar todas as cidades e bairros
-      // Em produção, filtraríamos baseado no estado/cidade selecionado
-      setFilteredCidades(locations.cidades || []);
-      setFilteredBairros(locations.bairros || []);
-    }
-  }, [selectedEstado, locations]);
+    // Resetar cidade quando estado muda
+    setSelectedCidade("");
+    setSelectedBairro("");
+  }, [selectedEstado]);
+
+  useEffect(() => {
+    // Resetar bairro quando cidade muda
+    setSelectedBairro("");
+  }, [selectedCidade]);
 
   const clearFilters = () => {
     setSelectedEstado("");
@@ -236,13 +252,13 @@ export default function AdminDashboard() {
                     
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-medium text-gray-600">Cidade</label>
-                      <Select value={selectedCidade || "all"} onValueChange={(value) => setSelectedCidade(value === "all" ? "" : value)} disabled={!filteredCidades.length}>
+                      <Select value={selectedCidade || "all"} onValueChange={(value) => setSelectedCidade(value === "all" ? "" : value)} disabled={!selectedEstado || !cidadesPorEstado.length}>
                         <SelectTrigger className="w-[200px]">
                           <SelectValue placeholder="Cidade" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todas</SelectItem>
-                          {filteredCidades?.map(cidade => (
+                          {cidadesPorEstado?.map(cidade => (
                             <SelectItem key={cidade} value={cidade}>
                               {cidade}
                             </SelectItem>
@@ -253,13 +269,13 @@ export default function AdminDashboard() {
                     
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-medium text-gray-600">Bairro</label>
-                      <Select value={selectedBairro || "all"} onValueChange={(value) => setSelectedBairro(value === "all" ? "" : value)} disabled={!filteredBairros.length}>
+                      <Select value={selectedBairro || "all"} onValueChange={(value) => setSelectedBairro(value === "all" ? "" : value)} disabled={!selectedCidade || !bairrosPorCidade.length}>
                         <SelectTrigger className="w-[200px]">
                           <SelectValue placeholder="Bairro" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todos</SelectItem>
-                          {filteredBairros?.map(bairro => (
+                          {bairrosPorCidade?.map(bairro => (
                             <SelectItem key={bairro} value={bairro}>
                               {bairro}
                             </SelectItem>

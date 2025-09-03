@@ -82,6 +82,8 @@ interface IStorage {
   
   // Store Locations
   getStoreLocations(): Promise<{ estados: string[]; cidades: string[]; bairros: string[] }>;
+  getCitiesByState(estado: string): Promise<string[]>;
+  getNeighborhoodsByCity(estado: string, cidade: string): Promise<string[]>;
   
   // Analytics
   getDashboardMetrics(filters?: { estado?: string; cidade?: string; bairro?: string }): Promise<{
@@ -2176,6 +2178,34 @@ export class MySQLStorage implements IStorage {
     } catch (error) {
       console.error('Erro ao buscar localizações:', error);
       return { estados: [], cidades: [], bairros: [] };
+    }
+  }
+
+  async getCitiesByState(estado: string): Promise<string[]> {
+    try {
+      const [cidades] = await pool.execute(
+        'SELECT DISTINCT cidade FROM lojas WHERE uf = ? AND cidade IS NOT NULL AND cidade != "" ORDER BY cidade',
+        [estado]
+      ) as [RowDataPacket[], any];
+      
+      return cidades.map((c: any) => c.cidade);
+    } catch (error) {
+      console.error('Erro ao buscar cidades por estado:', error);
+      return [];
+    }
+  }
+
+  async getNeighborhoodsByCity(estado: string, cidade: string): Promise<string[]> {
+    try {
+      const [bairros] = await pool.execute(
+        'SELECT DISTINCT bairro FROM lojas WHERE uf = ? AND cidade = ? AND bairro IS NOT NULL AND bairro != "" ORDER BY bairro',
+        [estado, cidade]
+      ) as [RowDataPacket[], any];
+      
+      return bairros.map((b: any) => b.bairro);
+    } catch (error) {
+      console.error('Erro ao buscar bairros por cidade:', error);
+      return [];
     }
   }
 
