@@ -989,7 +989,7 @@ export class MySQLStorage implements IStorage {
   async getRouteDetailsWithStatus(routeId: number): Promise<any> {
     // Buscar informações básicas da rota
     const [routeRows] = await pool.execute(
-      `SELECT r.*, f.nome_fornecedor 
+      `SELECT r.*, f.nome_fornecedor, f.telefone, f.email 
        FROM rotas r 
        JOIN fornecedores f ON r.fornecedor_id = f.id 
        WHERE r.id = ?`,
@@ -1080,6 +1080,8 @@ export class MySQLStorage implements IStorage {
       data_criacao: route.data_criacao,
       data_prevista: route.data_prevista,
       fornecedor_nome: route.nome_fornecedor,
+      fornecedor_telefone: route.telefone,
+      fornecedor_email: route.email,
       observacoes: route.observacoes,
       funcionarios,
       instaladores,

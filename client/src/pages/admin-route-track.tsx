@@ -30,6 +30,8 @@ interface RouteDetails {
   data_criacao: string;
   data_prevista?: string;
   fornecedor_nome: string;
+  fornecedor_telefone?: string;
+  fornecedor_email?: string;
   observacoes?: string;
   lojas: RouteStoreStatus[];
   funcionarios: string[];
@@ -143,6 +145,18 @@ export default function AdminRouteTrack() {
               <p className="text-sm font-medium text-gray-600 mb-1">Fornecedor</p>
               <p className="font-medium">{routeDetails.fornecedor_nome}</p>
             </div>
+            {routeDetails.fornecedor_telefone && (
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Telefone</p>
+                <p className="font-medium">{routeDetails.fornecedor_telefone}</p>
+              </div>
+            )}
+            {routeDetails.fornecedor_email && (
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">E-mail</p>
+                <p className="font-medium">{routeDetails.fornecedor_email}</p>
+              </div>
+            )}
             <div>
               <p className="text-sm font-medium text-gray-600 mb-1">Data de Criação</p>
               <p className="font-medium">{new Date(routeDetails.data_criacao).toLocaleDateString('pt-BR')}</p>
