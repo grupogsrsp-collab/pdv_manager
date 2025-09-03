@@ -135,12 +135,12 @@ export default function AdminDashboard() {
                   <span className="text-sm font-medium text-gray-700">Filtrar por Região:</span>
                 </div>
                 <div className="flex flex-wrap gap-3 flex-1">
-                  <Select value={selectedEstado} onValueChange={setSelectedEstado}>
+                  <Select value={selectedEstado || "all"} onValueChange={(value) => setSelectedEstado(value === "all" ? "" : value)}>
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Estado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
                       {locations?.estados?.map(estado => (
                         <SelectItem key={estado} value={estado}>
                           {estado}
@@ -149,12 +149,12 @@ export default function AdminDashboard() {
                     </SelectContent>
                   </Select>
                   
-                  <Select value={selectedCidade} onValueChange={setSelectedCidade} disabled={!filteredCidades.length}>
+                  <Select value={selectedCidade || "all"} onValueChange={(value) => setSelectedCidade(value === "all" ? "" : value)} disabled={!filteredCidades.length}>
                     <SelectTrigger className="w-[200px]">
                       <SelectValue placeholder="Cidade" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas</SelectItem>
+                      <SelectItem value="all">Todas</SelectItem>
                       {filteredCidades?.map(cidade => (
                         <SelectItem key={cidade} value={cidade}>
                           {cidade}
@@ -163,12 +163,12 @@ export default function AdminDashboard() {
                     </SelectContent>
                   </Select>
                   
-                  <Select value={selectedBairro} onValueChange={setSelectedBairro} disabled={!filteredBairros.length}>
+                  <Select value={selectedBairro || "all"} onValueChange={(value) => setSelectedBairro(value === "all" ? "" : value)} disabled={!filteredBairros.length}>
                     <SelectTrigger className="w-[200px]">
                       <SelectValue placeholder="Bairro" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
                       {filteredBairros?.map(bairro => (
                         <SelectItem key={bairro} value={bairro}>
                           {bairro}
