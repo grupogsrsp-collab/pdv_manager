@@ -22,6 +22,7 @@ interface DashboardMetrics {
   openTickets: number;
   resolvedTickets: number;
   completedInstallations: number;
+  finishedInstallations: number;
   nonCompletedStores: number;
   unusedKits?: number;
   monthlyInstallations?: number[];
@@ -366,6 +367,21 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium text-white/90 mb-1">Chamados Resolvidos</p>
                   <p className="text-3xl font-bold">{metrics?.resolvedTickets || 0}</p>
                   <p className="text-xs text-white/70 mt-2">Finalizados com êxito</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Instalações Finalizadas */}
+            <Card className="bg-gradient-to-br from-blue-500 to-purple-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <CheckCircle className="h-8 w-8 text-white/80" />
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Completo</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/90 mb-1">Instalações Finalizadas</p>
+                  <p className="text-3xl font-bold">{metrics?.finishedInstallations || 0}</p>
+                  <p className="text-xs text-white/70 mt-2">Instalações concluídas</p>
                 </div>
               </CardContent>
             </Card>

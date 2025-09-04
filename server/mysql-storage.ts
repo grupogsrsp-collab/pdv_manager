@@ -93,6 +93,7 @@ interface IStorage {
     openTickets: number;
     resolvedTickets: number;
     completedInstallations: number;
+    finishedInstallations: number;
     unusedKits: number;
     monthlyInstallations: number[];
     ticketsByStatus: { open: number; resolved: number };
@@ -2583,6 +2584,7 @@ export class MySQLStorage implements IStorage {
     openTickets: number;
     resolvedTickets: number;
     completedInstallations: number;
+    finishedInstallations: number;
     nonCompletedStores: number;
     unusedKits: number;
     monthlyInstallations: number[];
@@ -2705,6 +2707,30 @@ export class MySQLStorage implements IStorage {
     // Lista de kits para subcategoria
     const [unusedKitsListRows] = await pool.execute('SELECT * FROM kits LIMIT 10') as [RowDataPacket[], any];
 
+    // Instalações finalizadas com filtros (finalizada_instalador = 1 AND finalizada_lojista = 1)
+    let finishedInstallationsQuery = `
+      SELECT COUNT(DISTINCT i.loja_id) as count 
+      FROM instalacoes i
+      INNER JOIN lojas l ON i.loja_id = l.id
+      WHERE i.finalizada_instalador = 1 AND i.finalizada_lojista = 1
+    `;
+    const finishedInstallationsParams: any[] = [];
+    
+    if (filters?.estado) {
+      finishedInstallationsQuery += ' AND l.uf = ?';
+      finishedInstallationsParams.push(filters.estado);
+    }
+    if (filters?.cidade) {
+      finishedInstallationsQuery += ' AND l.cidade = ?';
+      finishedInstallationsParams.push(filters.cidade);
+    }
+    if (filters?.bairro) {
+      finishedInstallationsQuery += ' AND l.bairro = ?';
+      finishedInstallationsParams.push(filters.bairro);
+    }
+    
+    const [finishedInstallationsRows] = await pool.execute(finishedInstallationsQuery, finishedInstallationsParams) as [RowDataPacket[], any];
+
     return {
       totalSuppliers: supplierRows[0].count,
       totalStores: totalStores,
@@ -2712,6 +2738,7 @@ export class MySQLStorage implements IStorage {
       openTickets: openTicketsRows[0].count,
       resolvedTickets: resolvedTicketsRows[0].count,
       completedInstallations: completedStores,
+      finishedInstallations: finishedInstallationsRows[0].count,
       nonCompletedStores: nonCompletedStores,
       unusedKits: unusedKitsRows[0].count,
       monthlyInstallations: [15, 23, 18, 31, 28, 19], // Dados exemplo para 6 meses
