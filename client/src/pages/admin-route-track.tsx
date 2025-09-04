@@ -26,8 +26,12 @@ interface RouteStoreStatus {
   instalacao_finalizada: boolean;
   finalizada_instalador?: boolean;
   finalizada_lojista?: boolean;
+  nome_lojista?: string;
+  data_finalizacao_lojista?: string;
+  horario_finalizacao_lojista?: string;
   tem_chamado_aberto: boolean;
   data_instalacao?: string;
+  data_criacao_instalacao?: string;
   ultimo_chamado?: string;
 }
 
@@ -400,7 +404,23 @@ export default function AdminRouteTrack() {
                       
                       <div className="text-right">
                         {getStatusBadge(loja)}
-                        {loja.data_instalacao && (
+                        {/* Mostrar data de finalização do lojista se existir */}
+                        {loja.finalizada_lojista && loja.data_finalizacao_lojista && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            <div className="flex items-center">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {new Date(loja.data_finalizacao_lojista).toLocaleDateString('pt-BR')}
+                            </div>
+                            {loja.nome_lojista && (
+                              <div className="flex items-center mt-1">
+                                <User className="h-3 w-3 mr-1" />
+                                {loja.nome_lojista}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {/* Mostrar data de instalação se não tiver finalização do lojista */}
+                        {!loja.finalizada_lojista && loja.data_instalacao && (
                           <div className="flex items-center text-xs text-gray-500 mt-1">
                             <Clock className="h-3 w-3 mr-1" />
                             {new Date(loja.data_instalacao).toLocaleDateString('pt-BR')}

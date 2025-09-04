@@ -317,6 +317,13 @@ export const insertInstallationSchema = z.object({
   fotosOriginais: z.array(z.string()).default([]),
   fotosFinais: z.array(z.string()).default([]),
   justificativaFotos: z.string().optional(),
+  // Campos de finalização
+  finalizada: z.boolean().optional(),
+  finalizada_instalador: z.boolean().optional(),
+  finalizada_lojista: z.boolean().optional(),
+  nome_lojista: z.string().optional(),
+  data_finalizacao_lojista: z.string().optional(),
+  horario_finalizacao_lojista: z.string().optional(),
   // Campos de geolocalização
   latitude: z.number().optional(),
   longitude: z.number().optional(),

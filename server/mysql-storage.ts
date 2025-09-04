@@ -1234,12 +1234,17 @@ export class MySQLStorage implements IStorage {
          -- Novos campos de status
          COALESCE(inst.finalizada_instalador, false) as finalizada_instalador,
          COALESCE(inst.finalizada_lojista, false) as finalizada_lojista,
+         -- Campos do lojista
+         inst.nome_lojista,
+         inst.data_finalizacao_lojista,
+         inst.horario_finalizacao_lojista,
          -- Verificar se tem chamado aberto
          CASE 
            WHEN ch.id IS NOT NULL THEN true
            ELSE false
          END as tem_chamado_aberto,
          inst.installationDate as data_instalacao,
+         inst.createdAt as data_criacao_instalacao,
          ch.id as tem_chamado
        FROM rota_itens ri
        JOIN lojas l ON ri.loja_id = l.codigo_loja
@@ -1273,8 +1278,14 @@ export class MySQLStorage implements IStorage {
         telefone_loja: store.telefone_loja,
         nome_operador: store.nome_operador,
         instalacao_finalizada: store.instalacao_finalizada,
+        finalizada_instalador: store.finalizada_instalador,
+        finalizada_lojista: store.finalizada_lojista,
+        nome_lojista: store.nome_lojista,
+        data_finalizacao_lojista: store.data_finalizacao_lojista,
+        horario_finalizacao_lojista: store.horario_finalizacao_lojista,
         tem_chamado_aberto: store.tem_chamado_aberto,
         data_instalacao: store.data_instalacao,
+        data_criacao_instalacao: store.data_criacao_instalacao,
         ultimo_chamado: store.ultimo_chamado,
         status: store.tem_chamado_aberto ? 'chamado_aberto' : installationStatus
       };
@@ -2356,6 +2367,11 @@ export class MySQLStorage implements IStorage {
         installationDate = ?, 
         justificativaFotos = ?,
         finalizada = ?,
+        finalizada_instalador = ?,
+        finalizada_lojista = ?,
+        nome_lojista = ?,
+        data_finalizacao_lojista = ?,
+        horario_finalizacao_lojista = ?,
         latitude = ?,
         longitude = ?,
         endereco_geolocalizacao = ?,
@@ -2368,6 +2384,11 @@ export class MySQLStorage implements IStorage {
         installation.installationDate,
         installation.justificativaFotos || null,
         installation.finalizada || false,
+        installation.finalizada_instalador || false,
+        installation.finalizada_lojista || false,
+        installation.nome_lojista || null,
+        installation.data_finalizacao_lojista || null,
+        installation.horario_finalizacao_lojista || null,
         installation.latitude || null,
         installation.longitude || null,
         installation.endereco_geolocalizacao || null,
@@ -2431,7 +2452,7 @@ export class MySQLStorage implements IStorage {
     
     // Salvar instalação principal (sem as fotos JSON antigas)
     await pool.execute(
-      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, justificativaFotos, finalizada, latitude, longitude, endereco_geolocalizacao, mapa_screenshot_url, geolocalizacao_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO instalacoes (id, loja_id, fornecedor_id, responsible, installationDate, justificativaFotos, finalizada, finalizada_instalador, finalizada_lojista, nome_lojista, data_finalizacao_lojista, horario_finalizacao_lojista, latitude, longitude, endereco_geolocalizacao, mapa_screenshot_url, geolocalizacao_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id, 
         installation.loja_id, 
@@ -2440,6 +2461,11 @@ export class MySQLStorage implements IStorage {
         installation.installationDate, 
         installation.justificativaFotos || null,
         installation.finalizada || false,
+        installation.finalizada_instalador || false,
+        installation.finalizada_lojista || false,
+        installation.nome_lojista || null,
+        installation.data_finalizacao_lojista || null,
+        installation.horario_finalizacao_lojista || null,
         installation.latitude || null,
         installation.longitude || null,
         installation.endereco_geolocalizacao || null,
