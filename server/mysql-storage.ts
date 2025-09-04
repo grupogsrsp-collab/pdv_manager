@@ -236,6 +236,26 @@ export class MySQLStorage implements IStorage {
         }
       }
 
+      // Verificar e adicionar colunas de finalização separadas
+      try {
+        console.log('📝 Verificando se colunas de finalização separadas existem...');
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN finalizada_instalador BOOLEAN DEFAULT FALSE');
+        console.log('✅ Coluna finalizada_instalador adicionada com sucesso!');
+      } catch (error: any) {
+        if (error.code === 'ER_DUP_FIELDNAME') {
+          console.log('ℹ️ Coluna finalizada_instalador já existe na tabela instalacoes');
+        }
+      }
+
+      try {
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN finalizada_lojista BOOLEAN DEFAULT FALSE');
+        console.log('✅ Coluna finalizada_lojista adicionada com sucesso!');
+      } catch (error: any) {
+        if (error.code === 'ER_DUP_FIELDNAME') {
+          console.log('ℹ️ Coluna finalizada_lojista já existe na tabela instalacoes');
+        }
+      }
+
       // Verificar e corrigir estrutura da tabela chamados
       try {
         console.log('📝 Verificando estrutura da tabela chamados...');
@@ -1129,11 +1149,14 @@ export class MySQLStorage implements IStorage {
          l.telefone_loja,
          l.nome_operador,
          ri.ordem_visita,
-         -- Verificar se tem instalação finalizada
+         -- Verificar se tem instalação finalizada (mantendo compatibilidade)
          CASE 
            WHEN inst.finalizada = 1 THEN true
            ELSE false
          END as instalacao_finalizada,
+         -- Novos campos de status
+         COALESCE(inst.finalizada_instalador, false) as finalizada_instalador,
+         COALESCE(inst.finalizada_lojista, false) as finalizada_lojista,
          -- Verificar se tem chamado aberto
          CASE 
            WHEN ch.id IS NOT NULL THEN true
@@ -1150,22 +1173,35 @@ export class MySQLStorage implements IStorage {
       [route.fornecedor_id, routeId]
     ) as [RowDataPacket[], any];
     
-    const lojas = storeRows.map((store: any) => ({
-      id: store.id,
-      codigo_loja: store.codigo_loja,
-      nome_loja: store.nome_loja,
-      cidade: store.cidade,
-      uf: store.uf,
-      logradouro: store.logradouro,
-      telefone_loja: store.telefone_loja,
-      nome_operador: store.nome_operador,
-      instalacao_finalizada: store.instalacao_finalizada,
-      tem_chamado_aberto: store.tem_chamado_aberto,
-      data_instalacao: store.data_instalacao,
-      ultimo_chamado: store.ultimo_chamado,
-      status: store.tem_chamado_aberto ? 'chamado_aberto' : 
-             (store.instalacao_finalizada ? 'finalizada' : 'pendente')
-    }));
+    const lojas = storeRows.map((store: any) => {
+      // Determinar status baseado na nova lógica
+      let installationStatus = 'pendente';
+      if (!store.finalizada_instalador && !store.finalizada_lojista) {
+        installationStatus = 'Não Iniciado';
+      } else if (store.finalizada_instalador && !store.finalizada_lojista) {
+        installationStatus = 'Instalação Finalizada';
+      } else if (store.finalizada_instalador && store.finalizada_lojista) {
+        installationStatus = 'Finalizado';
+      } else {
+        installationStatus = 'Não Iniciado';
+      }
+
+      return {
+        id: store.id,
+        codigo_loja: store.codigo_loja,
+        nome_loja: store.nome_loja,
+        cidade: store.cidade,
+        uf: store.uf,
+        logradouro: store.logradouro,
+        telefone_loja: store.telefone_loja,
+        nome_operador: store.nome_operador,
+        instalacao_finalizada: store.instalacao_finalizada,
+        tem_chamado_aberto: store.tem_chamado_aberto,
+        data_instalacao: store.data_instalacao,
+        ultimo_chamado: store.ultimo_chamado,
+        status: store.tem_chamado_aberto ? 'chamado_aberto' : installationStatus
+      };
+    });
     
     return {
       id: route.id,

@@ -479,6 +479,11 @@ export default function AdminRoutes() {
       pendente: { variant: "secondary" as const, text: "Pendente", color: "bg-yellow-500" },
       em_progresso: { variant: "default" as const, text: "Em Progresso", color: "bg-orange-500" },
       concluido: { variant: "outline" as const, text: "Concluído", color: "bg-green-500" },
+      // Novos status de instalação
+      "Não Iniciado": { variant: "secondary" as const, text: "Não Iniciado", color: "bg-gray-500" },
+      "Instalação Finalizada": { variant: "default" as const, text: "Instalação Finalizada", color: "bg-orange-500" },
+      "Finalizado": { variant: "outline" as const, text: "Finalizado", color: "bg-green-500" },
+      chamado_aberto: { variant: "destructive" as const, text: "Chamado Aberto", color: "bg-red-500" },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ativa;

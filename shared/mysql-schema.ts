@@ -208,6 +208,8 @@ export interface Installation {
   justificativaFotos?: string;
   createdAt: Date;
   finalizada: boolean;
+  finalizada_instalador?: boolean;
+  finalizada_lojista?: boolean;
   // Campos de geolocalização
   latitude?: number;
   longitude?: number;
@@ -225,6 +227,8 @@ export interface InsertInstallation {
   fotosFinais?: string[];
   justificativaFotos?: string;
   finalizada?: boolean;
+  finalizada_instalador?: boolean;
+  finalizada_lojista?: boolean;
   // Campos de geolocalização
   latitude?: number;
   longitude?: number;
