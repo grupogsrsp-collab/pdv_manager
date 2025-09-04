@@ -111,12 +111,20 @@ export default function AdminRouteTrack() {
   const groupTicketsByStore = (tickets: Ticket[]) => {
     const grouped: Record<string, Ticket[]> = {};
     tickets.forEach(ticket => {
-      // Usar o código da loja como chave, se não houver, usar loja_id
-      const storeKey = ticket.codigo_loja || ticket.loja_id;
-      if (!grouped[storeKey]) {
-        grouped[storeKey] = [];
+      // Determinar a chave para agrupar baseado no código da loja
+      let storeKey = ticket.codigo_loja;
+      
+      // Se não tiver código da loja, tentar usar loja_id como fallback
+      if (!storeKey && ticket.loja_id) {
+        storeKey = ticket.loja_id.toString();
       }
-      grouped[storeKey].push(ticket);
+      
+      if (storeKey) {
+        if (!grouped[storeKey]) {
+          grouped[storeKey] = [];
+        }
+        grouped[storeKey].push(ticket);
+      }
     });
     return grouped;
   };

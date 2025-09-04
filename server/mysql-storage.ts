@@ -1662,7 +1662,7 @@ export class MySQLStorage implements IStorage {
         END as tipo_chamado
       FROM chamados c
       LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
-      LEFT JOIN lojas l ON c.loja_id = l.id
+      LEFT JOIN lojas l ON (c.loja_id = l.codigo_loja OR c.loja_id = l.id)
       ORDER BY c.data_abertura DESC
     `;
     
@@ -1716,7 +1716,7 @@ export class MySQLStorage implements IStorage {
           END as tipo_chamado
         FROM chamados c
         LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
-        LEFT JOIN lojas l ON c.loja_id = l.codigo_loja
+        LEFT JOIN lojas l ON (c.loja_id = l.codigo_loja OR c.loja_id = l.id)
         WHERE c.fornecedor_id = ? AND c.status = 'Aberto'
         ORDER BY c.data_abertura DESC
       `;
