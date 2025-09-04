@@ -412,7 +412,7 @@ export default function AdminRouteTrack() {
                           <div className="text-xs text-gray-600 mt-1">
                             <div className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" />
-                              {new Date(loja.data_finalizacao_lojista).toLocaleDateString('pt-BR')}
+                              {loja.data_finalizacao_lojista.split('T')[0].split('-').reverse().join('/')}
                             </div>
                             {loja.nome_lojista && (
                               <div className="flex items-center mt-1">
@@ -424,7 +424,10 @@ export default function AdminRouteTrack() {
                         ) : loja.data_instalacao ? (
                           <div className="flex items-center text-xs text-gray-500 mt-1">
                             <Clock className="h-3 w-3 mr-1" />
-                            {new Date(loja.data_instalacao).toLocaleDateString('pt-BR')}
+                            {loja.data_instalacao.includes('T') 
+                              ? loja.data_instalacao.split('T')[0].split('-').reverse().join('/')
+                              : loja.data_instalacao.split('-').reverse().join('/')
+                            }
                           </div>
                         ) : null}
                       </div>
