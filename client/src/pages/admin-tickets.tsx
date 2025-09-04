@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Search, CheckCircle, Clock, AlertTriangle, ArrowLeft, Phone, MapPin, Calendar, User, X, Info } from "lucide-react";
+import { Search, CheckCircle, Clock, AlertTriangle, ArrowLeft, Phone, MapPin, Calendar, User, X, Info, Store } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -60,6 +60,30 @@ export default function AdminTickets() {
     
     return matchesSearch && matchesStatus;
   }) || [];
+
+  // Função para agrupar tickets por loja (mesma lógica do admin-route-track)
+  const groupTicketsByStore = (tickets: Ticket[]) => {
+    const grouped: Record<string, Ticket[]> = {};
+    tickets.forEach(ticket => {
+      // Determinar a chave para agrupar baseado no código da loja
+      let storeKey = ticket.codigo_loja;
+      
+      // Se não tiver código da loja, tentar usar loja_id como fallback
+      if (!storeKey && ticket.loja_id) {
+        storeKey = ticket.loja_id.toString();
+      }
+      
+      if (storeKey) {
+        if (!grouped[storeKey]) {
+          grouped[storeKey] = [];
+        }
+        grouped[storeKey].push(ticket);
+      }
+    });
+    return grouped;
+  };
+
+  const groupedTickets = groupTicketsByStore(filteredTickets);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("pt-BR", {
@@ -185,122 +209,169 @@ export default function AdminTickets() {
           </Select>
         </div>
 
-        {/* Lista de Chamados */}
-        <Card className="bg-white shadow-sm">
-          <CardHeader className="border-b bg-gray-50 py-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <AlertTriangle className="h-5 w-5" />
-              Lista de Chamados ({filteredTickets.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-gray-200">
-              {filteredTickets.map((ticket: Ticket) => (
-                <div key={ticket.id} className="p-4 hover:bg-gray-50 transition-colors">
-                  {/* Header do Chamado */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-500">Tipo:</span>
-                      <span className="text-sm font-semibold text-blue-600">
-                        {ticket.tipo_chamado === 'fornecedor' ? 'Fornecedor' : 'Lojista'}
-                      </span>
-                      <span className="text-gray-300 mx-2">|</span>
-                      <span className="text-sm text-gray-500">Nome:</span>
-                      <span className="text-sm font-semibold text-blue-600">
-                        {ticket.tipo_chamado === 'loja' 
-                          ? (ticket.nome_loja || ticket.nome_operador || ticket.nome_fornecedor || 'Não informado')
-                          : (ticket.nome_fornecedor || 'Não informado')
-                        }
-                      </span>
-                      <span className="text-gray-300 mx-2">|</span>
-                      <span className="text-sm text-gray-500">Estado:</span>
-                      <span className="text-sm font-semibold text-blue-600">
-                        {ticket.tipo_chamado === 'loja' 
-                          ? (ticket.uf || ticket.estado_fornecedor || 'Não informado')
-                          : (ticket.estado_fornecedor || 'Não informado')
-                        }
-                      </span>
-                      <span className="text-gray-300 mx-2">|</span>
-                      <span className="text-sm text-gray-500">Telefone:</span>
-                      <span className="text-sm font-semibold text-blue-600">
-                        {ticket.tipo_chamado === 'loja' 
-                          ? (ticket.telefone_loja || ticket.telefone_fornecedor || 'Não informado')
-                          : (ticket.telefone_fornecedor || 'Não informado')
-                        }
-                      </span>
+        {/* Lista de Chamados Agrupados por Loja */}
+        <div className="space-y-6">
+          {Object.keys(groupedTickets).length > 0 ? (
+            Object.entries(groupedTickets).map(([storeId, storeTickets]) => {
+              // Encontrar o ticket com informações mais completas da loja
+              const ticketWithStoreInfo = storeTickets.find(t => t.nome_loja && t.codigo_loja) || storeTickets[0];
+              const storeName = ticketWithStoreInfo?.nome_loja || '';
+              const storeCode = ticketWithStoreInfo?.codigo_loja || storeId;
+              const storeAddress = ticketWithStoreInfo?.logradouro && ticketWithStoreInfo?.cidade ? 
+                `${ticketWithStoreInfo.logradouro} ${ticketWithStoreInfo.numero || ''}, ${ticketWithStoreInfo.bairro || ''} - ${ticketWithStoreInfo.cidade} - ${ticketWithStoreInfo.uf}` : '';
+              
+              // Separar chamados por tipo
+              const instaladorTickets = storeTickets.filter(ticket => ticket.tipo_chamado === 'fornecedor');
+              const lojistaTickets = storeTickets.filter(ticket => ticket.tipo_chamado === 'loja');
+              
+              return (
+                <Card key={storeId} className="border shadow-sm">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <Store className="h-5 w-5 text-gray-600" />
+                      <span>Loja {storeCode}</span>
+                      {storeName && <span className="text-gray-600 font-normal">- {storeName}</span>}
                     </div>
-                    <Badge 
-                      variant={ticket.status === 'aberto' || ticket.status === 'Aberto' ? 'default' : 'secondary'}
-                      className={(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : 'bg-green-100 text-green-700'}
-                    >
-                      {(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'Aberto' : 'Resolvido'}
-                    </Badge>
-                  </div>
-
-                  {/* Data */}
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>Criado: {formatDate(String(ticket.data_abertura))}</span>
-                  </div>
-
-                  {/* Título/Descrição */}
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-gray-900 mb-1">Título</h3>
-                    <p className="text-gray-700">{ticket.descricao}</p>
-                    {ticket.codigo_loja && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Loja: {ticket.codigo_loja} - {ticket.nome_loja}
+                    {storeAddress && (
+                      <p className="text-sm text-gray-600 mt-1 ml-7">
+                        {storeAddress}
                       </p>
                     )}
-                  </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 px-6 pb-6 space-y-4">
+                    {/* Chamados do Instalador */}
+                    {instaladorTickets.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Chamados do Instalador ({instaladorTickets.length})
+                        </h4>
+                        <div className="space-y-3 ml-6">
+                          {instaladorTickets.map((ticket) => (
+                            <div key={ticket.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-sm font-medium text-gray-700">Instalador {ticket.instalador}</span>
+                                    <span className="text-xs text-gray-500">
+                                      Telefone: {ticket.telefone_instalador || 'Não informado'}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700 mb-2">{ticket.descricao}</p>
+                                  <p className="text-xs text-gray-500">
+                                    <Calendar className="h-3 w-3 inline mr-1" />
+                                    {ticket.data_abertura && formatDate(String(ticket.data_abertura))}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  <Badge 
+                                    variant={ticket.status === 'aberto' || ticket.status === 'Aberto' ? 'default' : 'secondary'}
+                                    className={(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}
+                                  >
+                                    {(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'Aberto' : 'Resolvido'}
+                                  </Badge>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDetailsClick(ticket)}
+                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  >
+                                    <Info className="h-3 w-3 mr-1" />
+                                    Detalhes
+                                  </Button>
+                                  {(ticket.status === 'aberto' || ticket.status === 'Aberto') && (
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => handleResolveClick(ticket)}
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Encerrar
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Botões de Ação */}
-                  <div className="flex justify-between items-center">
-                    <div></div> {/* Espaçador para alinhar à direita */}
-                    <div className="flex gap-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-blue-500 text-white hover:bg-blue-600 border-0"
-                        onClick={() => handleDetailsClick(ticket)}
-                        data-testid={`button-details-ticket-${ticket.id}`}
-                      >
-                        Dados
-                      </Button>
-                      {(ticket.status === "aberto" || ticket.status === "Aberto") ? (
-                        <Button
-                          size="sm"
-                          className="bg-red-500 hover:bg-red-600 text-white"
-                          onClick={() => handleResolveClick(ticket)}
-                          disabled={resolveTicketMutation.isPending}
-                          data-testid={`button-resolve-ticket-${ticket.id}`}
-                        >
-                          Encerrar
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          className="bg-green-500 text-white cursor-default"
-                          disabled
-                        >
-                          Resolvido
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {filteredTickets.length === 0 && (
+                    {/* Chamados do Lojista */}
+                    {lojistaTickets.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                          <Store className="h-4 w-4" />
+                          Chamados do Lojista ({lojistaTickets.length})
+                        </h4>
+                        <div className="space-y-3 ml-6">
+                          {lojistaTickets.map((ticket) => (
+                            <div key={ticket.id} className="p-4 border border-gray-200 rounded-lg bg-blue-50">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-sm font-medium text-gray-700">Lojista</span>
+                                    <span className="text-xs text-gray-500">
+                                      Telefone: {ticket.telefone_loja || 'Não informado'}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700 mb-2">{ticket.descricao}</p>
+                                  <p className="text-xs text-gray-500">
+                                    <Calendar className="h-3 w-3 inline mr-1" />
+                                    {ticket.data_abertura && formatDate(String(ticket.data_abertura))}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  <Badge 
+                                    variant={ticket.status === 'aberto' || ticket.status === 'Aberto' ? 'default' : 'secondary'}
+                                    className={(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}
+                                  >
+                                    {(ticket.status === 'aberto' || ticket.status === 'Aberto') ? 'Aberto' : 'Resolvido'}
+                                  </Badge>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDetailsClick(ticket)}
+                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  >
+                                    <Info className="h-3 w-3 mr-1" />
+                                    Detalhes
+                                  </Button>
+                                  {(ticket.status === 'aberto' || ticket.status === 'Aberto') && (
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => handleResolveClick(ticket)}
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Encerrar
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <Card>
+              <CardContent className="p-6">
                 <div className="text-center py-12">
-                  <AlertTriangle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">Nenhum chamado encontrado</p>
                   <p className="text-gray-400 text-sm">Tente ajustar os filtros de busca</p>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Modal de Detalhes */}
         <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
