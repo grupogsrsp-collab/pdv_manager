@@ -350,6 +350,7 @@ export interface Route {
   data_execucao?: string | null;
   created_by: number;
   total_chamados_abertos?: number;
+  total_lojas_instaladas?: number;
 }
 
 export interface InsertRoute {

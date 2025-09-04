@@ -440,7 +440,7 @@ export default function AdminRoutes() {
     setSelectedEmployees([]);
     setSupplierSearch("");
     setStoreSearch("");
-    setStoreFilters({ codigo_loja: "", cidade: "", uf: "", nome_loja: "" });
+    setStoreFilters({ cidade: "", bairro: "", uf: "", nome_loja: "" });
   };
 
   const handleCreateRoute = async () => {
@@ -1018,10 +1018,10 @@ export default function AdminRoutes() {
                                 Chamado
                               </Badge>
                             )}
-                            {(route as any).total_lojas_instaladas > 0 && (
+                            {route.total_lojas_instaladas && route.total_lojas_instaladas > 0 && (
                               <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                                 <div className="w-2 h-2 rounded-full bg-gray-500 mr-2"></div>
-                                Lojas Instaladas: {(route as any).total_lojas_instaladas}
+                                Lojas Instaladas: {route.total_lojas_instaladas}
                               </Badge>
                             )}
                           </div>
