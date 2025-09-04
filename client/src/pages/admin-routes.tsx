@@ -78,6 +78,11 @@ export default function AdminRoutes() {
   
   // Estados para edição
   const [editRouteForm, setEditRouteForm] = useState({ nome: '', status: '', data_prevista: '', observacoes: '' });
+  const [editSelectedSupplier, setEditSelectedSupplier] = useState<Supplier | null>(null);
+  const [editSelectedStores, setEditSelectedStores] = useState<Store[]>([]);
+  const [editSelectedEmployees, setEditSelectedEmployees] = useState<SupplierEmployee[]>([]);
+  const [editSupplierSearch, setEditSupplierSearch] = useState("");
+  const [editStoreFilters, setEditStoreFilters] = useState({ cidade: "", bairro: "", uf: "", nome_loja: "" });
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<SupplierEmployee[]>([]);
@@ -137,6 +142,38 @@ export default function AdminRoutes() {
     enabled: !!selectedSupplier?.id,
   });
 
+  // Queries para edição
+  const { data: editSuppliersRaw } = useQuery({
+    queryKey: ['/api/suppliers/search', editSupplierSearch],
+    queryFn: async () => {
+      const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(editSupplierSearch)}`);
+      if (!response.ok) return [];
+      const results = await response.json();
+      return results.filter((item: any) => item.type === 'supplier').map((item: any) => item.data);
+    },
+    enabled: editSupplierSearch.length >= 2,
+  });
+  
+  const editSuppliers = editSuppliersRaw as Supplier[] | undefined;
+
+  const { data: editFilteredStores } = useQuery<Store[]>({
+    queryKey: ['/api/stores/filter', editStoreFilters],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      Object.entries(editStoreFilters).forEach(([key, value]) => {
+        if (value && value.length >= 2) params.append(key, value);
+      });
+      return fetch(`/api/stores/filter?${params.toString()}`).then(res => res.json());
+    },
+    enabled: Object.values(editStoreFilters).some(value => value && value.length >= 2),
+  });
+
+  const { data: editEmployees } = useQuery<SupplierEmployee[]>({
+    queryKey: ['/api/suppliers', editSelectedSupplier?.id, 'employees'],
+    queryFn: () => fetch(`/api/suppliers/${editSelectedSupplier?.id}/employees`).then(res => res.json()),
+    enabled: !!editSelectedSupplier?.id,
+  });
+
   // Query para buscar estatísticas das rotas
   const { data: routeStats } = useQuery<{rotasFinalizadas: number, rotasAtivas: number, lojasFinalizadas: number, lojasNaoFinalizadas: number}>({
     queryKey: ['/api/routes/stats'],
@@ -194,12 +231,56 @@ export default function AdminRoutes() {
   // Mutation para editar rota
   const editRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('PUT', `/api/routes/${routeToEdit?.id}`, data);
+      // Atualizar informações básicas da rota
+      await apiRequest('PUT', `/api/routes/${routeToEdit?.id}`, {
+        nome: data.nome,
+        status: data.status,
+        data_prevista: data.data_prevista,
+        observacoes: data.observacoes,
+        fornecedor_id: data.fornecedor_id
+      });
+
+      // Se foi selecionado um novo fornecedor, atualizar associações
+      if (data.fornecedor_id && editSelectedSupplier) {
+        // Atualizar funcionários se foram selecionados
+        if (data.funcionarios && data.funcionarios.length > 0) {
+          // Remover funcionários anteriores
+          await apiRequest('DELETE', `/api/routes/${routeToEdit?.id}/employees`);
+          // Adicionar novos funcionários
+          for (const employeeId of data.funcionarios) {
+            await apiRequest('POST', `/api/routes/${routeToEdit?.id}/employees`, {
+              funcionario_id: employeeId
+            });
+          }
+        }
+      }
+
+      // Se foram selecionadas novas lojas, atualizar itens da rota
+      if (data.lojas && data.lojas.length > 0) {
+        // Remover itens anteriores
+        await apiRequest('DELETE', `/api/routes/${routeToEdit?.id}/items`);
+        // Adicionar novos itens
+        for (let i = 0; i < data.lojas.length; i++) {
+          await apiRequest('POST', `/api/routes/${routeToEdit?.id}/items`, {
+            loja_id: data.lojas[i],
+            ordem_visita: i + 1,
+            status: 'pendente'
+          });
+        }
+      }
+
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
       setShowEditDialog(false);
       setRouteToEdit(null);
+      // Reset estados de edição
+      setEditSelectedSupplier(null);
+      setEditSelectedStores([]);
+      setEditSelectedEmployees([]);
+      setEditSupplierSearch("");
+      setEditStoreFilters({ cidade: "", bairro: "", uf: "", nome_loja: "" });
       toast({
         title: "Sucesso",
         description: "Rota editada com sucesso!",
@@ -717,12 +798,32 @@ export default function AdminRoutes() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setRouteToEdit(route);
+                              // Extrair texto das observações se for JSON
+                              let observacoesText = '';
+                              if (route.observacoes) {
+                                try {
+                                  const parsed = JSON.parse(route.observacoes);
+                                  if (parsed.general) {
+                                    observacoesText = parsed.general;
+                                  } else {
+                                    observacoesText = route.observacoes;
+                                  }
+                                } catch {
+                                  observacoesText = route.observacoes;
+                                }
+                              }
                               setEditRouteForm({
                                 nome: route.nome,
                                 status: route.status,
                                 data_prevista: route.data_prevista ? new Date(route.data_prevista).toISOString().split('T')[0] : '',
-                                observacoes: route.observacoes || ''
+                                observacoes: observacoesText
                               });
+                              // Reset estados de edição
+                              setEditSelectedSupplier(null);
+                              setEditSelectedStores([]);
+                              setEditSelectedEmployees([]);
+                              setEditSupplierSearch("");
+                              setEditStoreFilters({ cidade: "", bairro: "", uf: "", nome_loja: "" });
                               setShowEditDialog(true);
                             }}
                           >
@@ -868,32 +969,36 @@ export default function AdminRoutes() {
 
         {/* Dialog de Edição */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Rota</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nome da Rota</label>
-                <Input
-                  value={editRouteForm.nome}
-                  onChange={(e) => setEditRouteForm({...editRouteForm, nome: e.target.value})}
-                  placeholder="Nome da rota"
-                />
+            <div className="space-y-6">
+              {/* Informações Básicas da Rota */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nome da Rota</label>
+                  <Input
+                    value={editRouteForm.nome}
+                    onChange={(e) => setEditRouteForm({...editRouteForm, nome: e.target.value})}
+                    placeholder="Nome da rota"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <Select value={editRouteForm.status} onValueChange={(value) => setEditRouteForm({...editRouteForm, status: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ativa">Ativa</SelectItem>
+                      <SelectItem value="inativa">Inativa</SelectItem>
+                      <SelectItem value="concluida">Concluída</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <Select value={editRouteForm.status} onValueChange={(value) => setEditRouteForm({...editRouteForm, status: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ativa">Ativa</SelectItem>
-                    <SelectItem value="inativa">Inativa</SelectItem>
-                    <SelectItem value="concluida">Concluída</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              
               <div>
                 <label className="block text-sm font-medium mb-1">Data Prevista</label>
                 <Input
@@ -902,6 +1007,7 @@ export default function AdminRoutes() {
                   onChange={(e) => setEditRouteForm({...editRouteForm, data_prevista: e.target.value})}
                 />
               </div>
+              
               <div>
                 <label className="block text-sm font-medium mb-1">Observações</label>
                 <Textarea
@@ -910,9 +1016,234 @@ export default function AdminRoutes() {
                   placeholder="Observações sobre a rota"
                 />
               </div>
-              <div className="flex justify-end space-x-3">
+
+              {/* Edição de Fornecedor */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg border-b pb-2">Alterar Fornecedor</h3>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Buscar por nome, CNPJ ou CPF..."
+                    className="pl-10"
+                    value={editSupplierSearch}
+                    onChange={(e) => setEditSupplierSearch(e.target.value)}
+                  />
+                </div>
+                
+                {editSuppliers && editSuppliers.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto border rounded-lg">
+                    {editSuppliers.map(supplier => (
+                      <div
+                        key={supplier.id}
+                        className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 ${
+                          editSelectedSupplier?.id === supplier.id ? 'bg-blue-50 border-blue-200' : ''
+                        }`}
+                        onClick={() => {
+                          setEditSelectedSupplier(supplier);
+                          setEditSupplierSearch(supplier.nome_fornecedor);
+                          setEditSelectedEmployees([]);
+                        }}
+                      >
+                        <div className="font-medium">{supplier.nome_fornecedor}</div>
+                        <div className="text-sm text-gray-600">
+                          CNPJ: {supplier.cnpj} {supplier.cpf && `• CPF: ${supplier.cpf}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {editSelectedSupplier && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-green-800">{editSelectedSupplier.nome_fornecedor}</div>
+                        <div className="text-sm text-green-600">Novo fornecedor selecionado</div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditSelectedSupplier(null);
+                          setEditSupplierSearch("");
+                          setEditSelectedEmployees([]);
+                        }}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Edição de Funcionários */}
+              {editSelectedSupplier && (
+                <div className="space-y-4">
+                  <h3 className="font-medium">Funcionários do Novo Fornecedor</h3>
+                  {editEmployees && editEmployees.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="text-sm text-gray-600">Selecione um ou mais funcionários:</div>
+                      <div className="max-h-40 overflow-y-auto space-y-2">
+                        {editEmployees.map(employee => (
+                          <label key={employee.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="mr-3 rounded"
+                              checked={editSelectedEmployees.some(e => e.id === employee.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditSelectedEmployees(prev => [...prev, employee]);
+                                } else {
+                                  setEditSelectedEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+                                }
+                              }}
+                            />
+                            <div>
+                              <div className="font-medium">{employee.nome_funcionario}</div>
+                              <div className="text-sm text-gray-600">
+                                {employee.cpf && `CPF: ${employee.cpf}`} {employee.telefone && `• Tel: ${employee.telefone}`}
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="text-sm text-yellow-800">Nenhum funcionário cadastrado para este fornecedor.</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Edição de Lojas */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg border-b pb-2">Gerenciar Lojas da Rota</h3>
+                
+                {/* Campos de Busca para Adicionar Lojas */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Nome da Loja</label>
+                    <Input
+                      placeholder="Ex: HELP!"
+                      value={editStoreFilters.nome_loja}
+                      onChange={(e) => setEditStoreFilters(prev => ({ ...prev, nome_loja: e.target.value }))}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Cidade</label>
+                    <Input
+                      placeholder="Ex: São Paulo"
+                      value={editStoreFilters.cidade}
+                      onChange={(e) => setEditStoreFilters(prev => ({ ...prev, cidade: e.target.value }))}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Bairro</label>
+                    <Input
+                      placeholder="Ex: Vila Olímpia"
+                      value={editStoreFilters.bairro}
+                      onChange={(e) => setEditStoreFilters(prev => ({ ...prev, bairro: e.target.value }))}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Estado</label>
+                    <Input
+                      placeholder="Ex: SP"
+                      value={editStoreFilters.uf}
+                      onChange={(e) => setEditStoreFilters(prev => ({ ...prev, uf: e.target.value }))}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Resultados da Busca para Adicionar */}
+                {editFilteredStores && editFilteredStores.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium text-gray-700">Lojas Disponíveis ({editFilteredStores.length})</div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newStores = editFilteredStores.filter(store => !editSelectedStores.find(s => s.id === store.id));
+                          setEditSelectedStores(prev => [...prev, ...newStores]);
+                        }}
+                      >
+                        Adicionar Todas
+                      </Button>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {editFilteredStores.map(store => (
+                        <div key={store.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div>
+                            <div className="font-medium">{store.nome_loja}</div>
+                            <div className="text-sm text-gray-600">
+                              {store.codigo_loja} • {store.logradouro}, {store.cidade} - {store.uf}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (!editSelectedStores.find(s => s.id === store.id)) {
+                                setEditSelectedStores(prev => [...prev, store]);
+                              }
+                            }}
+                            disabled={editSelectedStores.some(s => s.id === store.id)}
+                          >
+                            {editSelectedStores.some(s => s.id === store.id) ? 'Adicionada' : 'Adicionar'}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Lojas Selecionadas */}
+                {editSelectedStores.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-700">Novas Lojas da Rota ({editSelectedStores.length})</div>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {editSelectedStores.map(store => (
+                        <div key={store.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div>
+                            <div className="font-medium text-blue-800">{store.nome_loja}</div>
+                            <div className="text-sm text-blue-600">
+                              {store.codigo_loja} • {store.logradouro}, {store.cidade} - {store.uf}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditSelectedStores(prev => prev.filter(s => s.id !== store.id))}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancelar</Button>
-                <Button onClick={() => editRouteMutation.mutate(editRouteForm)} disabled={editRouteMutation.isPending}>
+                <Button 
+                  onClick={() => {
+                    const updatedData = {
+                      ...editRouteForm,
+                      fornecedor_id: editSelectedSupplier?.id,
+                      funcionarios: editSelectedEmployees.map(emp => emp.id),
+                      lojas: editSelectedStores.map(store => store.codigo_loja)
+                    };
+                    editRouteMutation.mutate(updatedData);
+                  }} 
+                  disabled={editRouteMutation.isPending}
+                >
                   Salvar Alterações
                 </Button>
               </div>
