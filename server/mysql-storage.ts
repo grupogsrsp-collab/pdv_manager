@@ -1681,14 +1681,11 @@ export class MySQLStorage implements IStorage {
       ) as [RowDataPacket[], any];
       
       if (routeRows.length === 0) {
-        console.log('❌ Rota não encontrada:', routeId);
         return [];
       }
       
       const route = routeRows[0];
       const fornecedorId = route.fornecedor_id;
-      
-      console.log('✅ Rota encontrada:', route.nome, 'Fornecedor:', fornecedorId);
       
       // Buscar todos os chamados abertos para o fornecedor da rota
       const query = `
@@ -1707,6 +1704,12 @@ export class MySQLStorage implements IStorage {
           l.nome_operador,
           l.cidade,
           l.uf,
+          l.bairro,
+          l.logradouro,
+          l.numero,
+          l.complemento,
+          l.cep,
+          l.telefone_loja,
           CASE 
             WHEN c.instalador = 'Lojista' THEN 'loja'
             ELSE 'fornecedor'
@@ -1719,7 +1722,6 @@ export class MySQLStorage implements IStorage {
       `;
       
       const [rows] = await pool.execute(query, [fornecedorId]) as [RowDataPacket[], any];
-      console.log('🎯 Chamados encontrados para fornecedor', fornecedorId, ':', rows.length);
       
       return rows as Ticket[];
     } catch (error) {
@@ -1734,6 +1736,50 @@ export class MySQLStorage implements IStorage {
       'UPDATE chamados SET status = "resolvido" WHERE id = ?',
       [id]
     );
+  }
+
+  async saveRouteStoreAnnotations(routeId: number, storeId: string, annotations: string): Promise<void> {
+    // Atualizar as observações da rota com anotações específicas por loja
+    const [currentRouteRows] = await pool.execute(
+      'SELECT observacoes FROM rotas WHERE id = ?',
+      [routeId]
+    ) as [RowDataPacket[], any];
+    
+    let currentObservations = {};
+    if (currentRouteRows.length > 0 && currentRouteRows[0].observacoes) {
+      try {
+        currentObservations = JSON.parse(currentRouteRows[0].observacoes);
+      } catch (e) {
+        // Se não for JSON válido, manter como string simples
+        currentObservations = { general: currentRouteRows[0].observacoes };
+      }
+    }
+    
+    // Atualizar anotações específicas da loja
+    (currentObservations as any)[`loja_${storeId}`] = annotations;
+    
+    await pool.execute(
+      'UPDATE rotas SET observacoes = ? WHERE id = ?',
+      [JSON.stringify(currentObservations), routeId]
+    );
+  }
+
+  async getRouteStoreAnnotations(routeId: number, storeId: string): Promise<string> {
+    const [rows] = await pool.execute(
+      'SELECT observacoes FROM rotas WHERE id = ?',
+      [routeId]
+    ) as [RowDataPacket[], any];
+    
+    if (rows.length > 0 && rows[0].observacoes) {
+      try {
+        const observations = JSON.parse(rows[0].observacoes);
+        return observations[`loja_${storeId}`] || '';
+      } catch (e) {
+        return '';
+      }
+    }
+    
+    return '';
   }
 
   async getAllAdmins(): Promise<Admin[]> {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,7 @@ export default function AdminRouteTrack() {
   const routeId = params?.id;
   const [activeTab, setActiveTab] = useState("rotas");
   const [annotations, setAnnotations] = useState<Record<string, string>>({});
+  const [savingAnnotations, setSavingAnnotations] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   const { data: routeDetails, isLoading } = useQuery<RouteDetails>({
@@ -128,6 +130,66 @@ export default function AdminRouteTrack() {
       [storeId]: value
     }));
   };
+
+  const saveAnnotationsMutation = useMutation({
+    mutationFn: async ({ routeId, storeId, annotations }: { routeId: number, storeId: string, annotations: string }) => {
+      const response = await fetch(`/api/routes/${routeId}/stores/${storeId}/annotations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annotations })
+      });
+      if (!response.ok) throw new Error('Erro ao salvar anotações');
+    },
+    onSuccess: (_, { storeId }) => {
+      setSavingAnnotations(prev => ({ ...prev, [storeId]: false }));
+      toast({ title: 'Anotações salvas com sucesso!' });
+    },
+    onError: (_, { storeId }) => {
+      setSavingAnnotations(prev => ({ ...prev, [storeId]: false }));
+      toast({ title: 'Erro ao salvar anotações', variant: 'destructive' });
+    },
+  });
+
+  const handleSaveAnnotations = (storeId: string) => {
+    if (!routeId) return;
+    setSavingAnnotations(prev => ({ ...prev, [storeId]: true }));
+    saveAnnotationsMutation.mutate({ 
+      routeId: parseInt(routeId), 
+      storeId, 
+      annotations: annotations[storeId] || '' 
+    });
+  };
+
+  // Carregar anotações existentes quando a aba é ativada
+  const { data: existingAnnotations } = useQuery<Record<string, string>>({
+    queryKey: ['/api/routes', routeId, 'annotations'],
+    queryFn: async () => {
+      const result: Record<string, string> = {};
+      const storeIds = Object.keys(groupedTickets);
+      
+      await Promise.all(storeIds.map(async (storeId) => {
+        try {
+          const response = await fetch(`/api/routes/${routeId}/stores/${storeId}/annotations`);
+          if (response.ok) {
+            const data = await response.json();
+            result[storeId] = data.annotations || '';
+          }
+        } catch (error) {
+          console.error('Erro ao carregar anotações:', error);
+        }
+      }));
+      
+      return result;
+    },
+    enabled: !!routeId && activeTab === 'chamados' && Object.keys(groupedTickets).length > 0,
+  });
+
+  // Sincronizar anotações carregadas com o estado local
+  React.useEffect(() => {
+    if (existingAnnotations) {
+      setAnnotations(prev => ({ ...prev, ...existingAnnotations }));
+    }
+  }, [existingAnnotations]);
 
   if (isLoading) {
     return (
@@ -337,53 +399,107 @@ export default function AdminRouteTrack() {
           ) : (
             <div className="space-y-6">
               {Object.entries(groupedTickets).map(([storeId, storeTickets]) => {
-                const storeName = storeTickets[0]?.nome_loja || `Loja ${storeId}`;
+                const firstTicket = storeTickets[0];
+                const storeName = firstTicket?.nome_loja || '';
+                const storeCode = firstTicket?.codigo_loja || storeId;
+                const storeAddress = `${firstTicket?.logradouro || ''} ${firstTicket?.numero || ''}, ${firstTicket?.cidade || ''} - ${firstTicket?.uf || ''}`;
+                
+                // Separar chamados por tipo
+                const instaladorTickets = storeTickets.filter(ticket => ticket.tipo_chamado === 'fornecedor');
+                const lojistaTickets = storeTickets.filter(ticket => ticket.tipo_chamado === 'loja');
+                
                 return (
-                  <Card key={storeId}>
+                  <Card key={storeId} className="border-l-4 border-l-blue-500">
                     <CardHeader>
-                      <CardTitle className="flex items-center">
+                      <CardTitle className="flex items-center text-lg">
                         <Building2 className="h-5 w-5 mr-2" />
-                        {storeName}
+                        {storeCode} - {storeName}
                       </CardTitle>
+                      {storeAddress.trim() !== ' ,' && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {storeAddress}
+                        </p>
+                      )}
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Lista de Chamados */}
-                      <div className="space-y-3">
-                        {storeTickets.map((ticket) => (
-                          <div
-                            key={ticket.id}
-                            className="flex items-start justify-between p-3 border rounded-lg bg-gray-50"
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-xs">
-                                  [Tipo: {ticket.tipo_chamado === 'loja' ? 'Lojista' : 'Fornecedor'}]
-                                </Badge>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
-                                </span>
-                              </div>
-                              <p className="text-sm font-medium mb-1">{ticket.descricao}</p>
-                              <p className="text-xs text-gray-600">
-                                Status: {ticket.status}
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleCloseTicket(ticket.id)}
-                              disabled={closeTicketMutation.isPending}
-                              className="ml-4"
+                      {/* Chamados do Instalador */}
+                      {instaladorTickets.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="text-md font-semibold text-gray-800">Instalador</h4>
+                          {instaladorTickets.map((ticket) => (
+                            <div
+                              key={ticket.id}
+                              className="p-4 border rounded-lg bg-red-50 border-red-200"
                             >
-                              <FileX className="h-4 w-4 mr-1" />
-                              Encerrar
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="font-medium text-sm">
+                                      {ticket.instalador?.replace(/[\[\]]/g, '') || 'Nome do Instalador'} Telefone:
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm mb-1">{ticket.descricao}</p>
+                                  <p className="text-xs text-gray-600">
+                                    Status: {ticket.status}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="bg-red-500 hover:bg-red-600 text-white ml-4"
+                                  onClick={() => handleCloseTicket(ticket.id)}
+                                  disabled={closeTicketMutation.isPending}
+                                >
+                                  Encerrar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Chamados do Lojista */}
+                      {lojistaTickets.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="text-md font-semibold text-gray-800">Lojista Responsável</h4>
+                          {lojistaTickets.map((ticket) => (
+                            <div
+                              key={ticket.id}
+                              className="p-4 border rounded-lg bg-red-50 border-red-200"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="font-medium text-sm">
+                                      {ticket.nome_operador || 'Lojista'} Telefone: {ticket.telefone_loja || ''}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm mb-1">{ticket.descricao}</p>
+                                  <p className="text-xs text-gray-600">
+                                    Status: {ticket.status}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="bg-red-500 hover:bg-red-600 text-white ml-4"
+                                  onClick={() => handleCloseTicket(ticket.id)}
+                                  disabled={closeTicketMutation.isPending}
+                                >
+                                  Encerrar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       
                       {/* Campo de Anotações */}
-                      <div className="border-t pt-4">
+                      <div className="border-t pt-4 mt-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Anotações
                         </label>
@@ -391,13 +507,16 @@ export default function AdminRouteTrack() {
                           placeholder="Adicione anotações sobre os chamados desta loja..."
                           value={annotations[storeId] || ''}
                           onChange={(e) => handleAnnotationChange(storeId, e.target.value)}
-                          className="min-h-[100px]"
+                          className="min-h-[100px] mb-2"
                         />
-                        <div className="mt-2">
-                          <Button size="sm" variant="outline">
-                            Salvar Anotações
-                          </Button>
-                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleSaveAnnotations(storeId)}
+                          disabled={savingAnnotations[storeId] || saveAnnotationsMutation.isPending}
+                        >
+                          {savingAnnotations[storeId] ? 'Salvando...' : 'Salvar Anotações'}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

@@ -746,15 +746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/routes/:id/tickets", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
-      console.log('🔍 Buscando chamados para rota:', routeId);
-      
-      // Debug: buscar todos os chamados primeiro
-      const allTickets = await storage.getAllTickets();
-      console.log('📝 Total de chamados no sistema:', allTickets.length);
-      
       const tickets = await storage.getOpenTicketsByRoute(routeId);
-      console.log('🎯 Chamados filtrados para rota:', tickets.length);
-      
       res.json(tickets);
     } catch (error) {
       console.error("Erro ao buscar chamados da rota:", error);
@@ -944,6 +936,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error("Erro ao resolver chamado:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/routes/:routeId/stores/:storeId/annotations", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.routeId);
+      const storeId = req.params.storeId;
+      const { annotations } = req.body;
+      
+      await storage.saveRouteStoreAnnotations(routeId, storeId, annotations);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Erro ao salvar anotações:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.get("/api/routes/:routeId/stores/:storeId/annotations", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.routeId);
+      const storeId = req.params.storeId;
+      
+      const annotations = await storage.getRouteStoreAnnotations(routeId, storeId);
+      res.json({ annotations });
+    } catch (error) {
+      console.error("Erro ao buscar anotações:", error);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
   });
