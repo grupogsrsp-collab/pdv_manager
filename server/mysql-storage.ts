@@ -1670,6 +1670,39 @@ export class MySQLStorage implements IStorage {
     return rows as Ticket[];
   }
 
+  async getOpenTicketsByRoute(routeId: number): Promise<Ticket[]> {
+    const query = `
+      SELECT 
+        c.id,
+        c.descricao,
+        c.status,
+        c.loja_id,
+        c.fornecedor_id,
+        c.data_abertura,
+        c.instalador,
+        f.nome_fornecedor,
+        f.telefone AS telefone_fornecedor,
+        l.codigo_loja,
+        l.nome_loja,
+        l.nome_operador,
+        l.cidade,
+        l.uf,
+        CASE 
+          WHEN c.instalador = 'Lojista' THEN 'loja'
+          ELSE 'fornecedor'
+        END as tipo_chamado
+      FROM chamados c
+      LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
+      LEFT JOIN lojas l ON c.loja_id = l.id
+      INNER JOIN rota_itens ri ON ri.loja_id = l.id
+      WHERE ri.rota_id = ? AND c.status = 'aberto'
+      ORDER BY c.data_abertura DESC
+    `;
+    
+    const [rows] = await pool.execute(query, [routeId]) as [RowDataPacket[], any];
+    return rows as Ticket[];
+  }
+
 
   async resolveTicket(id: number): Promise<void> {
     await pool.execute(

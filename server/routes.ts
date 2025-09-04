@@ -743,6 +743,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/routes/:id/tickets", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const tickets = await storage.getOpenTicketsByRoute(routeId);
+      res.json(tickets);
+    } catch (error) {
+      console.error("Erro ao buscar chamados da rota:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   app.post("/api/tickets", async (req, res) => {
     try {
       const ticketData = insertTicketSchema.parse(req.body);

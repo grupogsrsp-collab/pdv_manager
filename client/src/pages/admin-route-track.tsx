@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Building2, CheckCircle, XCircle, AlertTriangle, Phone, Clock, User } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, MapPin, Building2, CheckCircle, XCircle, AlertTriangle, Phone, Clock, User, MessageSquare, FileX } from "lucide-react";
 import { Link } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { type Ticket } from "@shared/mysql-schema";
 
 interface RouteStoreStatus {
   id: string;
@@ -41,11 +46,36 @@ interface RouteDetails {
 export default function AdminRouteTrack() {
   const [, params] = useRoute("/admin/routes/:id/track");
   const routeId = params?.id;
+  const [activeTab, setActiveTab] = useState("rotas");
+  const [annotations, setAnnotations] = useState<Record<string, string>>({});
+  const { toast } = useToast();
 
   const { data: routeDetails, isLoading } = useQuery<RouteDetails>({
     queryKey: ['/api/routes', routeId, 'details'],
     queryFn: () => fetch(`/api/routes/${routeId}/details`).then(res => res.json()),
     enabled: !!routeId,
+  });
+
+  const { data: tickets = [], isLoading: isLoadingTickets } = useQuery<Ticket[]>({
+    queryKey: ['/api/routes', routeId, 'tickets'],
+    queryFn: () => fetch(`/api/routes/${routeId}/tickets`).then(res => res.json()),
+    enabled: !!routeId && activeTab === 'chamados',
+  });
+
+  const closeTicketMutation = useMutation({
+    mutationFn: async (ticketId: number) => {
+      const response = await fetch(`/api/tickets/${ticketId}/resolve`, {
+        method: 'PATCH',
+      });
+      if (!response.ok) throw new Error('Erro ao encerrar chamado');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/routes', routeId, 'tickets'] });
+      toast({ title: 'Chamado encerrado com sucesso!' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao encerrar chamado', variant: 'destructive' });
+    },
   });
 
   const getStatusIcon = (store: RouteStoreStatus) => {
@@ -74,6 +104,29 @@ export default function AdminRouteTrack() {
     const chamados = lojas.filter(l => l.tem_chamado_aberto).length;
     
     return { finalizadas, pendentes, chamados, total: lojas.length };
+  };
+
+  const groupTicketsByStore = (tickets: Ticket[]) => {
+    const grouped: Record<string, Ticket[]> = {};
+    tickets.forEach(ticket => {
+      const storeKey = ticket.loja_id;
+      if (!grouped[storeKey]) {
+        grouped[storeKey] = [];
+      }
+      grouped[storeKey].push(ticket);
+    });
+    return grouped;
+  };
+
+  const handleCloseTicket = (ticketId: number) => {
+    closeTicketMutation.mutate(ticketId);
+  };
+
+  const handleAnnotationChange = (storeId: string, value: string) => {
+    setAnnotations(prev => ({
+      ...prev,
+      [storeId]: value
+    }));
   };
 
   if (isLoading) {
@@ -109,6 +162,8 @@ export default function AdminRouteTrack() {
   }
 
 
+  const groupedTickets = groupTicketsByStore(tickets);
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -131,126 +186,227 @@ export default function AdminRouteTrack() {
       </div>
 
 
-      {/* Informações da Rota */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <MapPin className="h-5 w-5 mr-2" />
-            Informações da Rota
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Fornecedor</p>
-              <p className="font-medium">{routeDetails.fornecedor_nome}</p>
-            </div>
-            {routeDetails.fornecedor_telefone && (
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Telefone Empresa</p>
-                <p className="font-medium">{routeDetails.fornecedor_telefone}</p>
-              </div>
-            )}
-            {routeDetails.fornecedor_email && (
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">E-mail</p>
-                <p className="font-medium">{routeDetails.fornecedor_email}</p>
-              </div>
-            )}
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Data de Criação</p>
-              <p className="font-medium">{new Date(routeDetails.data_criacao).toLocaleDateString('pt-BR')}</p>
-            </div>
-            {routeDetails.data_prevista && (
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Data Prevista</p>
-                <p className="font-medium">{new Date(routeDetails.data_prevista).toLocaleDateString('pt-BR')}</p>
-              </div>
-            )}
-            {routeDetails.funcionarios && routeDetails.funcionarios.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Funcionários</p>
-                <p className="font-medium">{routeDetails.funcionarios.join(', ')}</p>
-              </div>
-            )}
-            {routeDetails.instaladores && routeDetails.instaladores.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Instaladores</p>
-                <div className="font-medium">
-                  {routeDetails.instaladores.map((instalador, index) => (
-                    <div key={index}>{instalador}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {routeDetails.observacoes && (
-              <div className="md:col-span-2 lg:col-span-3">
-                <p className="text-sm font-medium text-gray-600 mb-1">Observações</p>
-                <p className="font-medium">{routeDetails.observacoes}</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="rotas">Rotas</TabsTrigger>
+          <TabsTrigger value="chamados">Chamados</TabsTrigger>
+        </TabsList>
 
-      {/* Lista de Lojas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Building2 className="h-5 w-5 mr-2" />
-            Lojas da Rota ({routeDetails.lojas.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {routeDetails.lojas.map((loja, index) => (
-              <div
-                key={loja.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-bold text-sm">
-                    {index + 1}
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    {getStatusIcon(loja)}
-                    <div>
-                      <h3 className="font-medium">{loja.nome_loja}</h3>
-                      <p className="text-sm text-gray-600">
-                        {loja.codigo_loja} • {loja.cidade}, {loja.uf}
-                      </p>
-                    </div>
-                  </div>
+        {/* Tab Content: Rotas */}
+        <TabsContent value="rotas" className="space-y-6">
+          {/* Informações da Rota */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MapPin className="h-5 w-5 mr-2" />
+                Informações da Rota
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Fornecedor</p>
+                  <p className="font-medium">{routeDetails.fornecedor_nome}</p>
                 </div>
-                
-                <div className="flex items-center space-x-4">
-                  <div className="text-right hidden md:block">
-                    <div className="flex items-center text-sm text-gray-600 mb-1">
-                      <User className="h-4 w-4 mr-1" />
-                      {loja.nome_operador}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="h-4 w-4 mr-1" />
-                      {loja.telefone_loja}
-                    </div>
+                {routeDetails.fornecedor_telefone && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Telefone Empresa</p>
+                    <p className="font-medium">{routeDetails.fornecedor_telefone}</p>
                   </div>
-                  
-                  <div className="text-right">
-                    {getStatusBadge(loja)}
-                    {loja.data_instalacao && (
-                      <div className="flex items-center text-xs text-gray-500 mt-1">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {new Date(loja.data_instalacao).toLocaleDateString('pt-BR')}
-                      </div>
-                    )}
+                )}
+                {routeDetails.fornecedor_email && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">E-mail</p>
+                    <p className="font-medium">{routeDetails.fornecedor_email}</p>
                   </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Data de Criação</p>
+                  <p className="font-medium">{new Date(routeDetails.data_criacao).toLocaleDateString('pt-BR')}</p>
                 </div>
+                {routeDetails.data_prevista && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Data Prevista</p>
+                    <p className="font-medium">{new Date(routeDetails.data_prevista).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                )}
+                {routeDetails.funcionarios && routeDetails.funcionarios.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Funcionários</p>
+                    <p className="font-medium">{routeDetails.funcionarios.join(', ')}</p>
+                  </div>
+                )}
+                {routeDetails.instaladores && routeDetails.instaladores.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Instaladores</p>
+                    <div className="font-medium">
+                      {routeDetails.instaladores.map((instalador, index) => (
+                        <div key={index}>{instalador}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {routeDetails.observacoes && (
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Observações</p>
+                    <p className="font-medium">{routeDetails.observacoes}</p>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+
+          {/* Lista de Lojas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Building2 className="h-5 w-5 mr-2" />
+                Lojas da Rota ({routeDetails.lojas.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {routeDetails.lojas.map((loja, index) => (
+                  <div
+                    key={loja.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        {getStatusIcon(loja)}
+                        <div>
+                          <h3 className="font-medium">{loja.nome_loja}</h3>
+                          <p className="text-sm text-gray-600">
+                            {loja.codigo_loja} • {loja.cidade}, {loja.uf}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right hidden md:block">
+                        <div className="flex items-center text-sm text-gray-600 mb-1">
+                          <User className="h-4 w-4 mr-1" />
+                          {loja.nome_operador}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Phone className="h-4 w-4 mr-1" />
+                          {loja.telefone_loja}
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        {getStatusBadge(loja)}
+                        {loja.data_instalacao && (
+                          <div className="flex items-center text-xs text-gray-500 mt-1">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(loja.data_instalacao).toLocaleDateString('pt-BR')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Content: Chamados */}
+        <TabsContent value="chamados" className="space-y-6">
+          {isLoadingTickets ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">Carregando chamados...</div>
+              </CardContent>
+            </Card>
+          ) : Object.keys(groupedTickets).length === 0 ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center text-gray-500">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  Nenhum chamado em aberto para esta rota.
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(groupedTickets).map(([storeId, storeTickets]) => {
+                const storeName = storeTickets[0]?.nome_loja || `Loja ${storeId}`;
+                return (
+                  <Card key={storeId}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Building2 className="h-5 w-5 mr-2" />
+                        {storeName}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Lista de Chamados */}
+                      <div className="space-y-3">
+                        {storeTickets.map((ticket) => (
+                          <div
+                            key={ticket.id}
+                            className="flex items-start justify-between p-3 border rounded-lg bg-gray-50"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-xs">
+                                  [Tipo: {ticket.tipo_chamado === 'loja' ? 'Lojista' : 'Fornecedor'}]
+                                </Badge>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
+                                </span>
+                              </div>
+                              <p className="text-sm font-medium mb-1">{ticket.descricao}</p>
+                              <p className="text-xs text-gray-600">
+                                Status: {ticket.status}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleCloseTicket(ticket.id)}
+                              disabled={closeTicketMutation.isPending}
+                              className="ml-4"
+                            >
+                              <FileX className="h-4 w-4 mr-1" />
+                              Encerrar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Campo de Anotações */}
+                      <div className="border-t pt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Anotações
+                        </label>
+                        <Textarea
+                          placeholder="Adicione anotações sobre os chamados desta loja..."
+                          value={annotations[storeId] || ''}
+                          onChange={(e) => handleAnnotationChange(storeId, e.target.value)}
+                          className="min-h-[100px]"
+                        />
+                        <div className="mt-2">
+                          <Button size="sm" variant="outline">
+                            Salvar Anotações
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
