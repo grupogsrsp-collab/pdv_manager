@@ -2707,12 +2707,12 @@ export class MySQLStorage implements IStorage {
     // Lista de kits para subcategoria
     const [unusedKitsListRows] = await pool.execute('SELECT * FROM kits LIMIT 10') as [RowDataPacket[], any];
 
-    // Instalações finalizadas com filtros (finalizada_instalador = 1 AND finalizada_lojista = 1)
+    // Instalações finalizadas com filtros (responsible e createdAt preenchidos)
     let finishedInstallationsQuery = `
       SELECT COUNT(DISTINCT i.loja_id) as count 
       FROM instalacoes i
       INNER JOIN lojas l ON i.loja_id = l.id
-      WHERE i.finalizada_instalador = 1 AND i.finalizada_lojista = 1
+      WHERE i.responsible IS NOT NULL AND i.createdAt IS NOT NULL
     `;
     const finishedInstallationsParams: any[] = [];
     
