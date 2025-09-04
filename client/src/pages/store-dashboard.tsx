@@ -5,7 +5,10 @@ import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { type Store, type FotoFinal } from "@shared/mysql-schema";
 import TicketForm from "@/components/forms/ticket-form";
@@ -13,6 +16,9 @@ import TicketForm from "@/components/forms/ticket-form";
 export default function StoreDashboard() {
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [lojistaNome, setLojistaNome] = useState("");
+  const { toast } = useToast();
   
   // Debug para verificar estado do modal
   useEffect(() => {
@@ -59,10 +65,29 @@ export default function StoreDashboard() {
     setLocation("/store-access");
   };
 
-  const handleFinalize = async () => {
+  const handleFinalize = () => {
+    // Abrir dialog para capturar nome do lojista
+    setShowNameDialog(true);
+  };
+
+  const handleConfirmFinalize = async () => {
+    if (!lojistaNome.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, registre seu nome.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (storeInfo?.installationStatus?.installation) {
       try {
         const installation = storeInfo.installationStatus.installation;
+        
+        // Capturar data e horário atuais
+        const agora = new Date();
+        const dataFinalizacao = agora.toISOString().split('T')[0]; // YYYY-MM-DD
+        const horarioFinalizacao = agora.toTimeString().split(' ')[0]; // HH:mm:ss
         
         // Enviar apenas os campos obrigatórios e válidos
         const installationData = {
@@ -73,12 +98,15 @@ export default function StoreDashboard() {
           fotosOriginais: installation.fotosOriginais || [],
           fotosFinais: installation.fotosFinais || [],
           justificativaFotos: installation.justificativaFotos || null,
-          finalizada: true
+          finalizada_lojista: true,
+          nome_lojista: lojistaNome.trim(),
+          data_finalizacao_lojista: dataFinalizacao,
+          horario_finalizacao_lojista: horarioFinalizacao
         };
         
-        console.log('Enviando dados de finalização:', installationData);
+        console.log('Enviando dados de finalização do lojista:', installationData);
         
-        // Marcar instalação como finalizada no backend
+        // Marcar instalação como finalizada pelo lojista no backend
         const response = await fetch('/api/installations', {
           method: 'POST',
           headers: {
@@ -88,17 +116,29 @@ export default function StoreDashboard() {
         });
         
         if (response.ok) {
-          console.log('✅ Instalação finalizada com sucesso! Mostrando modal...');
+          console.log('✅ Instalação finalizada pelo lojista com sucesso!');
           setIsFinalized(true);
           setShowSuccessModal(true);
+          setShowNameDialog(false);
+          setLojistaNome("");
           // Invalidar cache para atualizar dados
           queryClient.invalidateQueries({ queryKey: ["/api/stores", store.codigo_loja, "complete-info"] });
         } else {
           const errorData = await response.json();
           console.error('Erro na resposta:', errorData);
+          toast({
+            title: "Erro",
+            description: "Erro ao finalizar instalação. Tente novamente.",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error('Erro ao finalizar:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao finalizar instalação. Tente novamente.",
+          variant: "destructive",
+        });
       }
     }
   };
@@ -364,6 +404,41 @@ export default function StoreDashboard() {
           type="store"
         />
       )}
+
+      {/* Dialog para registrar nome do lojista */}
+      <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Registre Seu Nome</DialogTitle>
+            <DialogDescription>
+              Para finalizar o checklist da loja, é necessário registrar seu nome.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="nome" className="text-right">
+                Nome
+              </Label>
+              <Input
+                id="nome"
+                value={lojistaNome}
+                onChange={(e) => setLojistaNome(e.target.value)}
+                className="col-span-3"
+                placeholder="Digite seu nome"
+                data-testid="input-nome-lojista"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNameDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmFinalize} data-testid="button-confirmar-finalizacao">
+              Finalizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

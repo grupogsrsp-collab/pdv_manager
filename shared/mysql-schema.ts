@@ -210,6 +210,9 @@ export interface Installation {
   finalizada: boolean;
   finalizada_instalador?: boolean;
   finalizada_lojista?: boolean;
+  nome_lojista?: string;
+  data_finalizacao_lojista?: string;
+  horario_finalizacao_lojista?: string;
   // Campos de geolocalização
   latitude?: number;
   longitude?: number;
@@ -229,6 +232,9 @@ export interface InsertInstallation {
   finalizada?: boolean;
   finalizada_instalador?: boolean;
   finalizada_lojista?: boolean;
+  nome_lojista?: string;
+  data_finalizacao_lojista?: string;
+  horario_finalizacao_lojista?: string;
   // Campos de geolocalização
   latitude?: number;
   longitude?: number;

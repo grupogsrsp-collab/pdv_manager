@@ -256,6 +256,34 @@ export class MySQLStorage implements IStorage {
         }
       }
 
+      // Adicionar colunas para dados do lojista
+      try {
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN nome_lojista VARCHAR(255)');
+        console.log('✅ Coluna nome_lojista adicionada com sucesso!');
+      } catch (error: any) {
+        if (error.code === 'ER_DUP_FIELDNAME') {
+          console.log('ℹ️ Coluna nome_lojista já existe na tabela instalacoes');
+        }
+      }
+      
+      try {
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN data_finalizacao_lojista DATE');
+        console.log('✅ Coluna data_finalizacao_lojista adicionada com sucesso!');
+      } catch (error: any) {
+        if (error.code === 'ER_DUP_FIELDNAME') {
+          console.log('ℹ️ Coluna data_finalizacao_lojista já existe na tabela instalacoes');
+        }
+      }
+      
+      try {
+        await pool.execute('ALTER TABLE instalacoes ADD COLUMN horario_finalizacao_lojista TIME');
+        console.log('✅ Coluna horario_finalizacao_lojista adicionada com sucesso!');
+      } catch (error: any) {
+        if (error.code === 'ER_DUP_FIELDNAME') {
+          console.log('ℹ️ Coluna horario_finalizacao_lojista já existe na tabela instalacoes');
+        }
+      }
+
       // Verificar e corrigir estrutura da tabela chamados
       try {
         console.log('📝 Verificando estrutura da tabela chamados...');
@@ -1036,16 +1064,65 @@ export class MySQLStorage implements IStorage {
   }
 
   async getRouteItems(rotaId: number): Promise<(RouteItem & { loja?: Store })[]> {
-    const [rows] = await pool.execute(
-      `SELECT ri.*, l.nome_loja, l.logradouro, l.cidade, l.uf 
-       FROM rota_itens ri
-       LEFT JOIN lojas l ON ri.loja_id = l.codigo_loja
-       WHERE ri.rota_id = ?
-       ORDER BY ri.ordem_visita ASC`,
+    // Buscar informações da rota para obter o fornecedor_id
+    const [routeRows] = await pool.execute(
+      'SELECT fornecedor_id FROM rotas WHERE id = ?',
       [rotaId]
     ) as [RowDataPacket[], any];
     
-    return rows as (RouteItem & { loja?: Store })[];
+    if (routeRows.length === 0) {
+      return [];
+    }
+    
+    const fornecedorId = routeRows[0].fornecedor_id;
+    
+    const [rows] = await pool.execute(
+      `SELECT 
+         ri.*,
+         l.nome_loja, 
+         l.logradouro, 
+         l.cidade, 
+         l.uf,
+         -- Novos campos de status de instalação
+         COALESCE(inst.finalizada_instalador, false) as finalizada_instalador,
+         COALESCE(inst.finalizada_lojista, false) as finalizada_lojista,
+         -- Verificar se tem chamado aberto
+         CASE 
+           WHEN ch.id IS NOT NULL THEN true
+           ELSE false
+         END as tem_chamado_aberto,
+         inst.installationDate as data_instalacao
+       FROM rota_itens ri
+       LEFT JOIN lojas l ON ri.loja_id = l.codigo_loja
+       LEFT JOIN instalacoes inst ON l.codigo_loja = inst.loja_id AND inst.fornecedor_id = ?
+       LEFT JOIN chamados ch ON l.codigo_loja = ch.loja_id AND ch.status = 'aberto'
+       WHERE ri.rota_id = ?
+       ORDER BY ri.ordem_visita ASC`,
+      [fornecedorId, rotaId]
+    ) as [RowDataPacket[], any];
+    
+    // Mapear os resultados e determinar o status correto
+    return rows.map((row: any) => {
+      let status = row.status; // Status original do item da rota
+      
+      // Se tem chamado aberto, prioritário
+      if (row.tem_chamado_aberto) {
+        status = 'chamado_aberto';
+      } 
+      // Senão, determinar baseado na nova lógica de instalação
+      else if (!row.finalizada_instalador && !row.finalizada_lojista) {
+        status = 'Não Iniciado';
+      } else if (row.finalizada_instalador && !row.finalizada_lojista) {
+        status = 'Instalação Finalizada';
+      } else if (row.finalizada_instalador && row.finalizada_lojista) {
+        status = 'Finalizado';
+      }
+      
+      return {
+        ...row,
+        status
+      };
+    }) as (RouteItem & { loja?: Store })[];
   }
 
   async updateRouteItem(id: number, item: Partial<InsertRouteItem>): Promise<RouteItem> {
