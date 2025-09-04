@@ -2707,26 +2707,37 @@ export class MySQLStorage implements IStorage {
     // Lista de kits para subcategoria
     const [unusedKitsListRows] = await pool.execute('SELECT * FROM kits LIMIT 10') as [RowDataPacket[], any];
 
-    // Instalações finalizadas com filtros (responsible e createdAt preenchidos)
+    // Instalações finalizadas (responsible e createdAt preenchidos)
     let finishedInstallationsQuery = `
-      SELECT COUNT(DISTINCT i.loja_id) as count 
-      FROM instalacoes i
-      INNER JOIN lojas l ON i.loja_id = l.id
-      WHERE i.responsible IS NOT NULL AND i.createdAt IS NOT NULL
+      SELECT COUNT(*) as count 
+      FROM instalacoes
+      WHERE responsible IS NOT NULL AND responsible != ''
     `;
     const finishedInstallationsParams: any[] = [];
     
-    if (filters?.estado) {
-      finishedInstallationsQuery += ' AND l.uf = ?';
-      finishedInstallationsParams.push(filters.estado);
-    }
-    if (filters?.cidade) {
-      finishedInstallationsQuery += ' AND l.cidade = ?';
-      finishedInstallationsParams.push(filters.cidade);
-    }
-    if (filters?.bairro) {
-      finishedInstallationsQuery += ' AND l.bairro = ?';
-      finishedInstallationsParams.push(filters.bairro);
+    // Se houver filtros de localização, aplicar JOIN com lojas
+    if (filters?.estado || filters?.cidade || filters?.bairro) {
+      finishedInstallationsQuery = `
+        SELECT COUNT(*) as count 
+        FROM instalacoes i
+        LEFT JOIN lojas l ON (i.loja_id = l.id OR i.loja_id = l.codigo_loja)
+        WHERE i.responsible IS NOT NULL 
+          AND i.responsible != '' 
+          AND i.createdAt IS NOT NULL
+      `;
+      
+      if (filters?.estado) {
+        finishedInstallationsQuery += ' AND l.uf = ?';
+        finishedInstallationsParams.push(filters.estado);
+      }
+      if (filters?.cidade) {
+        finishedInstallationsQuery += ' AND l.cidade = ?';
+        finishedInstallationsParams.push(filters.cidade);
+      }
+      if (filters?.bairro) {
+        finishedInstallationsQuery += ' AND l.bairro = ?';
+        finishedInstallationsParams.push(filters.bairro);
+      }
     }
     
     const [finishedInstallationsRows] = await pool.execute(finishedInstallationsQuery, finishedInstallationsParams) as [RowDataPacket[], any];
