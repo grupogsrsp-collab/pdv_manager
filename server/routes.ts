@@ -141,16 +141,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/routes', async (req, res) => {
     try {
       const fornecedorId = req.query.fornecedor_id ? parseInt(req.query.fornecedor_id as string) : undefined;
+      // Função para converter data DD/MM/YYYY para YYYY-MM-DD
+      const convertDateFormat = (dateStr: string): string => {
+        if (!dateStr) return dateStr;
+        // Se já está no formato YYYY-MM-DD, retorna como está
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+        // Se está no formato DD/MM/YYYY, converte para YYYY-MM-DD
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+          const [day, month, year] = dateStr.split('/');
+          return `${year}-${month}-${day}`;
+        }
+        return dateStr;
+      };
+
       const filters = {
-        dataInicio: req.query.dataInicio as string,
-        dataFim: req.query.dataFim as string,
+        dataInicio: convertDateFormat(req.query.dataInicio as string),
+        dataFim: convertDateFormat(req.query.dataFim as string),
         comChamados: req.query.comChamados as string,
         codigoLoja: req.query.codigoLoja as string,
         cidade: req.query.cidade as string,
         bairro: req.query.bairro as string,
         uf: req.query.uf as string,
-        dataPrevistaInicio: req.query.dataPrevistaInicio as string,
-        dataPrevistaFim: req.query.dataPrevistaFim as string
+        dataPrevistaInicio: convertDateFormat(req.query.dataPrevistaInicio as string),
+        dataPrevistaFim: convertDateFormat(req.query.dataPrevistaFim as string)
       };
       const routes = await storage.getRoutes(fornecedorId, filters);
       res.json(routes);
