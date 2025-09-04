@@ -91,7 +91,9 @@ export default function AdminRoutes() {
     codigoLoja: '',
     cidade: '',
     bairro: '',
-    uf: ''
+    uf: '',
+    dataPrevistaInicio: '',
+    dataPrevistaFim: ''
   });
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
@@ -110,8 +112,7 @@ export default function AdminRoutes() {
   const [debouncedTextFilters, setDebouncedTextFilters] = useState({
     codigoLoja: filters.codigoLoja,
     cidade: filters.cidade,
-    bairro: filters.bairro,
-    uf: filters.uf
+    bairro: filters.bairro
   });
 
   useEffect(() => {
@@ -119,13 +120,12 @@ export default function AdminRoutes() {
       setDebouncedTextFilters({
         codigoLoja: filters.codigoLoja,
         cidade: filters.cidade,
-        bairro: filters.bairro,
-        uf: filters.uf
+        bairro: filters.bairro
       });
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [filters.codigoLoja, filters.cidade, filters.bairro, filters.uf]);
+  }, [filters.codigoLoja, filters.cidade, filters.bairro]);
 
   // Filtros finais que combinam filtros imediatos (data, select) com filtros com debounce (texto)
   const finalFilters = useMemo(() => ({
@@ -135,7 +135,9 @@ export default function AdminRoutes() {
     codigoLoja: debouncedTextFilters.codigoLoja,
     cidade: debouncedTextFilters.cidade,
     bairro: debouncedTextFilters.bairro,
-    uf: debouncedTextFilters.uf
+    uf: filters.uf,
+    dataPrevistaInicio: filters.dataPrevistaInicio,
+    dataPrevistaFim: filters.dataPrevistaFim
   }), [
     filters.dataInicio,
     filters.dataFim,
@@ -143,7 +145,9 @@ export default function AdminRoutes() {
     debouncedTextFilters.codigoLoja,
     debouncedTextFilters.cidade,
     debouncedTextFilters.bairro,
-    debouncedTextFilters.uf
+    filters.uf,
+    filters.dataPrevistaInicio,
+    filters.dataPrevistaFim
   ]);
 
   const { data: routes, isLoading: routesLoading } = useQuery<Route[]>({
@@ -157,6 +161,8 @@ export default function AdminRoutes() {
       if (finalFilters.cidade) params.append('cidade', finalFilters.cidade);
       if (finalFilters.bairro) params.append('bairro', finalFilters.bairro);
       if (finalFilters.uf) params.append('uf', finalFilters.uf);
+      if (finalFilters.dataPrevistaInicio) params.append('dataPrevistaInicio', finalFilters.dataPrevistaInicio);
+      if (finalFilters.dataPrevistaFim) params.append('dataPrevistaFim', finalFilters.dataPrevistaFim);
       
       const url = `/api/routes${params.toString() ? '?' + params.toString() : ''}`;
       return fetch(url).then(res => res.json());
@@ -838,7 +844,7 @@ export default function AdminRoutes() {
           <h3 className="font-medium text-gray-900">Filtros</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Data De</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Data Criação De</label>
               <Input
                 type="date"
                 value={filters.dataInicio}
@@ -847,11 +853,29 @@ export default function AdminRoutes() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Data Até</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Data Criação Até</label>
               <Input
                 type="date"
                 value={filters.dataFim}
                 onChange={(e) => setFilters(prev => ({ ...prev, dataFim: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Instalação Prevista De</label>
+              <Input
+                type="date"
+                value={filters.dataPrevistaInicio}
+                onChange={(e) => setFilters(prev => ({ ...prev, dataPrevistaInicio: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Instalação Prevista Até</label>
+              <Input
+                type="date"
+                value={filters.dataPrevistaFim}
+                onChange={(e) => setFilters(prev => ({ ...prev, dataPrevistaFim: e.target.value }))}
                 className="text-sm"
               />
             </div>
@@ -890,7 +914,7 @@ export default function AdminRoutes() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Bairro</label>
               <Input
@@ -902,12 +926,44 @@ export default function AdminRoutes() {
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Estado</label>
-              <Input
-                placeholder="Ex: SP"
+              <Select
                 value={filters.uf}
-                onChange={(e) => setFilters(prev => ({ ...prev, uf: e.target.value }))}
-                className="text-sm"
-              />
+                onValueChange={(value) => setFilters(prev => ({ ...prev, uf: value }))}
+              >
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="AC">AC</SelectItem>
+                  <SelectItem value="AL">AL</SelectItem>
+                  <SelectItem value="AP">AP</SelectItem>
+                  <SelectItem value="AM">AM</SelectItem>
+                  <SelectItem value="BA">BA</SelectItem>
+                  <SelectItem value="CE">CE</SelectItem>
+                  <SelectItem value="DF">DF</SelectItem>
+                  <SelectItem value="ES">ES</SelectItem>
+                  <SelectItem value="GO">GO</SelectItem>
+                  <SelectItem value="MA">MA</SelectItem>
+                  <SelectItem value="MT">MT</SelectItem>
+                  <SelectItem value="MS">MS</SelectItem>
+                  <SelectItem value="MG">MG</SelectItem>
+                  <SelectItem value="PA">PA</SelectItem>
+                  <SelectItem value="PB">PB</SelectItem>
+                  <SelectItem value="PR">PR</SelectItem>
+                  <SelectItem value="PE">PE</SelectItem>
+                  <SelectItem value="PI">PI</SelectItem>
+                  <SelectItem value="RJ">RJ</SelectItem>
+                  <SelectItem value="RN">RN</SelectItem>
+                  <SelectItem value="RS">RS</SelectItem>
+                  <SelectItem value="RO">RO</SelectItem>
+                  <SelectItem value="RR">RR</SelectItem>
+                  <SelectItem value="SC">SC</SelectItem>
+                  <SelectItem value="SP">SP</SelectItem>
+                  <SelectItem value="SE">SE</SelectItem>
+                  <SelectItem value="TO">TO</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end gap-2">
               <Button
@@ -919,7 +975,9 @@ export default function AdminRoutes() {
                   codigoLoja: '',
                   cidade: '',
                   bairro: '',
-                  uf: ''
+                  uf: '',
+                  dataPrevistaInicio: '',
+                  dataPrevistaFim: ''
                 })}
                 className="text-sm"
               >

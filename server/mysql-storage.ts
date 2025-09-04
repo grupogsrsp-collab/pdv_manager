@@ -625,7 +625,7 @@ export class MySQLStorage implements IStorage {
       params.push(fornecedorId);
     }
 
-    // Filtros de data
+    // Filtros de data de criação
     if (filters?.dataInicio) {
       whereConditions.push('DATE(r.data_criacao) >= ?');
       params.push(filters.dataInicio);
@@ -634,6 +634,17 @@ export class MySQLStorage implements IStorage {
     if (filters?.dataFim) {
       whereConditions.push('DATE(r.data_criacao) <= ?');
       params.push(filters.dataFim);
+    }
+    
+    // Filtros de data prevista
+    if (filters?.dataPrevistaInicio) {
+      whereConditions.push('DATE(r.data_prevista) >= ?');
+      params.push(filters.dataPrevistaInicio);
+    }
+    
+    if (filters?.dataPrevistaFim) {
+      whereConditions.push('DATE(r.data_prevista) <= ?');
+      params.push(filters.dataPrevistaFim);
     }
     
     // Filtro de chamados
@@ -666,9 +677,9 @@ export class MySQLStorage implements IStorage {
         params.push(`%${filters.bairro}%`);
       }
       
-      if (filters.uf) {
-        whereConditions.push('l_filter.uf LIKE ?');
-        params.push(`%${filters.uf}%`);
+      if (filters.uf && filters.uf !== '') {
+        whereConditions.push('l_filter.uf = ?');
+        params.push(filters.uf);
       }
     }
     
