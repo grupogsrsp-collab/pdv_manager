@@ -967,11 +967,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/routes/:routeId/stores/:storeId/annotations", async (req, res) => {
     try {
-      const routeId = parseInt(req.params.routeId);
       const storeId = req.params.storeId;
       const { annotations } = req.body;
       
-      await storage.saveRouteStoreAnnotations(routeId, storeId, annotations);
+      // Usar o mesmo sistema genérico de anotações
+      await storage.saveStoreAnnotations(storeId, annotations);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Erro ao salvar anotações:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Endpoints genéricos para anotações de loja (independente de rota)
+  app.get("/api/stores/:storeId/annotations", async (req, res) => {
+    try {
+      const storeId = req.params.storeId;
+      
+      const annotations = await storage.getStoreAnnotations(storeId);
+      res.json({ annotations });
+    } catch (error) {
+      console.error("Erro ao buscar anotações:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/stores/:storeId/annotations", async (req, res) => {
+    try {
+      const storeId = req.params.storeId;
+      const { annotations } = req.body;
+      
+      await storage.saveStoreAnnotations(storeId, annotations);
       res.status(200).json({ success: true });
     } catch (error) {
       console.error("Erro ao salvar anotações:", error);
@@ -981,10 +1007,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/routes/:routeId/stores/:storeId/annotations", async (req, res) => {
     try {
-      const routeId = parseInt(req.params.routeId);
       const storeId = req.params.storeId;
       
-      const annotations = await storage.getRouteStoreAnnotations(routeId, storeId);
+      // Usar o mesmo sistema genérico de anotações
+      const annotations = await storage.getStoreAnnotations(storeId);
       res.json({ annotations });
     } catch (error) {
       console.error("Erro ao buscar anotações:", error);

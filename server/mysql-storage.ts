@@ -615,6 +615,17 @@ export class MySQLStorage implements IStorage {
           INDEX idx_funcionario_id (funcionario_id)
         )
       `);
+
+      // Criar tabela anotacoes_lojas
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS anotacoes_lojas (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          loja_id VARCHAR(50) NOT NULL,
+          anotacoes TEXT,
+          data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY unique_loja (loja_id)
+        )
+      `);
       
       console.log('✅ Tabelas de rotas criadas com sucesso!');
     } catch (error) {
@@ -1975,47 +1986,32 @@ export class MySQLStorage implements IStorage {
   }
 
   async saveRouteStoreAnnotations(routeId: number, storeId: string, annotations: string): Promise<void> {
-    // Atualizar as observações da rota com anotações específicas por loja
-    const [currentRouteRows] = await pool.execute(
-      'SELECT observacoes FROM rotas WHERE id = ?',
-      [routeId]
-    ) as [RowDataPacket[], any];
-    
-    let currentObservations = {};
-    if (currentRouteRows.length > 0 && currentRouteRows[0].observacoes) {
-      try {
-        currentObservations = JSON.parse(currentRouteRows[0].observacoes);
-      } catch (e) {
-        // Se não for JSON válido, manter como string simples
-        currentObservations = { general: currentRouteRows[0].observacoes };
-      }
-    }
-    
-    // Atualizar anotações específicas da loja
-    (currentObservations as any)[`loja_${storeId}`] = annotations;
-    
-    await pool.execute(
-      'UPDATE rotas SET observacoes = ? WHERE id = ?',
-      [JSON.stringify(currentObservations), routeId]
-    );
+    // Usar o método genérico de anotações
+    await this.saveStoreAnnotations(storeId, annotations);
   }
 
   async getRouteStoreAnnotations(routeId: number, storeId: string): Promise<string> {
+    // Usar o método genérico de anotações
+    return await this.getStoreAnnotations(storeId);
+  }
+
+  // Métodos genéricos para anotações de loja (independente de rota)
+  async saveStoreAnnotations(storeId: string, annotations: string): Promise<void> {
+    await pool.execute(
+      `INSERT INTO anotacoes_lojas (loja_id, anotacoes) 
+       VALUES (?, ?) 
+       ON DUPLICATE KEY UPDATE anotacoes = VALUES(anotacoes)`,
+      [storeId, annotations]
+    );
+  }
+
+  async getStoreAnnotations(storeId: string): Promise<string> {
     const [rows] = await pool.execute(
-      'SELECT observacoes FROM rotas WHERE id = ?',
-      [routeId]
+      'SELECT anotacoes FROM anotacoes_lojas WHERE loja_id = ?',
+      [storeId]
     ) as [RowDataPacket[], any];
     
-    if (rows.length > 0 && rows[0].observacoes) {
-      try {
-        const observations = JSON.parse(rows[0].observacoes);
-        return observations[`loja_${storeId}`] || '';
-      } catch (e) {
-        return '';
-      }
-    }
-    
-    return '';
+    return rows.length > 0 ? rows[0].anotacoes || '' : '';
   }
 
   async getAllAdmins(): Promise<Admin[]> {
