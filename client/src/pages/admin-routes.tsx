@@ -91,7 +91,7 @@ export default function AdminRoutes() {
     codigoLoja: '',
     cidade: '',
     bairro: '',
-    uf: '',
+    uf: 'todos',
     dataPrevistaInicio: '',
     dataPrevistaFim: ''
   });
@@ -135,7 +135,7 @@ export default function AdminRoutes() {
     codigoLoja: debouncedTextFilters.codigoLoja,
     cidade: debouncedTextFilters.cidade,
     bairro: debouncedTextFilters.bairro,
-    uf: filters.uf,
+    uf: filters.uf === 'todos' ? '' : filters.uf,
     dataPrevistaInicio: filters.dataPrevistaInicio,
     dataPrevistaFim: filters.dataPrevistaFim
   }), [
@@ -934,7 +934,7 @@ export default function AdminRoutes() {
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="AC">AC</SelectItem>
                   <SelectItem value="AL">AL</SelectItem>
                   <SelectItem value="AP">AP</SelectItem>
@@ -975,7 +975,7 @@ export default function AdminRoutes() {
                   codigoLoja: '',
                   cidade: '',
                   bairro: '',
-                  uf: '',
+                  uf: 'todos',
                   dataPrevistaInicio: '',
                   dataPrevistaFim: ''
                 })}
