@@ -1264,6 +1264,9 @@ export class MySQLStorage implements IStorage {
         installationStatus = 'Instalação Finalizada';
       } else if (store.finalizada_instalador && store.finalizada_lojista) {
         installationStatus = 'Finalizado';
+      } else if (!store.finalizada_instalador && store.finalizada_lojista) {
+        // Caso onde apenas o lojista finalizou (possível erro ou situação especial)
+        installationStatus = 'Aguardando Instalador';
       } else {
         installationStatus = 'Não Iniciado';
       }

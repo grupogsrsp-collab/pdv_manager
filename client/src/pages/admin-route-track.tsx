@@ -22,7 +22,7 @@ interface RouteStoreStatus {
   logradouro: string;
   telefone_loja: string;
   nome_operador: string;
-  status: 'finalizada' | 'pendente' | 'chamado_aberto' | 'Não Iniciado' | 'Instalação Finalizada' | 'Finalizado';
+  status: 'finalizada' | 'pendente' | 'chamado_aberto' | 'Não Iniciado' | 'Instalação Finalizada' | 'Finalizado' | 'Aguardando Instalador';
   instalacao_finalizada: boolean;
   finalizada_instalador?: boolean;
   finalizada_lojista?: boolean;
@@ -108,6 +108,9 @@ export default function AdminRouteTrack() {
     }
     if (store.status === 'Instalação Finalizada' || (store.finalizada_instalador && !store.finalizada_lojista)) {
       return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Instalação Finalizada</Badge>;
+    }
+    if (store.status === 'Aguardando Instalador' || (!store.finalizada_instalador && store.finalizada_lojista)) {
+      return <Badge variant="secondary" className="bg-purple-100 text-purple-800">Aguardando Instalador</Badge>;
     }
     return <Badge variant="secondary" className="bg-red-100 text-red-800">Não Iniciado</Badge>;
   };
