@@ -1884,7 +1884,7 @@ export class MySQLStorage implements IStorage {
       LEFT JOIN lojas l ON (c.loja_id = l.codigo_loja OR c.loja_id = l.id)
       LEFT JOIN funcionarios_fornecedores ff ON (
         ff.fornecedor_id = c.fornecedor_id 
-        AND CONCAT(ff.primeiro_nome, ' ', ff.ultimo_nome) LIKE CONCAT('%', c.instalador, '%')
+        AND ff.nome_funcionario LIKE CONCAT('%', c.instalador, '%')
       )
       ORDER BY c.data_abertura DESC
     `;
