@@ -160,6 +160,9 @@ export default function AdminRouteTrack() {
     });
   };
 
+  // Primeiro definir groupedTickets para uso nas queries
+  const groupedTickets = groupTicketsByStore(tickets);
+
   // Carregar anotações existentes quando a aba é ativada
   const { data: existingAnnotations } = useQuery<Record<string, string>>({
     queryKey: ['/api/routes', routeId, 'annotations'],
@@ -222,9 +225,6 @@ export default function AdminRouteTrack() {
       </div>
     );
   }
-
-
-  const groupedTickets = groupTicketsByStore(tickets);
 
   return (
     <div className="p-6 space-y-6">
