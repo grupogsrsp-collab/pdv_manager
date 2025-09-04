@@ -316,7 +316,7 @@ export const insertInstallationSchema = z.object({
   installationDate: z.string().min(1, "Data de instalação é obrigatória"),
   fotosOriginais: z.array(z.string()).default([]),
   fotosFinais: z.array(z.string()).default([]),
-  justificativaFotos: z.string().optional(),
+  justificativaFotos: z.string().nullable().optional(),
   // Campos de finalização
   finalizada: z.boolean().optional(),
   finalizada_instalador: z.boolean().optional(),
