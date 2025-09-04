@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -105,16 +105,27 @@ export default function AdminRoutes() {
   const queryClient = useQueryClient();
 
   // Query para buscar rotas
+  // Debounce dos filtros para melhorar performance
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [filters]);
+
   const { data: routes, isLoading: routesLoading } = useQuery<Route[]>({
-    queryKey: ['/api/routes', filters],
+    queryKey: ['/api/routes', debouncedFilters],
     queryFn: () => {
       const params = new URLSearchParams();
-      if (filters.dataInicio) params.append('dataInicio', filters.dataInicio);
-      if (filters.dataFim) params.append('dataFim', filters.dataFim);
-      if (filters.comChamados && filters.comChamados !== 'todos') params.append('comChamados', filters.comChamados);
-      if (filters.codigoLoja) params.append('codigoLoja', filters.codigoLoja);
-      if (filters.cidade) params.append('cidade', filters.cidade);
-      if (filters.bairro) params.append('bairro', filters.bairro);
+      if (debouncedFilters.dataInicio) params.append('dataInicio', debouncedFilters.dataInicio);
+      if (debouncedFilters.dataFim) params.append('dataFim', debouncedFilters.dataFim);
+      if (debouncedFilters.comChamados && debouncedFilters.comChamados !== 'todos') params.append('comChamados', debouncedFilters.comChamados);
+      if (debouncedFilters.codigoLoja) params.append('codigoLoja', debouncedFilters.codigoLoja);
+      if (debouncedFilters.cidade) params.append('cidade', debouncedFilters.cidade);
+      if (debouncedFilters.bairro) params.append('bairro', debouncedFilters.bairro);
       
       const url = `/api/routes${params.toString() ? '?' + params.toString() : ''}`;
       return fetch(url).then(res => res.json());
@@ -473,92 +484,6 @@ export default function AdminRoutes() {
               </h1>
               <p className="text-gray-600">Organize as rotas de instalação dos fornecedores</p>
             </div>
-            
-            {/* Filtros */}
-            <div className="bg-white rounded-lg border p-4 space-y-4">
-              <h3 className="font-medium text-gray-900">Filtros</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Data De</label>
-                  <Input
-                    type="date"
-                    value={filters.dataInicio}
-                    onChange={(e) => setFilters(prev => ({ ...prev, dataInicio: e.target.value }))}
-                    className="text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Data Até</label>
-                  <Input
-                    type="date"
-                    value={filters.dataFim}
-                    onChange={(e) => setFilters(prev => ({ ...prev, dataFim: e.target.value }))}
-                    className="text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Com Chamados</label>
-                  <Select
-                    value={filters.comChamados}
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, comChamados: value }))}
-                  >
-                    <SelectTrigger className="text-sm">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
-                      <SelectItem value="sim">Com Chamados</SelectItem>
-                      <SelectItem value="nao">Sem Chamados</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Código da Loja</label>
-                  <Input
-                    placeholder="Ex: 12345"
-                    value={filters.codigoLoja}
-                    onChange={(e) => setFilters(prev => ({ ...prev, codigoLoja: e.target.value }))}
-                    className="text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Cidade</label>
-                  <Input
-                    placeholder="Ex: São Paulo"
-                    value={filters.cidade}
-                    onChange={(e) => setFilters(prev => ({ ...prev, cidade: e.target.value }))}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Bairro</label>
-                  <Input
-                    placeholder="Ex: Vila Olímpia"
-                    value={filters.bairro}
-                    onChange={(e) => setFilters(prev => ({ ...prev, bairro: e.target.value }))}
-                    className="text-sm"
-                  />
-                </div>
-                <div className="flex items-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setFilters({
-                      dataInicio: '',
-                      dataFim: '',
-                      comChamados: 'todos',
-                      codigoLoja: '',
-                      cidade: '',
-                      bairro: ''
-                    })}
-                    className="text-sm"
-                  >
-                    Limpar Filtros
-                  </Button>
-                </div>
-              </div>
-            </div>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
@@ -874,6 +799,92 @@ export default function AdminRoutes() {
                 </div>
               </DialogContent>
             </Dialog>
+          </div>
+        </div>
+
+        {/* Filtros */}
+        <div className="bg-white rounded-lg border p-4 space-y-4 mb-6">
+          <h3 className="font-medium text-gray-900">Filtros</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Data De</label>
+              <Input
+                type="date"
+                value={filters.dataInicio}
+                onChange={(e) => setFilters(prev => ({ ...prev, dataInicio: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Data Até</label>
+              <Input
+                type="date"
+                value={filters.dataFim}
+                onChange={(e) => setFilters(prev => ({ ...prev, dataFim: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Com Chamados</label>
+              <Select
+                value={filters.comChamados}
+                onValueChange={(value) => setFilters(prev => ({ ...prev, comChamados: value }))}
+              >
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="sim">Com Chamados</SelectItem>
+                  <SelectItem value="nao">Sem Chamados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Código da Loja</label>
+              <Input
+                placeholder="Ex: 12345"
+                value={filters.codigoLoja}
+                onChange={(e) => setFilters(prev => ({ ...prev, codigoLoja: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Cidade</label>
+              <Input
+                placeholder="Ex: São Paulo"
+                value={filters.cidade}
+                onChange={(e) => setFilters(prev => ({ ...prev, cidade: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Bairro</label>
+              <Input
+                placeholder="Ex: Vila Olímpia"
+                value={filters.bairro}
+                onChange={(e) => setFilters(prev => ({ ...prev, bairro: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+            <div className="flex items-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setFilters({
+                  dataInicio: '',
+                  dataFim: '',
+                  comChamados: 'todos',
+                  codigoLoja: '',
+                  cidade: '',
+                  bairro: ''
+                })}
+                className="text-sm"
+              >
+                Limpar Filtros
+              </Button>
+            </div>
           </div>
         </div>
 
