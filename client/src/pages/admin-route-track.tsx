@@ -111,7 +111,8 @@ export default function AdminRouteTrack() {
   const groupTicketsByStore = (tickets: Ticket[]) => {
     const grouped: Record<string, Ticket[]> = {};
     tickets.forEach(ticket => {
-      const storeKey = ticket.loja_id;
+      // Usar o código da loja como chave, se não houver, usar loja_id
+      const storeKey = ticket.codigo_loja || ticket.loja_id;
       if (!grouped[storeKey]) {
         grouped[storeKey] = [];
       }
@@ -399,56 +400,52 @@ export default function AdminRouteTrack() {
           ) : (
             <div className="space-y-6">
               {Object.entries(groupedTickets).map(([storeId, storeTickets]) => {
-                const firstTicket = storeTickets[0];
-                const storeName = firstTicket?.nome_loja || '';
-                const storeCode = firstTicket?.codigo_loja || storeId;
-                const storeAddress = `${firstTicket?.logradouro || ''} ${firstTicket?.numero || ''}, ${firstTicket?.cidade || ''} - ${firstTicket?.uf || ''}`;
+                // Encontrar o ticket com informações mais completas da loja
+                const ticketWithStoreInfo = storeTickets.find(t => t.nome_loja && t.codigo_loja) || storeTickets[0];
+                const storeName = ticketWithStoreInfo?.nome_loja || '';
+                const storeCode = ticketWithStoreInfo?.codigo_loja || storeId;
+                const storeAddress = ticketWithStoreInfo?.logradouro && ticketWithStoreInfo?.cidade ? 
+                  `${ticketWithStoreInfo.logradouro} ${ticketWithStoreInfo.numero || ''}, ${ticketWithStoreInfo.bairro || ''} - ${ticketWithStoreInfo.cidade} - ${ticketWithStoreInfo.uf}` : '';
                 
                 // Separar chamados por tipo
                 const instaladorTickets = storeTickets.filter(ticket => ticket.tipo_chamado === 'fornecedor');
                 const lojistaTickets = storeTickets.filter(ticket => ticket.tipo_chamado === 'loja');
                 
                 return (
-                  <Card key={storeId} className="border-l-4 border-l-blue-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-lg">
-                        <Building2 className="h-5 w-5 mr-2" />
-                        {storeCode} - {storeName}
-                      </CardTitle>
-                      {storeAddress.trim() !== ' ,' && (
-                        <p className="text-sm text-gray-600 mt-1">
+                  <Card key={storeId} className="border shadow-sm">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center gap-2 text-lg font-semibold">
+                        <Store className="h-5 w-5 text-gray-600" />
+                        <span>Loja {storeCode}</span>
+                      </div>
+                      {storeAddress && (
+                        <p className="text-sm text-gray-600 mt-1 ml-7">
                           {storeAddress}
                         </p>
                       )}
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="pt-0 px-6 pb-6 space-y-4">
                       {/* Chamados do Instalador */}
                       {instaladorTickets.length > 0 && (
                         <div className="space-y-3">
-                          <h4 className="text-md font-semibold text-gray-800">Instalador</h4>
                           {instaladorTickets.map((ticket) => (
-                            <div
-                              key={ticket.id}
-                              className="p-4 border rounded-lg bg-red-50 border-red-200"
-                            >
+                            <div key={ticket.id} className="pb-3 border-b last:border-0">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="font-medium text-sm">
-                                      {ticket.instalador?.replace(/[\[\]]/g, '') || 'Nome do Instalador'} Telefone:
-                                    </span>
-                                    <span className="text-xs text-gray-500">
+                                  <div className="text-sm font-semibold mb-1">
+                                    Instalador {ticket.instalador?.replace(/[\[\]]/g, '') || '[nome do instalador]'} Telefone:
+                                    <span className="ml-2 text-xs text-gray-500 font-normal">
                                       {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
                                     </span>
                                   </div>
-                                  <p className="text-sm mb-1">{ticket.descricao}</p>
-                                  <p className="text-xs text-gray-600">
+                                  <p className="text-sm text-gray-600 mb-1">{ticket.descricao}</p>
+                                  <p className="text-xs" style={{color: ticket.status === 'Aberto' || ticket.status === 'aberto' ? '#dc2626' : '#059669'}}>
                                     Status: {ticket.status}
                                   </p>
                                 </div>
                                 <Button
                                   size="sm"
-                                  className="bg-red-500 hover:bg-red-600 text-white ml-4"
+                                  className="bg-red-500 hover:bg-red-600 text-white"
                                   onClick={() => handleCloseTicket(ticket.id)}
                                   disabled={closeTicketMutation.isPending}
                                 >
@@ -463,30 +460,24 @@ export default function AdminRouteTrack() {
                       {/* Chamados do Lojista */}
                       {lojistaTickets.length > 0 && (
                         <div className="space-y-3">
-                          <h4 className="text-md font-semibold text-gray-800">Lojista Responsável</h4>
                           {lojistaTickets.map((ticket) => (
-                            <div
-                              key={ticket.id}
-                              className="p-4 border rounded-lg bg-red-50 border-red-200"
-                            >
+                            <div key={ticket.id} className="pb-3 border-b last:border-0">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="font-medium text-sm">
-                                      {ticket.nome_operador || 'Lojista'} Telefone: {ticket.telefone_loja || ''}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
+                                  <div className="text-sm font-semibold mb-1">
+                                    Lojista Responsável: Telefone: {ticket.telefone_loja || ''}
+                                    <span className="ml-2 text-xs text-gray-500 font-normal">
                                       {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
                                     </span>
                                   </div>
-                                  <p className="text-sm mb-1">{ticket.descricao}</p>
-                                  <p className="text-xs text-gray-600">
+                                  <p className="text-sm text-gray-600 mb-1">{ticket.descricao}</p>
+                                  <p className="text-xs" style={{color: ticket.status === 'Aberto' || ticket.status === 'aberto' ? '#dc2626' : '#059669'}}>
                                     Status: {ticket.status}
                                   </p>
                                 </div>
                                 <Button
                                   size="sm"
-                                  className="bg-red-500 hover:bg-red-600 text-white ml-4"
+                                  className="bg-red-500 hover:bg-red-600 text-white"
                                   onClick={() => handleCloseTicket(ticket.id)}
                                   disabled={closeTicketMutation.isPending}
                                 >
