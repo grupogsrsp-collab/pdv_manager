@@ -599,7 +599,7 @@ export class MySQLStorage implements IStorage {
     return rows[0] as Route;
   }
 
-  async getRoutes(fornecedorId?: number): Promise<Route[]> {
+  async getRoutes(fornecedorId?: number, filters?: any): Promise<Route[]> {
     let query = `
       SELECT 
         r.*,
@@ -618,13 +618,60 @@ export class MySQLStorage implements IStorage {
       ) open_tickets ON r.id = open_tickets.rota_id`;
     
     const params = [];
+    const whereConditions = [];
     
     if (fornecedorId) {
-      query += ' WHERE r.fornecedor_id = ?';
+      whereConditions.push('r.fornecedor_id = ?');
       params.push(fornecedorId);
     }
+
+    // Filtros de data
+    if (filters?.dataInicio) {
+      whereConditions.push('DATE(r.data_criacao) >= ?');
+      params.push(filters.dataInicio);
+    }
     
-    query += ' ORDER BY r.data_criacao DESC';
+    if (filters?.dataFim) {
+      whereConditions.push('DATE(r.data_criacao) <= ?');
+      params.push(filters.dataFim);
+    }
+    
+    // Filtro de chamados
+    if (filters?.comChamados) {
+      if (filters.comChamados === 'sim') {
+        whereConditions.push('COALESCE(open_tickets.total_chamados, 0) > 0');
+      } else if (filters.comChamados === 'nao') {
+        whereConditions.push('COALESCE(open_tickets.total_chamados, 0) = 0');
+      }
+    }
+    
+    // Filtros de loja
+    if (filters?.codigoLoja || filters?.cidade || filters?.bairro) {
+      query += `
+        INNER JOIN rota_itens ri_filter ON r.id = ri_filter.rota_id
+        INNER JOIN lojas l_filter ON (ri_filter.loja_id = l_filter.codigo_loja OR ri_filter.loja_id = l_filter.id)`;
+      
+      if (filters.codigoLoja) {
+        whereConditions.push('l_filter.codigo_loja LIKE ?');
+        params.push(`%${filters.codigoLoja}%`);
+      }
+      
+      if (filters.cidade) {
+        whereConditions.push('l_filter.cidade LIKE ?');
+        params.push(`%${filters.cidade}%`);
+      }
+      
+      if (filters.bairro) {
+        whereConditions.push('l_filter.bairro LIKE ?');
+        params.push(`%${filters.bairro}%`);
+      }
+    }
+    
+    if (whereConditions.length > 0) {
+      query += ' WHERE ' + whereConditions.join(' AND ');
+    }
+    
+    query += ' GROUP BY r.id ORDER BY r.data_criacao DESC';
     
     const [rows] = await pool.execute(query, params) as [RowDataPacket[], any];
     return rows as Route[];

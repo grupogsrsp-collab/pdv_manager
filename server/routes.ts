@@ -141,7 +141,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/routes', async (req, res) => {
     try {
       const fornecedorId = req.query.fornecedor_id ? parseInt(req.query.fornecedor_id as string) : undefined;
-      const routes = await storage.getRoutes(fornecedorId);
+      const filters = {
+        dataInicio: req.query.dataInicio as string,
+        dataFim: req.query.dataFim as string,
+        comChamados: req.query.comChamados as string,
+        codigoLoja: req.query.codigoLoja as string,
+        cidade: req.query.cidade as string,
+        bairro: req.query.bairro as string
+      };
+      const routes = await storage.getRoutes(fornecedorId, filters);
       res.json(routes);
     } catch (error) {
       console.log('Erro ao buscar rotas:', error);
