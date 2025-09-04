@@ -147,7 +147,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         comChamados: req.query.comChamados as string,
         codigoLoja: req.query.codigoLoja as string,
         cidade: req.query.cidade as string,
-        bairro: req.query.bairro as string
+        bairro: req.query.bairro as string,
+        uf: req.query.uf as string
       };
       const routes = await storage.getRoutes(fornecedorId, filters);
       res.json(routes);

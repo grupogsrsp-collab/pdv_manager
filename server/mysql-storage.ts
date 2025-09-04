@@ -646,7 +646,7 @@ export class MySQLStorage implements IStorage {
     }
     
     // Filtros de loja
-    if (filters?.codigoLoja || filters?.cidade || filters?.bairro) {
+    if (filters?.codigoLoja || filters?.cidade || filters?.bairro || filters?.uf) {
       query += `
         INNER JOIN rota_itens ri_filter ON r.id = ri_filter.rota_id
         INNER JOIN lojas l_filter ON (ri_filter.loja_id = l_filter.codigo_loja OR ri_filter.loja_id = l_filter.id)`;
@@ -664,6 +664,11 @@ export class MySQLStorage implements IStorage {
       if (filters.bairro) {
         whereConditions.push('l_filter.bairro LIKE ?');
         params.push(`%${filters.bairro}%`);
+      }
+      
+      if (filters.uf) {
+        whereConditions.push('l_filter.uf LIKE ?');
+        params.push(`%${filters.uf}%`);
       }
     }
     

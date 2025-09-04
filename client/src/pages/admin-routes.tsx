@@ -90,7 +90,8 @@ export default function AdminRoutes() {
     comChamados: 'todos',
     codigoLoja: '',
     cidade: '',
-    bairro: ''
+    bairro: '',
+    uf: ''
   });
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
@@ -109,7 +110,8 @@ export default function AdminRoutes() {
   const [debouncedTextFilters, setDebouncedTextFilters] = useState({
     codigoLoja: filters.codigoLoja,
     cidade: filters.cidade,
-    bairro: filters.bairro
+    bairro: filters.bairro,
+    uf: filters.uf
   });
 
   useEffect(() => {
@@ -117,12 +119,13 @@ export default function AdminRoutes() {
       setDebouncedTextFilters({
         codigoLoja: filters.codigoLoja,
         cidade: filters.cidade,
-        bairro: filters.bairro
+        bairro: filters.bairro,
+        uf: filters.uf
       });
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [filters.codigoLoja, filters.cidade, filters.bairro]);
+  }, [filters.codigoLoja, filters.cidade, filters.bairro, filters.uf]);
 
   // Filtros finais que combinam filtros imediatos (data, select) com filtros com debounce (texto)
   const finalFilters = useMemo(() => ({
@@ -131,14 +134,16 @@ export default function AdminRoutes() {
     comChamados: filters.comChamados,
     codigoLoja: debouncedTextFilters.codigoLoja,
     cidade: debouncedTextFilters.cidade,
-    bairro: debouncedTextFilters.bairro
+    bairro: debouncedTextFilters.bairro,
+    uf: debouncedTextFilters.uf
   }), [
     filters.dataInicio,
     filters.dataFim,
     filters.comChamados,
     debouncedTextFilters.codigoLoja,
     debouncedTextFilters.cidade,
-    debouncedTextFilters.bairro
+    debouncedTextFilters.bairro,
+    debouncedTextFilters.uf
   ]);
 
   const { data: routes, isLoading: routesLoading } = useQuery<Route[]>({
@@ -151,6 +156,7 @@ export default function AdminRoutes() {
       if (finalFilters.codigoLoja) params.append('codigoLoja', finalFilters.codigoLoja);
       if (finalFilters.cidade) params.append('cidade', finalFilters.cidade);
       if (finalFilters.bairro) params.append('bairro', finalFilters.bairro);
+      if (finalFilters.uf) params.append('uf', finalFilters.uf);
       
       const url = `/api/routes${params.toString() ? '?' + params.toString() : ''}`;
       return fetch(url).then(res => res.json());
@@ -884,13 +890,22 @@ export default function AdminRoutes() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Bairro</label>
               <Input
                 placeholder="Ex: Vila Olímpia"
                 value={filters.bairro}
                 onChange={(e) => setFilters(prev => ({ ...prev, bairro: e.target.value }))}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Estado</label>
+              <Input
+                placeholder="Ex: SP"
+                value={filters.uf}
+                onChange={(e) => setFilters(prev => ({ ...prev, uf: e.target.value }))}
                 className="text-sm"
               />
             </div>
@@ -903,7 +918,8 @@ export default function AdminRoutes() {
                   comChamados: 'todos',
                   codigoLoja: '',
                   cidade: '',
-                  bairro: ''
+                  bairro: '',
+                  uf: ''
                 })}
                 className="text-sm"
               >
