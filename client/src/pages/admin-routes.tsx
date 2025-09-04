@@ -1034,12 +1034,12 @@ export default function AdminRoutes() {
                         <div className="text-sm text-gray-600 space-y-1">
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-2" />
-                            Criada: {new Date(route.data_criacao).toLocaleDateString('pt-BR')}
+                            Criada: {route.data_criacao.split('T')[0].split('-').reverse().join('/')}
                           </div>
                           {route.data_prevista && (
                             <div className="flex items-center">
                               <Clock className="h-4 w-4 mr-2" />
-                              Prevista: {new Date(route.data_prevista).toLocaleDateString('pt-BR')}
+                              Prevista: {route.data_prevista.split('T')[0].split('-').reverse().join('/')}
                             </div>
                           )}
                         </div>
