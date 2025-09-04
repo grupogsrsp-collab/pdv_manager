@@ -1689,7 +1689,7 @@ export class MySQLStorage implements IStorage {
       
       // Buscar apenas os chamados abertos das lojas específicas desta rota
       const query = `
-        SELECT 
+        SELECT DISTINCT
           c.id,
           c.descricao,
           c.status,
@@ -1719,12 +1719,22 @@ export class MySQLStorage implements IStorage {
         LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
         LEFT JOIN lojas l ON (c.loja_id = l.codigo_loja OR c.loja_id = l.id)
         LEFT JOIN funcionarios_fornecedores ff ON c.instalador = ff.nome_funcionario AND ff.fornecedor_id = c.fornecedor_id
-        INNER JOIN rota_itens ri ON (ri.loja_id = l.codigo_loja OR ri.loja_id = l.id)
-        WHERE c.fornecedor_id = ? AND c.status = 'Aberto' AND ri.rota_id = ?
+        WHERE c.status = 'Aberto' 
+          AND (c.loja_id IN (
+            SELECT ri.loja_id 
+            FROM rota_itens ri 
+            WHERE ri.rota_id = ?
+          ) OR c.loja_id IN (
+            SELECT l2.id 
+            FROM lojas l2 
+            INNER JOIN rota_itens ri2 ON ri2.loja_id = l2.codigo_loja 
+            WHERE ri2.rota_id = ?
+          ))
+          AND c.fornecedor_id = ?
         ORDER BY c.data_abertura DESC
       `;
       
-      const [rows] = await pool.execute(query, [fornecedorId, routeId]) as [RowDataPacket[], any];
+      const [rows] = await pool.execute(query, [routeId, routeId, fornecedorId]) as [RowDataPacket[], any];
       
       return rows as Ticket[];
     } catch (error) {
