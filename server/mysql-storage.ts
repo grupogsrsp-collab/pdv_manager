@@ -600,15 +600,31 @@ export class MySQLStorage implements IStorage {
   }
 
   async getRoutes(fornecedorId?: number): Promise<Route[]> {
-    let query = 'SELECT * FROM rotas';
+    let query = `
+      SELECT 
+        r.*,
+        COALESCE(open_tickets.total_chamados, 0) as total_chamados_abertos
+      FROM rotas r
+      LEFT JOIN (
+        SELECT 
+          ri.rota_id,
+          COUNT(DISTINCT c.id) as total_chamados
+        FROM rota_itens ri
+        LEFT JOIN chamados c ON (
+          (c.loja_id = ri.loja_id OR c.loja_id = (SELECT l.id FROM lojas l WHERE l.codigo_loja = ri.loja_id))
+          AND c.status = 'Aberto'
+        )
+        GROUP BY ri.rota_id
+      ) open_tickets ON r.id = open_tickets.rota_id`;
+    
     const params = [];
     
     if (fornecedorId) {
-      query += ' WHERE fornecedor_id = ?';
+      query += ' WHERE r.fornecedor_id = ?';
       params.push(fornecedorId);
     }
     
-    query += ' ORDER BY data_criacao DESC';
+    query += ' ORDER BY r.data_criacao DESC';
     
     const [rows] = await pool.execute(query, params) as [RowDataPacket[], any];
     return rows as Route[];

@@ -349,6 +349,7 @@ export interface Route {
   data_prevista?: string | null;
   data_execucao?: string | null;
   created_by: number;
+  total_chamados_abertos?: number;
 }
 
 export interface InsertRoute {

@@ -794,7 +794,15 @@ export default function AdminRoutes() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-medium">{route.nome}</h3>
-                          {getStatusBadge(route.status)}
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(route.status)}
+                            {route.total_chamados_abertos && route.total_chamados_abertos > 0 && (
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                <div className="w-2 h-2 rounded-full bg-orange-500 mr-2"></div>
+                                Chamado
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="text-sm text-gray-600 space-y-1">
                           <div className="flex items-center">
