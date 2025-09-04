@@ -440,20 +440,25 @@ export default function AdminRouteTrack() {
                             <div key={ticket.id} className="pb-3 border-b last:border-0">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <div className="text-sm font-semibold mb-1">
-                                    Instalador {ticket.instalador?.replace(/[\[\]]/g, '') || '[nome do instalador]'} Telefone:
-                                    <span className="ml-2 text-xs text-gray-500 font-normal">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="text-sm font-medium">
+                                      <span className="font-semibold">Instalador</span> {ticket.instalador?.replace(/[\[\]]/g, '') || '[nome do instalador]'} <span className="font-semibold">Telefone:</span> {ticket.telefone_instalador || 'Não informado'}
+                                    </div>
+                                    <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                      {ticket.status}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-semibold text-gray-800">Comentário do Instalador</span>
+                                    <span className="text-xs text-gray-500">
                                       {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-gray-600 mb-1">{ticket.descricao}</p>
-                                  <p className="text-xs" style={{color: ticket.status === 'Aberto' || ticket.status === 'aberto' ? '#dc2626' : '#059669'}}>
-                                    Status: {ticket.status}
-                                  </p>
+                                  <p className="text-sm text-gray-700 mb-1">{ticket.descricao}</p>
                                 </div>
                                 <Button
                                   size="sm"
-                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                  className="bg-red-500 hover:bg-red-600 text-white ml-4"
                                   onClick={() => handleCloseTicket(ticket.id)}
                                   disabled={closeTicketMutation.isPending}
                                 >
@@ -472,20 +477,25 @@ export default function AdminRouteTrack() {
                             <div key={ticket.id} className="pb-3 border-b last:border-0">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <div className="text-sm font-semibold mb-1">
-                                    Lojista Responsável: Telefone: {ticket.telefone_loja || ''}
-                                    <span className="ml-2 text-xs text-gray-500 font-normal">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="text-sm font-medium">
+                                      <span className="font-semibold">Lojista Responsável: Telefone:</span> {ticket.telefone_loja || 'Não informado'}
+                                    </div>
+                                    <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                      {ticket.status}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-semibold text-gray-800">Comentário do Lojista</span>
+                                    <span className="text-xs text-gray-500">
                                       {new Date(ticket.data_abertura).toLocaleDateString('pt-BR')}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-gray-600 mb-1">{ticket.descricao}</p>
-                                  <p className="text-xs" style={{color: ticket.status === 'Aberto' || ticket.status === 'aberto' ? '#dc2626' : '#059669'}}>
-                                    Status: {ticket.status}
-                                  </p>
+                                  <p className="text-sm text-gray-700 mb-1">{ticket.descricao}</p>
                                 </div>
                                 <Button
                                   size="sm"
-                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                  className="bg-red-500 hover:bg-red-600 text-white ml-4"
                                   onClick={() => handleCloseTicket(ticket.id)}
                                   disabled={closeTicketMutation.isPending}
                                 >

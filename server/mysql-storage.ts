@@ -1699,6 +1699,7 @@ export class MySQLStorage implements IStorage {
           c.instalador,
           f.nome_fornecedor,
           f.telefone AS telefone_fornecedor,
+          ff.telefone AS telefone_instalador,
           l.codigo_loja,
           l.nome_loja,
           l.nome_operador,
@@ -1717,6 +1718,7 @@ export class MySQLStorage implements IStorage {
         FROM chamados c
         LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
         LEFT JOIN lojas l ON (c.loja_id = l.codigo_loja OR c.loja_id = l.id)
+        LEFT JOIN funcionarios_fornecedores ff ON c.instalador = ff.nome_funcionario AND ff.fornecedor_id = c.fornecedor_id
         WHERE c.fornecedor_id = ? AND c.status = 'Aberto'
         ORDER BY c.data_abertura DESC
       `;

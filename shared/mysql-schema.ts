@@ -104,6 +104,7 @@ export interface Ticket {
   // Campos do JOIN - Fornecedor
   nome_fornecedor?: string;
   telefone_fornecedor?: string;
+  telefone_instalador?: string;
   estado_fornecedor?: string;
   endereco_fornecedor?: string;
   nome_responsavel?: string;
