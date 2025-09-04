@@ -1,0 +1,34 @@
+Objetivo: Corrigir o carregamento da aba "Chamados" para que retorne apenas os chamados associados à rota atual, mantendo as funcionalidades de visualização e gerenciamento.
+
+Criação e Posicionamento da Aba (Mantido):
+
+Crie uma nova aba na interface de usuário da rota /admin/routes/8/track.
+
+A aba deve ser nomeada "Chamados".
+
+Estrutura e Conteúdo da Aba (Mantido):
+
+Dentro da aba "Chamados", implemente um quadro ou seção para cada loja que tenha chamados em aberto.
+
+Cada quadro deve exibir o nome da loja associada.
+
+Visualização e Consolidação de Dados (CORRIGIDO):
+
+Para cada loja, a seção deve listar todos os chamados em aberto relacionados.
+
+CORREÇÃO CRÍTICA: A busca deve ser filtrada para retornar apenas os chamados associados à rota em questão. Use o ID da rota (por exemplo, o 8 em /admin/routes/8/track) para fazer a correspondência com os chamados das lojas vinculadas a essa rota.
+
+Os chamados devem ser buscados no banco de dados, retornando tanto os chamados referentes ao fornecedor (instalador) quanto os chamados referentes ao lojista.
+
+Todos os chamados devem aparecer juntos, ordenados por data de abertura (do mais recente para o mais antigo).
+
+Cada chamado na lista deve ser identificado pelo seu tipo (ex: [Tipo: Fornecedor] ou [Tipo: Lojista]).
+
+Funcionalidades Interativas (Mantido):
+
+Botão de Encerramento: Ao lado de cada chamado listado, adicione um botão intuitivo para que o usuário possa encerrar o chamado. A ação deve atualizar o status do chamado no banco de dados para "encerrado".
+
+Campo de Anotações: Em cada quadro de loja, abaixo da lista de chamados, adicione um campo de texto multilinhas rotulado "Anotações". Este campo deve permitir que o usuário adicione e salve informações de texto relacionadas aos chamados daquela loja.
+
+Instrução de Segurança Crítica (Mantido):
+Reforce que esta implementação deve ser realizada sem modificar ou alterar qualquer outra função, rota, tabela ou dado que já esteja em pleno funcionamento no código e no banco de dados. A tarefa se restringe exclusivamente à criação e funcionalidade da nova aba "Chamados" e seus componentes.

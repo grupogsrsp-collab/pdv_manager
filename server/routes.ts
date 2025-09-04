@@ -746,7 +746,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/routes/:id/tickets", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
+      console.log('🔍 Buscando chamados para rota:', routeId);
+      
+      // Debug: buscar todos os chamados primeiro
+      const allTickets = await storage.getAllTickets();
+      console.log('📝 Total de chamados no sistema:', allTickets.length);
+      
       const tickets = await storage.getOpenTicketsByRoute(routeId);
+      console.log('🎯 Chamados filtrados para rota:', tickets.length);
+      
       res.json(tickets);
     } catch (error) {
       console.error("Erro ao buscar chamados da rota:", error);

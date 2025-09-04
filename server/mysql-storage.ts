@@ -1671,36 +1671,61 @@ export class MySQLStorage implements IStorage {
   }
 
   async getOpenTicketsByRoute(routeId: number): Promise<Ticket[]> {
-    const query = `
-      SELECT 
-        c.id,
-        c.descricao,
-        c.status,
-        c.loja_id,
-        c.fornecedor_id,
-        c.data_abertura,
-        c.instalador,
-        f.nome_fornecedor,
-        f.telefone AS telefone_fornecedor,
-        l.codigo_loja,
-        l.nome_loja,
-        l.nome_operador,
-        l.cidade,
-        l.uf,
-        CASE 
-          WHEN c.instalador = 'Lojista' THEN 'loja'
-          ELSE 'fornecedor'
-        END as tipo_chamado
-      FROM chamados c
-      LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
-      LEFT JOIN lojas l ON c.loja_id = l.id
-      INNER JOIN rota_itens ri ON ri.loja_id = l.id
-      WHERE ri.rota_id = ? AND c.status = 'aberto'
-      ORDER BY c.data_abertura DESC
-    `;
-    
-    const [rows] = await pool.execute(query, [routeId]) as [RowDataPacket[], any];
-    return rows as Ticket[];
+    try {
+      // Verificar se a rota existe e buscar suas lojas
+      const [routeRows] = await pool.execute(
+        `SELECT r.*, f.nome_fornecedor FROM rotas r 
+         LEFT JOIN fornecedores f ON r.fornecedor_id = f.id 
+         WHERE r.id = ?`,
+        [routeId]
+      ) as [RowDataPacket[], any];
+      
+      if (routeRows.length === 0) {
+        console.log('❌ Rota não encontrada:', routeId);
+        return [];
+      }
+      
+      const route = routeRows[0];
+      const fornecedorId = route.fornecedor_id;
+      
+      console.log('✅ Rota encontrada:', route.nome, 'Fornecedor:', fornecedorId);
+      
+      // Buscar todos os chamados abertos para o fornecedor da rota
+      const query = `
+        SELECT 
+          c.id,
+          c.descricao,
+          c.status,
+          c.loja_id,
+          c.fornecedor_id,
+          c.data_abertura,
+          c.instalador,
+          f.nome_fornecedor,
+          f.telefone AS telefone_fornecedor,
+          l.codigo_loja,
+          l.nome_loja,
+          l.nome_operador,
+          l.cidade,
+          l.uf,
+          CASE 
+            WHEN c.instalador = 'Lojista' THEN 'loja'
+            ELSE 'fornecedor'
+          END as tipo_chamado
+        FROM chamados c
+        LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
+        LEFT JOIN lojas l ON c.loja_id = l.codigo_loja
+        WHERE c.fornecedor_id = ? AND c.status = 'Aberto'
+        ORDER BY c.data_abertura DESC
+      `;
+      
+      const [rows] = await pool.execute(query, [fornecedorId]) as [RowDataPacket[], any];
+      console.log('🎯 Chamados encontrados para fornecedor', fornecedorId, ':', rows.length);
+      
+      return rows as Ticket[];
+    } catch (error) {
+      console.error('❌ Erro ao buscar chamados da rota:', error);
+      return [];
+    }
   }
 
 
