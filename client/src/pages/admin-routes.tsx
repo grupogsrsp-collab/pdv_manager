@@ -105,27 +105,52 @@ export default function AdminRoutes() {
   const queryClient = useQueryClient();
 
   // Query para buscar rotas
-  // Debounce dos filtros para melhorar performance
-  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+  // Debounce para os filtros de texto (campos que o usuário digita)
+  const [debouncedTextFilters, setDebouncedTextFilters] = useState({
+    codigoLoja: filters.codigoLoja,
+    cidade: filters.cidade,
+    bairro: filters.bairro
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedFilters(filters);
-    }, 500);
+      setDebouncedTextFilters({
+        codigoLoja: filters.codigoLoja,
+        cidade: filters.cidade,
+        bairro: filters.bairro
+      });
+    }, 800);
 
     return () => clearTimeout(timer);
-  }, [filters]);
+  }, [filters.codigoLoja, filters.cidade, filters.bairro]);
+
+  // Filtros finais que combinam filtros imediatos (data, select) com filtros com debounce (texto)
+  const finalFilters = useMemo(() => ({
+    dataInicio: filters.dataInicio,
+    dataFim: filters.dataFim,
+    comChamados: filters.comChamados,
+    codigoLoja: debouncedTextFilters.codigoLoja,
+    cidade: debouncedTextFilters.cidade,
+    bairro: debouncedTextFilters.bairro
+  }), [
+    filters.dataInicio,
+    filters.dataFim,
+    filters.comChamados,
+    debouncedTextFilters.codigoLoja,
+    debouncedTextFilters.cidade,
+    debouncedTextFilters.bairro
+  ]);
 
   const { data: routes, isLoading: routesLoading } = useQuery<Route[]>({
-    queryKey: ['/api/routes', debouncedFilters],
+    queryKey: ['/api/routes', finalFilters],
     queryFn: () => {
       const params = new URLSearchParams();
-      if (debouncedFilters.dataInicio) params.append('dataInicio', debouncedFilters.dataInicio);
-      if (debouncedFilters.dataFim) params.append('dataFim', debouncedFilters.dataFim);
-      if (debouncedFilters.comChamados && debouncedFilters.comChamados !== 'todos') params.append('comChamados', debouncedFilters.comChamados);
-      if (debouncedFilters.codigoLoja) params.append('codigoLoja', debouncedFilters.codigoLoja);
-      if (debouncedFilters.cidade) params.append('cidade', debouncedFilters.cidade);
-      if (debouncedFilters.bairro) params.append('bairro', debouncedFilters.bairro);
+      if (finalFilters.dataInicio) params.append('dataInicio', finalFilters.dataInicio);
+      if (finalFilters.dataFim) params.append('dataFim', finalFilters.dataFim);
+      if (finalFilters.comChamados && finalFilters.comChamados !== 'todos') params.append('comChamados', finalFilters.comChamados);
+      if (finalFilters.codigoLoja) params.append('codigoLoja', finalFilters.codigoLoja);
+      if (finalFilters.cidade) params.append('cidade', finalFilters.cidade);
+      if (finalFilters.bairro) params.append('bairro', finalFilters.bairro);
       
       const url = `/api/routes${params.toString() ? '?' + params.toString() : ''}`;
       return fetch(url).then(res => res.json());
