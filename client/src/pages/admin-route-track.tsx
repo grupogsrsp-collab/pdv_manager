@@ -36,7 +36,6 @@ interface RouteDetails {
   lojas: RouteStoreStatus[];
   funcionarios: string[];
   instaladores: string[];
-  telefones_instaladores: string[];
 }
 
 export default function AdminRouteTrack() {
@@ -148,7 +147,7 @@ export default function AdminRouteTrack() {
             </div>
             {routeDetails.fornecedor_telefone && (
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Telefone</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Telefone Empresa</p>
                 <p className="font-medium">{routeDetails.fornecedor_telefone}</p>
               </div>
             )}
@@ -177,13 +176,11 @@ export default function AdminRouteTrack() {
             {routeDetails.instaladores && routeDetails.instaladores.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">Instaladores</p>
-                <p className="font-medium">{routeDetails.instaladores.join(', ')}</p>
-              </div>
-            )}
-            {routeDetails.telefones_instaladores && routeDetails.telefones_instaladores.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Telefone</p>
-                <p className="font-medium">{routeDetails.telefones_instaladores.join(', ')}</p>
+                <div className="font-medium">
+                  {routeDetails.instaladores.map((instalador, index) => (
+                    <div key={index}>{instalador}</div>
+                  ))}
+                </div>
               </div>
             )}
             {routeDetails.observacoes && (

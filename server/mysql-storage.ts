@@ -1021,8 +1021,10 @@ export class MySQLStorage implements IStorage {
       [route.fornecedor_id]
     ) as [RowDataPacket[], any];
     
-    const instaladores = instaladoresRows.map((inst: any) => inst.nome_funcionario);
-    const telefones_instaladores = instaladoresRows.map((inst: any) => inst.telefone).filter((tel: any) => tel && tel.trim() !== '');
+    const instaladores = instaladoresRows.map((inst: any) => {
+      const telefone = inst.telefone && inst.telefone.trim() !== '' ? inst.telefone : 'Não informado';
+      return `${inst.nome_funcionario} - ${telefone}`;
+    });
     
     // Buscar lojas da rota com status
     const [storeRows] = await pool.execute(
@@ -1086,7 +1088,6 @@ export class MySQLStorage implements IStorage {
       observacoes: route.observacoes,
       funcionarios,
       instaladores,
-      telefones_instaladores,
       lojas
     };
   }
