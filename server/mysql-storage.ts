@@ -1936,7 +1936,7 @@ export class MySQLStorage implements IStorage {
         FROM chamados c
         LEFT JOIN fornecedores f ON c.fornecedor_id = f.id
         LEFT JOIN lojas l ON (c.loja_id = l.codigo_loja OR c.loja_id = l.id)
-        LEFT JOIN funcionarios_fornecedores ff ON c.instalador = ff.nome_funcionario AND ff.fornecedor_id = c.fornecedor_id
+        LEFT JOIN funcionarios_fornecedores ff ON ff.nome_funcionario LIKE CONCAT(c.instalador, '%') AND ff.fornecedor_id = c.fornecedor_id
         WHERE c.status = 'Aberto' 
           AND (c.loja_id IN (
             SELECT ri.loja_id 
