@@ -1018,6 +1018,12 @@ export default function AdminRoutes() {
                                 Chamado
                               </Badge>
                             )}
+                            {(route as any).total_lojas_instaladas > 0 && (
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                                <div className="w-2 h-2 rounded-full bg-gray-500 mr-2"></div>
+                                Lojas Instaladas: {(route as any).total_lojas_instaladas}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         <div className="text-sm text-gray-600 space-y-1">

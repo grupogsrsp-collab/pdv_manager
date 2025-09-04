@@ -603,7 +603,8 @@ export class MySQLStorage implements IStorage {
     let query = `
       SELECT 
         r.*,
-        COALESCE(open_tickets.total_chamados, 0) as total_chamados_abertos
+        COALESCE(open_tickets.total_chamados, 0) as total_chamados_abertos,
+        COALESCE(installed_stores.total_instaladas, 0) as total_lojas_instaladas
       FROM rotas r
       LEFT JOIN (
         SELECT 
@@ -615,7 +616,18 @@ export class MySQLStorage implements IStorage {
           AND c.status = 'Aberto'
         )
         GROUP BY ri.rota_id
-      ) open_tickets ON r.id = open_tickets.rota_id`;
+      ) open_tickets ON r.id = open_tickets.rota_id
+      LEFT JOIN (
+        SELECT 
+          ri.rota_id,
+          COUNT(DISTINCT i.loja_id) as total_instaladas
+        FROM rota_itens ri
+        INNER JOIN instalacoes i ON (
+          i.loja_id = ri.loja_id OR i.loja_id = (SELECT l.id FROM lojas l WHERE l.codigo_loja = ri.loja_id)
+        )
+        WHERE i.finalizada = 1
+        GROUP BY ri.rota_id
+      ) installed_stores ON r.id = installed_stores.rota_id`;
     
     const params = [];
     const whereConditions = [];
