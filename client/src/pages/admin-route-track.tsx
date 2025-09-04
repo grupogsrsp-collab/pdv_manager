@@ -407,8 +407,8 @@ export default function AdminRouteTrack() {
                       
                       <div className="text-right">
                         {getStatusBadge(loja)}
-                        {/* Mostrar data de finalização do lojista se existir */}
-                        {loja.finalizada_lojista && loja.data_finalizacao_lojista && (
+                        {/* Priorizar data de finalização do lojista */}
+                        {loja.data_finalizacao_lojista ? (
                           <div className="text-xs text-gray-600 mt-1">
                             <div className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" />
@@ -421,14 +421,12 @@ export default function AdminRouteTrack() {
                               </div>
                             )}
                           </div>
-                        )}
-                        {/* Mostrar data de instalação se não tiver finalização do lojista */}
-                        {!loja.finalizada_lojista && loja.data_instalacao && (
+                        ) : loja.data_instalacao ? (
                           <div className="flex items-center text-xs text-gray-500 mt-1">
                             <Clock className="h-3 w-3 mr-1" />
                             {new Date(loja.data_instalacao).toLocaleDateString('pt-BR')}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
