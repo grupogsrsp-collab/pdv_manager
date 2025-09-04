@@ -1,8 +1,10 @@
 import { useState } from "react";
+import * as React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -18,6 +20,8 @@ export default function AdminTickets() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [annotations, setAnnotations] = useState<Record<string, string>>({});
+  const [savingAnnotations, setSavingAnnotations] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   const { data: tickets, isLoading } = useQuery({
@@ -102,6 +106,72 @@ export default function AdminTickets() {
     setSelectedTicket(ticket);
     setShowDetailsModal(true);
   };
+
+  // Funções para anotações (espelhadas do admin-route-track)
+  const handleAnnotationChange = (storeId: string, value: string) => {
+    setAnnotations(prev => ({
+      ...prev,
+      [storeId]: value
+    }));
+  };
+
+  const saveAnnotationsMutation = useMutation({
+    mutationFn: async ({ storeId, annotations }: { storeId: string, annotations: string }) => {
+      // Como não temos routeId aqui, vamos criar um endpoint específico para tickets
+      const response = await fetch(`/api/stores/${storeId}/annotations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annotations })
+      });
+      if (!response.ok) throw new Error('Erro ao salvar anotações');
+    },
+    onSuccess: (_, { storeId }) => {
+      setSavingAnnotations(prev => ({ ...prev, [storeId]: false }));
+      toast({ title: 'Anotações salvas com sucesso!' });
+    },
+    onError: (_, { storeId }) => {
+      setSavingAnnotations(prev => ({ ...prev, [storeId]: false }));
+      toast({ title: 'Erro ao salvar anotações', variant: 'destructive' });
+    },
+  });
+
+  const handleSaveAnnotations = (storeId: string) => {
+    setSavingAnnotations(prev => ({ ...prev, [storeId]: true }));
+    saveAnnotationsMutation.mutate({ 
+      storeId, 
+      annotations: annotations[storeId] || '' 
+    });
+  };
+
+  // Carregar anotações existentes
+  const { data: existingAnnotations } = useQuery<Record<string, string>>({
+    queryKey: ['/api/tickets', 'annotations'],
+    queryFn: async () => {
+      const result: Record<string, string> = {};
+      const storeIds = Object.keys(groupedTickets);
+      
+      await Promise.all(storeIds.map(async (storeId) => {
+        try {
+          const response = await fetch(`/api/stores/${storeId}/annotations`);
+          if (response.ok) {
+            const data = await response.json();
+            result[storeId] = data.annotations || '';
+          }
+        } catch (error) {
+          console.error('Erro ao carregar anotações:', error);
+        }
+      }));
+      
+      return result;
+    },
+    enabled: Object.keys(groupedTickets).length > 0,
+  });
+
+  React.useEffect(() => {
+    if (existingAnnotations) {
+      setAnnotations(prev => ({ ...prev, ...existingAnnotations }));
+    }
+  }, [existingAnnotations]);
 
   if (isLoading) {
     return (
@@ -356,6 +426,27 @@ export default function AdminTickets() {
                         </div>
                       </div>
                     )}
+
+                    {/* Campo de Anotações */}
+                    <div className="border-t pt-4 mt-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Anotações
+                      </label>
+                      <Textarea
+                        placeholder="Adicione anotações sobre os chamados desta loja..."
+                        value={annotations[storeId] || ''}
+                        onChange={(e) => handleAnnotationChange(storeId, e.target.value)}
+                        className="min-h-[100px] mb-2"
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleSaveAnnotations(storeId)}
+                        disabled={savingAnnotations[storeId] || saveAnnotationsMutation.isPending}
+                      >
+                        {savingAnnotations[storeId] ? 'Salvando...' : 'Salvar Anotações'}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
