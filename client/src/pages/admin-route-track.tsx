@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, MapPin, Building2, CheckCircle, XCircle, AlertTriangle, Phone, Clock, User, MessageSquare, FileX } from "lucide-react";
+import { ArrowLeft, MapPin, Building2, CheckCircle, XCircle, AlertTriangle, Phone, Clock, User, MessageSquare, FileX, Store } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
