@@ -321,7 +321,19 @@ export default function AdminRouteTrack() {
                 {routeDetails.observacoes && (
                   <div className="md:col-span-2 lg:col-span-3">
                     <p className="text-sm font-medium text-gray-600 mb-1">Observações</p>
-                    <p className="font-medium">{routeDetails.observacoes}</p>
+                    <p className="font-medium">
+                      {(() => {
+                        try {
+                          const parsed = JSON.parse(routeDetails.observacoes);
+                          if (parsed.general) {
+                            return parsed.general;
+                          }
+                          return routeDetails.observacoes;
+                        } catch {
+                          return routeDetails.observacoes;
+                        }
+                      })()}
+                    </p>
                   </div>
                 )}
               </div>
