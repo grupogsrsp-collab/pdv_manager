@@ -165,6 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dataPrevistaInicio: convertDateFormat(req.query.dataPrevistaInicio as string),
         dataPrevistaFim: convertDateFormat(req.query.dataPrevistaFim as string)
       };
+
       const routes = await storage.getRoutes(fornecedorId, filters);
       res.json(routes);
     } catch (error) {
