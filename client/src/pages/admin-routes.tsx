@@ -895,6 +895,8 @@ export default function AdminRoutes() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Código da Loja</label>
               <Input
@@ -913,8 +915,6 @@ export default function AdminRoutes() {
                 className="text-sm"
               />
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Bairro</label>
               <Input
