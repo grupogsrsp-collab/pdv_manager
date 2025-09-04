@@ -22,8 +22,10 @@ interface RouteStoreStatus {
   logradouro: string;
   telefone_loja: string;
   nome_operador: string;
-  status: 'finalizada' | 'pendente' | 'chamado_aberto';
+  status: 'finalizada' | 'pendente' | 'chamado_aberto' | 'Não Iniciado' | 'Instalação Finalizada' | 'Finalizado';
   instalacao_finalizada: boolean;
+  finalizada_instalador?: boolean;
+  finalizada_lojista?: boolean;
   tem_chamado_aberto: boolean;
   data_instalacao?: string;
   ultimo_chamado?: string;
@@ -81,31 +83,44 @@ export default function AdminRouteTrack() {
   });
 
   const getStatusIcon = (store: RouteStoreStatus) => {
-    if (store.tem_chamado_aberto) {
+    if (store.tem_chamado_aberto || store.status === 'chamado_aberto') {
       return <AlertTriangle className="h-5 w-5 text-orange-500" />;
     }
-    if (store.instalacao_finalizada) {
+    if (store.status === 'Finalizado' || (store.finalizada_instalador && store.finalizada_lojista)) {
       return <CheckCircle className="h-5 w-5 text-green-500" />;
+    }
+    if (store.status === 'Instalação Finalizada' || (store.finalizada_instalador && !store.finalizada_lojista)) {
+      return <Clock className="h-5 w-5 text-yellow-500" />;
     }
     return <XCircle className="h-5 w-5 text-red-500" />;
   };
 
   const getStatusBadge = (store: RouteStoreStatus) => {
-    if (store.tem_chamado_aberto) {
+    if (store.tem_chamado_aberto || store.status === 'chamado_aberto') {
       return <Badge variant="secondary" className="bg-orange-100 text-orange-800">Chamado Aberto</Badge>;
     }
-    if (store.instalacao_finalizada) {
-      return <Badge variant="secondary" className="bg-green-100 text-green-800">Finalizada</Badge>;
+    if (store.status === 'Finalizado' || (store.finalizada_instalador && store.finalizada_lojista)) {
+      return <Badge variant="secondary" className="bg-green-100 text-green-800">Finalizado</Badge>;
     }
-    return <Badge variant="secondary" className="bg-red-100 text-red-800">Pendente</Badge>;
+    if (store.status === 'Instalação Finalizada' || (store.finalizada_instalador && !store.finalizada_lojista)) {
+      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Instalação Finalizada</Badge>;
+    }
+    return <Badge variant="secondary" className="bg-red-100 text-red-800">Não Iniciado</Badge>;
   };
 
   const getStatusSummary = (lojas: RouteStoreStatus[]) => {
-    const finalizadas = lojas.filter(l => l.instalacao_finalizada && !l.tem_chamado_aberto).length;
-    const pendentes = lojas.filter(l => !l.instalacao_finalizada && !l.tem_chamado_aberto).length;
-    const chamados = lojas.filter(l => l.tem_chamado_aberto).length;
+    const finalizadas = lojas.filter(l => 
+      (l.status === 'Finalizado' || (l.finalizada_instalador && l.finalizada_lojista)) && !l.tem_chamado_aberto
+    ).length;
+    const instalacaoFinalizada = lojas.filter(l => 
+      (l.status === 'Instalação Finalizada' || (l.finalizada_instalador && !l.finalizada_lojista)) && !l.tem_chamado_aberto
+    ).length;
+    const naoIniciado = lojas.filter(l => 
+      (l.status === 'Não Iniciado' || (!l.finalizada_instalador && !l.finalizada_lojista)) && !l.tem_chamado_aberto
+    ).length;
+    const chamados = lojas.filter(l => l.tem_chamado_aberto || l.status === 'chamado_aberto').length;
     
-    return { finalizadas, pendentes, chamados, total: lojas.length };
+    return { finalizadas, instalacaoFinalizada, naoIniciado, chamados, total: lojas.length };
   };
 
   const groupTicketsByStore = (tickets: Ticket[]) => {
